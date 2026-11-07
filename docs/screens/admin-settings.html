@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S34 Settings Admin · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S34" data-layout="shell-admin" data-user="admin" data-active="settings">
+<main>
+  <div class="page-head"><div><h1>Settings</h1><p>The numbers and switches the shop runs on.</p></div></div>
+  <div class="split">
+    <div class="stack lg">
+      <form class="panel stack" data-demo data-ok="Fees saved" novalidate data-c="Fees"><h3>Fees</h3>
+        <div class="alert warn"><i data-i="alert"></i><div><strong>Example values.</strong>Set the real ones before going live. A new Commission applies to Orders paid after you save. Existing Orders keep the rate they were paid at.</div></div>
+        <div class="form-grid"><div class="field"><label for="cm">Commission</label><div class="input-group"><input class="input mono" id="cm" value="10" inputmode="decimal"><span class="affix">%</span></div><span class="hint">Kept from every Order's price.</span></div>
+          <div class="field"><label for="of">Onboarding fee</label><div class="input-group"><span class="affix">₹</span><input class="input mono" id="of" value="499" inputmode="numeric"></div><span class="hint">One-time, non-refundable.</span></div></div>
+        <div class="callout small"><strong>Preview on a ₹2,500 Print:</strong> Commission ₹250 · Razorpay fee ≈ ₹50 · Artist receives ≈ ₹2,200.</div>
+        <div class="row end"><button class="btn btn-primary" type="submit">Save fees</button></div></form>
+
+      <section class="panel stack" data-c="Switches"><h3>Switches</h3>
+        <ul class="list"><li><label class="switch grow"><input type="checkbox" checked><span><strong>Instagram Connect</strong><br><span class="small muted">Off until Meta approves the app. Artists can still paste links.</span></span></label></li>
+          <li><label class="switch grow"><input type="checkbox" checked><span><strong>Accept new Artists</strong><br><span class="small muted">Off hides "Become an Artist".</span></span></label></li>
+          <li><label class="switch grow"><input type="checkbox"><span><strong>Demo banner</strong><br><span class="small muted">The "test mode" strip at the top of every page. Turn off at go-live.</span></span></label></li></ul></section>
+
+      <section class="panel stack" data-c="Fixed rules"><h3>Shop rules</h3><p class="small muted">These are set in code. Changing one is a release, not a setting, so everyone sees the same rules.</p>
+        <div class="table-wrap"><table class="table"><tbody>
+          <tr><td>Checkout Hold</td><td class="r mono">15 minutes</td></tr><tr><td>Ship deadline</td><td class="r mono">7 days after payment</td></tr><tr><td>Auto-Received</td><td class="r mono">14 days after Shipped</td></tr><tr><td>Damage Report window</td><td class="r mono">3 days after Received</td></tr><tr><td>Review window</td><td class="r mono">30 days after Received</td></tr><tr><td>Payout runs</td><td class="r mono">1st and 15th</td></tr><tr><td>Amount Owed before Restricted</td><td class="r mono">60 days</td></tr></tbody></table></div></section>
+    </div>
+    <aside class="stack sticky">
+      <section class="panel stack" data-c="Admins"><div class="row between"><h4>Admins</h4><button class="btn btn-secondary btn-sm" data-open="adm"><i data-i="plus" data-size="16"></i>Add</button></div>
+        <ul class="list"><li><span class="avatar sm">AD</span><span class="grow"><strong>Admin</strong><br><span class="xs muted">you@craftme.example</span></span><span class="badge accent">You</span></li><li><span class="avatar sm">SA</span><span class="grow"><strong>Support Asha</strong><br><span class="xs muted">asha@craftme.example</span></span><button class="btn btn-ghost btn-sm" data-toast="Admin role removed">Remove</button></li></ul></section>
+      <section class="panel stack" data-c="Integrations"><h4>Integrations</h4><ul class="list small"><li><span class="grow">Razorpay</span><span class="badge warn">Test mode</span></li><li><span class="grow">Email (SendGrid)</span><span class="badge ok">Connected</span></li><li><span class="grow">Instagram app</span><span class="badge warn">Development mode</span></li></ul></section>
+    </aside>
+  </div>
+</main>
+<div class="modal-backdrop" id="adm" hidden><div class="modal sm" role="dialog" aria-modal="true" aria-labelledby="ad-t"><div class="modal-head"><h3 id="ad-t">Add an Admin</h3><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+  <div class="modal-body"><div class="field"><label for="ad-e">Email of an existing Account</label><input class="input" id="ad-e" type="email" placeholder="name@example.com"></div><div class="alert warn"><i data-i="shield"></i><div>Admins can see Artist payout details and issue Refunds.</div></div></div>
+  <div class="modal-foot"><button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-close data-toast="Admin role granted">Grant Admin</button></div></div></div>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

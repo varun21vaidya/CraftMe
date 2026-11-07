@@ -1,0 +1,45 @@
+{
+  "name": "artist-marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "firebase": "^11.6.0",
+    "formik": "^2.4.6",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-firebase-hooks": "^5.1.1",
+    "react-lazy-load-image-component": "^1.6.3",
+    "react-router-dom": "^7.4.1",
+    "yup": "^1.6.1"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .js,.jsx",
+    "test": "vitest run"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "@vitejs/plugin-react": "^6.2.1",
+    "eslint": "^8.57.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "prettier": "^3.5.3",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  },
+  "type": "module"
+}

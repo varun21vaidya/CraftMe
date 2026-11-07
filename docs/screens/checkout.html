@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S09 Checkout · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S09" data-layout="public" data-user="buyer" data-cart="2" data-states="default,error,expired">
+<main class="wrap page">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="cart.html">Cart</a><i data-i="chevron-right" data-size="14"></i><span aria-current="page">Checkout</span></nav>
+  <div class="page-head"><div><h1>Checkout</h1><p>Where should Meera send it? Shipping is included, India only.</p></div></div>
+  <ol class="stepper" aria-label="Checkout steps" style="max-width: 520px" data-c="Steps"><li class="now">Address</li><li>Pay</li><li>Done</li></ol>
+
+  <div class="alert err" data-s="expired" role="alert" data-c="Hold expired"><i data-i="clock"></i><div><strong>These took too long to pay for</strong>The pieces went back on the wall. They're still in your Cart. Check they're available, then pay.<br><a class="btn btn-secondary btn-sm" href="cart.html">Return to Cart</a></div></div>
+  <div class="alert err" data-s="error" role="alert"><i data-i="alert"></i><div><strong>Fix 3 things before paying</strong>Phone number, PIN code and State need attention.</div></div>
+
+  <div class="split">
+    <form class="stack lg" data-demo data-next="payment-modal.html" data-loading="0" novalidate aria-label="Shipping address">
+      <section class="panel stack" data-c="Shipping address">
+        <h3>Shipping address</h3>
+        <div class="form-grid">
+          <div class="field"><label for="cn">Full name <span class="req">*</span></label><input class="input" id="cn" value="Ananya Verma" autocomplete="name"></div>
+          <div class="field" id="fph"><label for="cph">Phone <span class="req">*</span></label><div class="input-group"><span class="affix">+91</span><input class="input" id="cph" inputmode="numeric" autocomplete="tel-national" value="98765 4321" maxlength="11"></div>
+            <span class="hint" data-s="default expired">The courier may call this number.</span><span class="error-msg" data-s="error"><i data-i="alert" data-size="14"></i>Enter a 10-digit mobile number.</span></div>
+          <div class="field full"><label for="a1">Address line 1 <span class="req">*</span></label><input class="input" id="a1" value="Flat 402, Sea Breeze Apartments" autocomplete="address-line1"></div>
+          <div class="field full"><label for="a2">Address line 2 <span class="opt">optional</span></label><input class="input" id="a2" value="Carter Road, Bandra West" autocomplete="address-line2"></div>
+          <div class="field"><label for="lm">Landmark <span class="opt">optional</span></label><input class="input" id="lm" placeholder="Near the Cafe Coffee Day"></div>
+          <div class="field" id="fpin"><label for="pin">PIN code <span class="req">*</span></label><input class="input" id="pin" inputmode="numeric" maxlength="6" value="400050" autocomplete="postal-code">
+            <span class="hint" data-s="default expired">We'll fill city and State when we can.</span><span class="error-msg" data-s="error"><i data-i="alert" data-size="14"></i>PIN codes have 6 digits. This one isn't served.</span></div>
+          <div class="field"><label for="ct">City <span class="req">*</span></label><input class="input" id="ct" value="Mumbai" autocomplete="address-level2"></div>
+          <div class="field"><label for="st">State <span class="req">*</span></label><select class="select" id="st"><option>Maharashtra</option><option>Delhi</option><option>Karnataka</option><option>Tamil Nadu</option><option>West Bengal</option><option>Rajasthan</option><option>Uttar Pradesh</option><option>Kerala</option><option>Gujarat</option><option>Telangana</option><option>More…</option></select></div>
+        </div>
+        <label class="check"><input type="checkbox" checked> Save this address to my profile</label>
+        <div class="alert info"><i data-i="info"></i><div>CraftMe delivers within India only. Your address is shared with Meera Iyer only after payment, to post your parcel.</div></div>
+      </section>
+      <section class="panel stack" data-c="Payment method note">
+        <h3>Payment</h3>
+        <p class="muted">Pay by card, UPI, netbanking or wallet. Your money is protected until your parcel arrives safely.</p>
+        <div class="row" aria-label="Payment methods"><span class="badge">Card</span><span class="badge">UPI</span><span class="badge">Netbanking</span><span class="badge">Wallet</span></div>
+      </section>
+      <label class="check"><input type="checkbox" checked> <span>I agree to the <a href="legal.html#terms">Terms</a> and <a href="legal.html#refunds">Refund policy</a>.</span></label>
+      <button class="btn btn-primary btn-lg" type="submit" data-s="default error"><i data-i="lock"></i>Pay ₹6,900</button>
+      <button class="btn btn-primary btn-lg" type="button" disabled data-s="expired">Pay ₹6,900</button>
+    </form>
+
+    <aside class="stack sticky" aria-label="Order summary" data-c="Order summary">
+      <div class="panel" style="background: var(--accent-soft); border-color: var(--accent-line)" data-s="default error" data-c="Hold timer">
+        <div class="row between"><span class="row"><i data-i="clock"></i><strong>Almost yours</strong></span><span class="countdown" data-countdown="14:32">14:32</span></div>
+        <p class="small muted" style="margin-top: 6px">Finish paying in time to keep these pieces.</p></div>
+      <div class="panel stack" data-s="default error expired">
+        <div class="row between"><h3>Your Order</h3><a class="small" href="cart.html">Edit Cart</a></div>
+        <div class="row" style="flex-wrap: nowrap"><span class="avatar sm">MI</span><span class="small">From <strong>Meera Iyer</strong>, Chennai</span></div>
+        <div class="row" style="flex-wrap: nowrap; align-items: flex-start"><div class="mat" style="width: 64px; padding: 5px; flex: none"><canvas class="art" data-seed="26" data-style="orbit" data-ratio="1/1"></canvas></div><div class="grow"><strong>Kolam at Dawn</strong><br><span class="small muted">Print · A3 · × 2</span></div><span class="num">₹4,400</span></div>
+        <div class="row" style="flex-wrap: nowrap; align-items: flex-start"><div class="mat" style="width: 64px; padding: 5px; flex: none"><canvas class="art" data-seed="3" data-style="horizon" data-ratio="5/4"></canvas></div><div class="grow"><strong>Monsoon Over Marina</strong><br><span class="small muted">Print · A3 · × 1</span></div><span class="num">₹2,500</span></div>
+        <hr>
+        <div><div class="sum-row"><span>Items (3)</span><span class="num">₹6,900</span></div><div class="sum-row"><span>Shipping</span><span class="ok-t">Included</span></div><div class="sum-row total"><span>Total</span><span class="num">₹6,900</span></div></div>
+        <p class="xs faint">Prices in Indian rupees. Tax details are shown on your receipt.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

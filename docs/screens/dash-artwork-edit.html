@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S23 Artwork editor · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S23" data-layout="shell-artist" data-user="artist" data-active="artworks" data-states="default,errors">
+<main>
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="dash-artworks.html">My Artworks</a><i data-i="chevron-right" data-size="14"></i><span aria-current="page">Monsoon Over Marina</span></nav>
+  <div class="page-head"><div><div class="row"><h1>Edit Artwork</h1><span class="badge warn dot">Draft</span></div><p>Saved automatically 2 minutes ago.</p></div><div class="row"><button class="btn btn-ghost" data-toast="Preview opens in a new tab">Preview</button><button class="btn btn-secondary" data-toast="Draft saved">Save draft</button></div></div>
+  <div class="alert err" data-s="errors" role="alert"><i data-i="alert"></i><div><strong>3 things stop you publishing</strong>Add a title, at least one photo, and a price on your Listing.</div></div>
+
+  <form class="split" data-demo data-ok="Artwork published" novalidate>
+    <div class="stack lg">
+      <section class="panel stack" data-c="Details"><h3>Details</h3>
+        <div class="form-grid">
+          <div class="field full" id="ft"><label for="t">Title <span class="req">*</span></label><input class="input" id="t" maxlength="100" data-counter="t-c" value="Monsoon Over Marina"><div class="row between"><span class="error-msg" data-s="errors"><i data-i="alert" data-size="14"></i>Add a title. It shows on the wall label.</span><span class="counter" id="t-c">19 / 100</span></div></div>
+          <div class="field"><label for="c">Category <span class="req">*</span></label><select class="select" id="c"><option>Painting</option><option>Drawing &amp; illustration</option><option>Photography</option><option>Sculpture</option><option>Prints &amp; digital art</option><option>Crafts</option><option>Other</option></select></div>
+          <div class="field"><label for="y">Year made <span class="req">*</span></label><input class="input" id="y" inputmode="numeric" value="2025" maxlength="4"></div>
+          <div class="field"><label for="m">Medium <span class="req">*</span></label><input class="input" id="m" value="Acrylic on canvas"><span class="hint">Like "Acrylic on canvas" or "Cast brass".</span></div>
+          <div class="field"><label for="sg">Signed</label><select class="select" id="sg"><option>Signed on the back</option><option>Signed on the front</option><option>Unsigned</option></select></div>
+          <div class="field full"><label for="d">Description <span class="req">*</span></label><textarea class="textarea" id="d" maxlength="1000" data-counter="d-c" style="min-height: 150px">Painted over the monsoon of 2025 from the terrace of a Mylapore house, looking towards the Marina. The sky is built from eleven thin glazes of ultramarine and teal, then broken by a single dark sun.</textarea><span class="counter" id="d-c">197 / 1000</span></div>
+        </div></section>
+
+      <section class="panel stack" data-c="Photos"><div class="row between"><h3>Photos <span class="req">*</span></h3><span class="small muted"><span id="ph-n">5</span> of 5 added</span></div>
+        <p class="small muted">The first photo is the cover. Show the whole piece, then details, the signature and the piece on a wall. JPEG or PNG, up to 5 MB each.</p>
+        <span class="error-msg" data-s="errors"><i data-i="alert" data-size="14"></i>Add at least one photo.</span>
+        <div class="dz-previews" id="ph" data-s="default">
+          <div class="thumb"><canvas class="art" data-seed="3" data-style="horizon" data-ratio="1/1"></canvas><span class="cover">Cover</span><button type="button" class="x" aria-label="Remove photo 1"><i data-i="x" data-size="14"></i></button></div>
+          <div class="thumb"><canvas class="art" data-seed="23" data-style="bloom" data-ratio="1/1"></canvas><button type="button" class="x" aria-label="Remove photo 2"><i data-i="x" data-size="14"></i></button></div>
+          <div class="thumb"><canvas class="art" data-seed="33" data-style="hatch" data-ratio="1/1"></canvas><button type="button" class="x" aria-label="Remove photo 3"><i data-i="x" data-size="14"></i></button></div>
+          <div class="thumb"><canvas class="art" data-seed="13" data-style="field" data-ratio="1/1"></canvas><button type="button" class="x" aria-label="Remove photo 4"><i data-i="x" data-size="14"></i></button></div>
+          <div class="thumb"><canvas class="art" data-seed="43" data-style="orbit" data-ratio="1/1"></canvas><button type="button" class="x" aria-label="Remove photo 5"><i data-i="x" data-size="14"></i></button></div></div>
+        <label class="dropzone"><i data-i="upload" data-size="26"></i><strong>Drop photos here or choose files</strong><span class="small">JPEG or PNG · 5 MB each · up to 5</span><input type="file" accept="image/jpeg,image/png" multiple data-preview="ph"></label></section>
+
+      <section class="panel stack" data-c="Video"><h3>Video <span class="opt">optional</span></h3><p class="small muted">Show texture, scale or how it's made. Upload a video, or link an Instagram reel so there's nothing to host.</p>
+        <div class="grid g3" role="radiogroup" aria-label="Video source"><label class="option-card"><input type="radio" name="v"><span><strong>None</strong></span></label><label class="option-card"><input type="radio" name="v" checked><span><strong>Instagram reel</strong><br><span class="small muted">Recommended</span></span></label><label class="option-card"><input type="radio" name="v"><span><strong>Upload a video</strong><br><span class="small muted">MP4, ≤ 3 min, ≤ 200 MB</span></span></label></div>
+        <div class="field"><label for="rl">Instagram reel link</label><div class="input-group"><input class="input" id="rl" value="https://www.instagram.com/reel/Cx9aB2_demo/"><button type="button" class="btn btn-secondary" style="border-radius: 0 6px 6px 0" data-toast="Link looks right">Check link</button></div><span class="hint">Paste a link, or <a href="dash-instagram.html#picker">pick from your Instagram</a>. CraftMe stores only the link.</span></div>
+        <div class="embed" style="max-width: 280px"><div class="eh"><span class="avatar">MI</span><span>meera.paints</span><span class="badge info" style="margin-left:auto">Reel</span></div><div class="em"><canvas class="art" data-seed="7" data-style="bloom" data-ratio="4/5"></canvas><div class="play"><span><i data-i="play" data-size="22"></i></span></div></div></div>
+        <label class="dropzone" style="opacity: .55"><i data-i="video" data-size="26"></i><strong>Upload a video instead</strong><span class="small">Pick "Upload a video" above</span><input type="file" accept="video/mp4" disabled></label></section>
+
+      <section class="panel stack" data-c="Listings"><div class="row between"><div><h3>Listings <span class="req">*</span></h3><p class="small muted">What Buyers can actually buy. Prices include shipping within India.</p></div><button type="button" class="btn btn-secondary" data-open="lst"><i data-i="plus"></i>Add Listing</button></div>
+        <span class="error-msg" data-s="errors"><i data-i="alert" data-size="14"></i>Add at least one Listing with a price.</span>
+        <div class="table-wrap"><table class="table"><thead><tr><th>Type</th><th>Details</th><th class="r">Price</th><th class="r">Stock</th><th>Status</th><th></th></tr></thead><tbody>
+          <tr><td><span class="badge accent">Original</span></td><td>60 × 90 cm · acrylic on canvas</td><td class="r">₹42,000</td><td class="r">1</td><td><span class="badge ok dot">Live</span></td><td><div class="table-actions"><button type="button" class="btn btn-ghost btn-sm" data-open="lst">Edit</button><button type="button" class="btn btn-ghost btn-sm" data-toast="Listing ended">End</button></div></td></tr>
+          <tr><td><span class="badge">Print</span></td><td>A3 giclee · 300 gsm cotton rag</td><td class="r">₹2,500</td><td class="r">50</td><td><span class="badge ok dot">Live</span></td><td><div class="table-actions"><button type="button" class="btn btn-ghost btn-sm" data-open="lst">Edit</button><button type="button" class="btn btn-ghost btn-sm" data-toast="Listing ended">End</button></div></td></tr>
+        </tbody></table></div></section>
+    </div>
+
+    <aside class="stack sticky" data-c="Publish panel">
+      <section class="panel stack"><h4>Ready to publish?</h4>
+        <ul class="list small"><li><i data-i="check" data-size="18" style="color: var(--ok)"></i>Title and description</li><li><i data-i="check" data-size="18" style="color: var(--ok)"></i>At least one photo</li><li><i data-i="check" data-size="18" style="color: var(--ok)"></i>At least one Listing with a price</li><li><i data-i="clock" data-size="18" style="color: var(--warn)"></i><span>We're checking your details. You can publish now, and you'll be paid once that's done.</span></li></ul>
+        <button class="btn btn-primary btn-lg btn-block" type="submit">Publish Artwork</button><button class="btn btn-secondary btn-block" type="button" data-toast="Draft saved">Save draft</button>
+        <p class="xs faint">Published Artworks go live straight away. CraftMe can take one down if it's reported.</p></section>
+      <section class="panel stack"><h4>Danger zone</h4><button class="btn btn-secondary btn-block" type="button" data-open="del" style="color: var(--err)"><i data-i="trash" data-size="16"></i>Delete Artwork</button><p class="xs faint">You can delete an Artwork only if it has never sold. Otherwise, End its Listings.</p></section>
+    </aside>
+  </form>
+</main>
+
+<div class="modal-backdrop" id="lst" hidden><div class="modal lg" role="dialog" aria-modal="true" aria-labelledby="ls-t"><div class="modal-head"><h3 id="ls-t">Add Listing</h3><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+  <div class="modal-body"><div class="grid g2" role="radiogroup" aria-label="Listing type"><label class="option-card"><input type="radio" name="lk" checked><span><strong>Original</strong><br><span class="small muted">One of a kind. Stock is always 1.</span></span></label><label class="option-card"><input type="radio" name="lk"><span><strong>Print</strong><br><span class="small muted">Reproductions. You set the stock.</span></span></label></div>
+    <div class="form-grid"><div class="field"><label for="ls">Size <span class="req">*</span></label><input class="input" id="ls" value="60 × 90 cm"></div><div class="field"><label for="lm">Medium and finish <span class="req">*</span></label><input class="input" id="lm" value="Acrylic on canvas, unframed"></div>
+      <div class="field"><label for="lp">Price <span class="req">*</span></label><div class="input-group"><span class="affix">₹</span><input class="input mono" id="lp" inputmode="numeric" value="42000" data-out="lp-o" data-money="1"></div><span class="hint">Includes shipping within India.</span></div>
+      <div class="field"><label for="lt">Stock</label><input class="input mono" id="lt" value="1" disabled><span class="hint">Originals are always 1.</span></div></div>
+    <div class="callout"><strong>What you'd receive: <span class="mono">≈ ₹36,960</span></strong><div class="small muted" style="margin-top: 4px">That's after CraftMe's share and the payment cost, taken from the price you set.</div></div></div>
+  <div class="modal-foot"><button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-close data-toast="Listing saved">Save Listing</button></div></div></div>
+<div class="modal-backdrop" id="del" hidden><div class="modal sm" role="alertdialog" aria-modal="true" aria-labelledby="dl-t"><div class="modal-head"><h3 id="dl-t">Delete this Artwork?</h3><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+  <div class="modal-body"><div class="alert err"><i data-i="alert"></i><div><strong>This can't be undone.</strong>Its photos and Listings are removed. It has never sold, so no Orders are affected.</div></div></div>
+  <div class="modal-foot"><button class="btn btn-ghost" data-close>Keep it</button><a class="btn btn-danger" href="dash-artworks.html">Delete Artwork</a></div></div></div>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

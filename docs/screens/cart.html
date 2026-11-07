@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S08 Cart · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S08" data-layout="public" data-user="buyer" data-cart="2" data-states="default,empty,price-changed">
+<main class="wrap page">
+  <div class="page-head" data-c="Page header"><div><h1>Your Cart</h1><p data-s="default price-changed">2 items from one Artist. Prices include shipping within India.</p></div><a class="tag-link" href="browse.html" data-s="default price-changed"><i data-i="arrow-left" data-size="16"></i>Keep browsing</a></div>
+
+  <div class="empty" data-s="empty" data-c="Empty Cart">
+    <div class="ic-wrap"><i data-i="cart" data-size="26"></i></div><h3>Your Cart is empty</h3><p>Find something you love and add it here.</p>
+    <a class="btn btn-primary" href="browse.html">Browse art</a>
+  </div>
+
+  <div class="split" data-s="default price-changed">
+    <section class="stack" aria-label="Cart items">
+      <div class="alert warn" data-s="price-changed" role="alert" data-c="Price changed alert"><i data-i="alert"></i><div><strong>Some things changed since you added them</strong>Kolam at Dawn (Print) went from ₹2,200 to ₹2,400. Monsoon Over Marina (Original) was Sold to another Buyer and was removed.<br><button class="btn btn-secondary btn-sm" data-toast="New prices accepted">Accept new prices</button></div></div>
+
+      <div class="panel flush" data-c="Artist group">
+        <div class="panel-head row"><span class="avatar">MI</span><div class="grow"><strong>Meera Iyer</strong><br><span class="small muted">Chennai · ships within 7 days · <span data-stars="4.9" data-size="12"></span> 4.9</span></div><a class="btn btn-ghost btn-sm" href="artist-profile.html">View Artist</a></div>
+        <div style="padding: 0 20px">
+          <article class="cart-line" data-c="Cart line">
+            <a class="mat" href="artwork.html"><canvas class="art" data-seed="26" data-style="orbit" data-ratio="1/1" aria-label="Kolam at Dawn"></canvas></a>
+            <div class="stack sm"><a href="artwork.html" style="color: var(--ink); text-decoration: none; font: 600 18px var(--font-display)">Kolam at Dawn</a><span class="meta mono small faint">PRINT · A3 GICLEE · 300 GSM</span>
+              <span class="badge ok">12 in stock</span><span class="badge warn" data-s="price-changed">Price changed</span>
+              <div class="row"><div class="qty"><button type="button" data-d="-" aria-label="Decrease quantity"><i data-i="minus" data-size="16"></i></button><input value="2" aria-label="Quantity of Kolam at Dawn" data-max="12"><button type="button" data-d="+" aria-label="Increase quantity"><i data-i="plus" data-size="16"></i></button></div>
+                <button class="btn-link small" data-toast="Removed from Cart"><i data-i="trash" data-size="14"></i> Remove</button></div></div>
+            <div class="right"><div class="price">₹4,400</div><div class="small faint" data-s="default">₹2,200 each</div><div class="small" data-s="price-changed"><span class="strike">₹2,200</span> ₹2,400 each</div></div>
+          </article>
+          <article class="cart-line" style="border-bottom: 0">
+            <a class="mat" href="artwork.html"><canvas class="art" data-seed="3" data-style="horizon" data-ratio="5/4" aria-label="Monsoon Over Marina"></canvas></a>
+            <div class="stack sm"><a href="artwork.html" style="color: var(--ink); text-decoration: none; font: 600 18px var(--font-display)">Monsoon Over Marina</a><span class="meta mono small faint">PRINT · A3 GICLEE</span><span class="badge ok">50 in stock</span>
+              <div class="row"><div class="qty"><button type="button" data-d="-" aria-label="Decrease quantity"><i data-i="minus" data-size="16"></i></button><input value="1" aria-label="Quantity of Monsoon Over Marina" data-max="50"><button type="button" data-d="+" aria-label="Increase quantity"><i data-i="plus" data-size="16"></i></button></div>
+                <button class="btn-link small" data-toast="Removed from Cart"><i data-i="trash" data-size="14"></i> Remove</button></div></div>
+            <div class="right"><div class="price">₹2,500</div><div class="small faint">₹2,500 each</div></div>
+          </article>
+        </div>
+      </div>
+      <div class="callout small" data-c="One Artist note"><strong>One Artist per Cart.</strong> Each Order is one parcel from one Artist. To buy from someone else, check out first or start a new Cart.</div>
+    </section>
+
+    <aside class="panel stack sticky" aria-label="Order summary" data-c="Summary">
+      <h3>Summary</h3>
+      <div><div class="sum-row"><span>Items (3)</span><span class="num" data-s="default">₹6,900</span><span class="num" data-s="price-changed">₹7,300</span></div>
+        <div class="sum-row"><span>Shipping within India</span><span class="ok-t">Included</span></div>
+        <div class="sum-row total"><span>Total</span><span class="num" data-s="default">₹6,900</span><span class="num" data-s="price-changed">₹7,300</span></div></div>
+      <a class="btn btn-primary btn-lg btn-block" href="checkout.html">Checkout<i data-i="arrow-right"></i></a>
+      <ul class="list small muted"><li><i data-i="clock" data-size="18"></i>Pay by card, UPI or netbanking.</li><li><i data-i="shield" data-size="18"></i>Arrives damaged? You get your money back.</li></ul>
+      <div class="field"><label for="promo">Gift note <span class="opt">optional</span></label><input class="input" id="promo" maxlength="120" placeholder="Shown on the packing slip"></div>
+    </aside>
+  </div>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

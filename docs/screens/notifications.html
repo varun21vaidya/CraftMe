@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S17 Notifications · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S17" data-layout="public" data-user="buyer" data-states="default,empty">
+<main class="wrap narrow page">
+  <div class="page-head"><div><h1>Notifications</h1><p>Updates about your Orders, Reviews and reports.</p></div><button class="btn btn-secondary btn-sm" data-toast="All marked as read" data-s="default"><i data-i="check" data-size="16"></i>Mark all as read</button></div>
+  <div data-s="default" class="stack lg">
+    <div class="chips" data-exclusive data-c="Filter chips"><button class="chip" aria-pressed="true">All</button><button class="chip" aria-pressed="false">Unread <span class="badge accent">2</span></button><button class="chip" aria-pressed="false">Orders</button><button class="chip" aria-pressed="false">Reviews</button></div>
+    <section class="stack sm" aria-labelledby="n-today" data-c="Today"><h2 id="n-today" class="eyebrow">Today</h2>
+      <div class="panel flush"><ul class="list" style="padding: 0 20px">
+        <li class="item unread" style="background: var(--accent-soft); margin: 0 -20px; padding: 14px 20px"><span class="avatar sm" style="background: var(--info-soft); color: var(--info)"><i data-i="truck" data-size="16"></i></span><a href="order-detail.html#shipped" style="color: inherit; text-decoration: none" class="grow"><span class="t">Your Order CM-20391 was Shipped</span><span class="s">Imran Sheikh posted Brass Heron. Tracking DT4830012IN.</span></a><span class="xs faint mono">2 h ago</span><span class="badge accent dot">New</span></li>
+        <li class="item unread" style="background: var(--accent-soft); margin: 0 -20px; padding: 14px 20px"><span class="avatar sm" style="background: var(--ok-soft); color: var(--ok)"><i data-i="check" data-size="16"></i></span><a href="order-placed.html" style="color: inherit; text-decoration: none" class="grow"><span class="t">Payment received for CM-20418</span><span class="s">₹6,900 paid. Meera Iyer has been told to pack it.</span></a><span class="xs faint mono">5 h ago</span><span class="badge accent dot">New</span></li>
+      </ul></div></section>
+    <section class="stack sm" aria-labelledby="n-earlier" data-c="Earlier"><h2 id="n-earlier" class="eyebrow">Earlier</h2>
+      <div class="panel flush"><ul class="list" style="padding: 0 20px">
+        <li class="item"><span class="avatar sm" style="background: var(--ok-soft); color: var(--ok)"><i data-i="star" data-size="16"></i></span><a href="artist-profile.html" style="color: inherit; text-decoration: none" class="grow"><span class="t">Your Review of Arjun Deshmukh is now public</span><span class="s">CraftMe approved it.</span></a><span class="xs faint mono">Yesterday</span></li>
+        <li class="item"><span class="avatar sm" style="background: var(--warn-soft); color: var(--warn)"><i data-i="clock" data-size="16"></i></span><a href="order-detail.html#received" style="color: inherit; text-decoration: none" class="grow"><span class="t">How is your order CM-20344?</span><span class="s">Leave a Review for Tanvi Rao.</span></a><span class="xs faint mono">2 days ago</span></li>
+        <li class="item"><span class="avatar sm" style="background: var(--err-soft); color: var(--err)"><i data-i="undo" data-size="16"></i></span><a href="order-detail.html#refunded" style="color: inherit; text-decoration: none" class="grow"><span class="t">Refund of ₹12,500 issued for CM-20211</span><span class="s">Your Damage Report was upheld. It reaches your account in 5 to 7 working days.</span></a><span class="xs faint mono">9 days ago</span></li>
+        <li class="item"><span class="avatar sm"><i data-i="package" data-size="16"></i></span><a href="order-detail.html#received" style="color: inherit; text-decoration: none" class="grow"><span class="t">CM-20290 marked Received</span><span class="s">We marked it Received after 14 days. You can still review Arjun for 16 days.</span></a><span class="xs faint mono">3 Oct</span></li>
+      </ul></div></section>
+    <nav class="pagination" aria-label="Pagination"><a href="#" aria-current="page">1</a><a href="#">2</a><a href="#" aria-label="Next"><i data-i="chevron-right" data-size="16"></i></a></nav>
+  </div>
+  <div class="empty" data-s="empty" data-c="Empty state"><div class="ic-wrap"><i data-i="bell" data-size="26"></i></div><h3>You're all caught up</h3><p>Order updates, Review decisions and refunds appear here.</p><a class="btn btn-primary" href="browse.html">Browse art</a></div>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

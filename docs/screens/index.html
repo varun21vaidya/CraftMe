@@ -1,0 +1,90 @@
+<title>CraftMe Screens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .ix-hero { padding-block: 40px 8px; display: grid; gap: 14px; }
+  .ix-how { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .ix-how .panel { display: grid; gap: 6px; align-content: start; }
+  .ix-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .ix-id { font: 600 12px var(--font-mono); color: var(--accent); }
+  .ix-sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  .ix-sw div { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); font: 12px var(--font-mono); }
+  .ix-sw i { display: block; height: 44px; border-bottom: 1px solid var(--line); }
+  .ix-sw span { display: block; padding: 6px 8px; }
+</style>
+
+<main class="wrap" style="padding-bottom: 24px">
+  <header class="ix-hero">
+    <span class="eyebrow">Design reference · demo build</span>
+    <h1>CraftMe screens</h1>
+    <p class="lead" id="ix-count">Every screen of the marketplace as plain HTML, so you can point at a detail and ask for a change.</p>
+  </header>
+
+  <section class="ix-how" aria-label="How to review" style="margin-block: 20px 28px">
+    <div class="panel"><h4>1. Open a screen</h4><p class="small muted">Each card below is one page. Pages link to each other the way the real app will.</p></div>
+    <div class="panel"><h4>2. Switch states</h4><p class="small muted">The dark bar at the bottom of every screen lists its states: empty, error, loading, each Order stage, and so on.</p></div>
+    <div class="panel"><h4>3. Turn on Labels</h4><p class="small muted">Labels outlines every named component. Ask for changes like <span class="mono">S09 · Order summary · show the Artist's name</span>.</p></div>
+    <div class="panel"><h4>4. Light and dark</h4><p class="small muted">The moon button in the bar switches themes. Both are designed, not inverted.</p></div>
+  </section>
+
+  <div class="row" style="margin-bottom: 20px" role="group" aria-label="Filter by role" id="ix-filter">
+    <button class="chip" aria-pressed="true" data-role="">All screens</button>
+    <button class="chip" aria-pressed="false" data-role="Public">Public</button>
+    <button class="chip" aria-pressed="false" data-role="Buyer">Buyer</button>
+    <button class="chip" aria-pressed="false" data-role="Artist">Artist</button>
+    <button class="chip" aria-pressed="false" data-role="Admin">Admin</button>
+    <button class="chip" aria-pressed="false" data-role="System">System</button>
+  </div>
+
+  <div id="ix-list" class="stack lg"></div>
+
+  <section class="stack" style="margin-top: 48px" aria-labelledby="ix-sys">
+    <h2 id="ix-sys">The look in one view</h2>
+    <p class="muted" style="max-width: 62ch">A gallery wall: cool paper-grey ground, white mats around every piece of art, museum wall labels for titles and prices, and one ultramarine accent. Money, dates and codes use a monospaced face, like catalogue numbers.</p>
+    <div class="ix-sw" aria-label="Colour tokens">
+      <div><i style="background: var(--bg)"></i><span>wall · --bg</span></div>
+      <div><i style="background: var(--surface)"></i><span>paper · --surface</span></div>
+      <div><i style="background: var(--mat)"></i><span>mat · --mat</span></div>
+      <div><i style="background: var(--ink)"></i><span>ink · --ink</span></div>
+      <div><i style="background: var(--accent)"></i><span>ultramarine · --accent</span></div>
+      <div><i style="background: var(--ok)"></i><span>viridian · --ok</span></div>
+      <div><i style="background: var(--warn)"></i><span>ochre · --warn</span></div>
+      <div><i style="background: var(--err)"></i><span>madder · --err</span></div>
+    </div>
+    <div class="row" style="gap: 28px; margin-top: 6px">
+      <div><span class="eyebrow">Display · Google Sans Flex</span><div style="font: 600 30px var(--font-display); letter-spacing: -.02em">Monsoon Over Marina</div></div>
+      <div><span class="eyebrow">Body · Google Sans Flex</span><div style="font-size: 17px">Acrylic on canvas, signed verso</div></div>
+      <div><span class="eyebrow">Catalogue · Google Sans Code</span><div class="mono" style="font-size: 15px">CM-20418 · ₹42,000</div></div>
+    </div>
+  </section>
+</main>
+
+<script src="data.js"></script>
+<script>
+  (function () {
+    var S = window.CM_DATA.SCREENS, list = document.getElementById('ix-list');
+    document.getElementById('ix-count').textContent = S.length + ' screens across the storefront, buying, Artist dashboard and Admin. Every screen is plain HTML, so you can point at a detail and ask for a change.';
+    var groups = [];
+    S.forEach(function (s) { if (groups.indexOf(s.group) < 0) groups.push(s.group); });
+    function render(role) {
+      list.innerHTML = groups.map(function (g) {
+        var items = S.filter(function (s) { return s.group === g && (!role || s.role === role); });
+        if (!items.length) return '';
+        return '<section class="stack" aria-labelledby="g-' + g.replace(/\W/g, '') + '"><div class="ix-head"><h2 id="g-' + g.replace(/\W/g, '') + '">' + g + '</h2><span class="faint small">' + items.length + ' screens</span></div><div class="grid">' +
+          items.map(function (s) {
+            return '<a class="index-card" href="' + s.file + '"><span class="row between"><span class="ix-id">' + s.id + '</span><span class="badge ' + (s.role === 'Admin' ? 'solid' : s.role === 'Artist' ? 'accent' : s.role === 'Buyer' ? 'ok' : '') + '">' + s.role + '</span></span>' +
+              '<strong style="font: 600 18px var(--font-display)">' + s.name + '</strong><span class="mono faint" style="font-size: 12px">' + s.route + '</span><span class="small muted">' + s.desc + '</span>' +
+              '<span class="xs faint">' + (s.states.length > 1 ? s.states.length + ' states: ' + s.states.map(function (x) { return x[1]; }).join(', ') : '1 state') + '</span></a>';
+          }).join('') + '</div></section>';
+      }).join('');
+    }
+    render('');
+    document.getElementById('ix-filter').addEventListener('click', function (e) {
+      var b = e.target.closest('.chip'); if (!b) return;
+      Array.prototype.forEach.call(this.querySelectorAll('.chip'), function (c) { c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
+      render(b.dataset.role);
+    });
+    try { var t = localStorage.getItem('cm-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) { }
+  })();
+</script>

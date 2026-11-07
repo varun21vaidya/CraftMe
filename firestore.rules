@@ -1,0 +1,122 @@
+rules_version = '2';
+
+// Written from the write-authority matrix in docs/SYSTEM_DESIGN.md section 4.1.
+// Clients never write money, stage, stock, roles or secrets: those are functions only.
+// Anything not listed below is denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.token.admin == true; }
+    function isArtist() { return signedIn() && request.auth.token.artist == true; }
+    function me() { return request.auth.uid; }
+    // keys that changed in this write
+    function only(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function notRestricted() { return get(/databases/$(database)/documents/users/$(me())).data.restricted != true; }
+
+    // ---- users: public profile; the owner edits only display fields ----
+    match /users/{uid} {
+      allow read: if true;
+      allow update: if signedIn() && me() == uid && only(['displayName', 'photoURL', 'bio'])
+        && request.resource.data.displayName is string && request.resource.data.displayName.size() <= 100
+        && request.resource.data.bio is string && request.resource.data.bio.size() <= 500;
+    }
+
+    // ---- private Artist data and tokens: owner/Admin read, functions write ----
+    match /artistPrivate/{uid} {
+      allow read: if signedIn() && (me() == uid || isAdmin());
+    }
+    match /instagramTokens/{uid} {
+      allow read, write: if false;
+    }
+
+    // ---- Artworks: the Artist writes content; hasSales, views, artistOpen, fromPrice, available are functions ----
+    match /artworks/{id} {
+      function content() {
+        return request.resource.data.title is string && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 100
+          && request.resource.data.description is string && request.resource.data.description.size() <= 1000
+          && request.resource.data.photos is list && request.resource.data.photos.size() <= 5;
+      }
+      allow read: if (resource.data.status == 'published' && resource.data.artistOpen == true)
+        || (signedIn() && (resource.data.artistId == me() || isAdmin()));
+      allow create: if isArtist() && request.resource.data.artistId == me()
+        && request.resource.data.status == 'draft'
+        && request.resource.data.keys().hasOnly(['artistId', 'title', 'titleLower', 'description', 'category',
+                                                   'photos', 'video', 'status', 'createdAt'])
+        && request.resource.data.createdAt == request.time
+        && content() && notRestricted();
+      allow update: if isArtist() && resource.data.artistId == me() && resource.data.artistOpen == true
+        && only(['title', 'titleLower', 'description', 'category', 'photos', 'video', 'status'])
+        && request.resource.data.status in ['draft', 'published'] && resource.data.status != 'removed'
+        && content();
+    }
+
+    // ---- Listings: draft fields and end/reopen by the Artist; stock changes, held, sold, artistOpen are functions ----
+    match /listings/{id} {
+      function priceOk() { return request.resource.data.price is int && request.resource.data.price >= 100; }
+      allow read: if (resource.data.status in ['live', 'sold'] && resource.data.artistOpen == true)
+        || (signedIn() && (resource.data.artistId == me() || isAdmin()));
+      allow create: if isArtist() && request.resource.data.artistId == me() && request.resource.data.status == 'draft'
+        && request.resource.data.keys().hasOnly(['artworkId', 'artistId', 'title', 'kind', 'size', 'medium', 'price',
+                                                   'stock', 'status', 'createdAt'])
+        && request.resource.data.kind in ['original', 'print']
+        && request.resource.data.stock is int && request.resource.data.stock >= 1
+        && (request.resource.data.kind != 'original' || request.resource.data.stock == 1)
+        && request.resource.data.createdAt == request.time
+        && priceOk() && notRestricted();
+      allow update: if isArtist() && resource.data.artistId == me() && resource.data.artistOpen == true
+        && resource.data.status != 'sold'
+        && only(['price', 'size', 'medium', 'title', 'status'])
+        && request.resource.data.status in ['draft', 'live', 'ended']
+        && priceOk();
+    }
+
+    // ---- Orders and everything money: read by the people involved, never written by a client ----
+    match /orders/{id} {
+      allow read: if signedIn() && (resource.data.buyerId == me() || resource.data.artistId == me() || isAdmin());
+      match /private/{doc} {
+        function parent() { return get(/databases/$(database)/documents/orders/$(id)).data; }
+        allow read: if signedIn() && (parent().buyerId == me() || isAdmin()
+          || (parent().artistId == me() && parent().stage in ['paid', 'shipped', 'received']));
+      }
+    }
+    match /damageReports/{id} {
+      allow read: if signedIn() && (resource.data.buyerId == me() || resource.data.artistId == me() || isAdmin());
+    }
+    match /refunds/{id} {
+      allow read: if signedIn() && (resource.data.buyerId == me() || resource.data.artistId == me() || isAdmin());
+    }
+    match /payouts/{id} {
+      allow read: if signedIn() && (resource.data.artistId == me() || isAdmin());
+    }
+    match /reviews/{id} {
+      allow read: if resource.data.status == 'approved'
+        || (signedIn() && (resource.data.buyerId == me() || resource.data.artistId == me() || isAdmin()));
+    }
+    match /reports/{id} {
+      allow read: if isAdmin();
+    }
+
+    // ---- settings: the public switches are readable by everyone; business settings by the Admin only ----
+    match /settings/public {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /settings/business {
+      allow read, write: if isAdmin();
+    }
+
+    // ---- notifications: the owner reads and may only flip the read flag to true ----
+    match /notifications/{id} {
+      allow read: if signedIn() && resource.data.userId == me();
+      allow update: if signedIn() && resource.data.userId == me() && only(['read']) && request.resource.data.read == true;
+    }
+
+    match /analytics_daily/{day} {
+      allow read: if isAdmin();
+    }
+
+    // processedEvents, requests, emailsSent, system/*: no client access (denied by default)
+  }
+}

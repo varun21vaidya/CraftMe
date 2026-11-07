@@ -1,0 +1,32 @@
+rules_version = '2';
+
+// Per-owner folders. Size and type are enforced here, not only in the browser.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function isAdmin() { return signedIn() && request.auth.token.admin == true; }
+    function image() { return request.resource.size <= 5 * 1024 * 1024 && request.resource.contentType in ['image/jpeg', 'image/png']; }
+
+    // Artwork photos are public to view; only the Artist writes into their own folder.
+    match /artworks/{uid}/{file} {
+      allow read: if true;
+      allow write: if owner(uid) && request.auth.token.artist == true && image();
+      allow delete: if owner(uid);
+    }
+
+    // Artwork videos: MP4 up to 200 MB.
+    match /videos/{uid}/{file} {
+      allow read: if true;
+      allow write: if owner(uid) && request.auth.token.artist == true
+        && request.resource.size <= 200 * 1024 * 1024 && request.resource.contentType == 'video/mp4';
+      allow delete: if owner(uid);
+    }
+
+    // Damage photos: the Buyer who uploaded them and the Admin may view.
+    match /damage/{uid}/{file} {
+      allow read: if owner(uid) || isAdmin();
+      allow write: if owner(uid) && image();
+    }
+  }
+}

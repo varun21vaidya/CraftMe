@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S25 Order Artist view · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S25" data-layout="shell-artist" data-user="artist" data-active="orders" data-states="paid,shipped">
+<main>
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="dash-orders.html">Orders</a><i data-i="chevron-right" data-size="14"></i><span aria-current="page">CM-20418</span></nav>
+  <div class="page-head"><div><div class="row"><h1 class="mono" style="font-size: 32px">CM-20418</h1><span class="badge ok dot" data-s="paid">Paid</span><span class="badge info dot" data-s="shipped">Shipped</span></div><p>Paid 3 Nov 2026 · 11:42 by Ananya V., Mumbai</p></div>
+    <button class="btn btn-primary btn-lg" data-open="ship" data-s="paid"><i data-i="truck"></i>Mark as Shipped</button><button class="btn btn-secondary" data-open="ship" data-s="shipped">Edit tracking</button></div>
+
+  <div class="alert warn" data-s="paid" data-c="Deadline"><i data-i="clock"></i><div><strong>Ship by 10 Nov, in 7 days</strong>If it isn't Shipped by then the Order becomes Overdue, CraftMe refunds the Buyer, and that Refund can count against you.</div></div>
+  <div class="alert info" data-s="shipped"><i data-i="truck"></i><div><strong>Shipped 6 Nov</strong>The customer confirms it arrived, or we do on 20 Nov. You are paid soon after.</div></div>
+
+  <div class="split">
+    <div class="stack lg">
+      <section class="panel stack" data-c="Pack list"><h3>Pack list</h3>
+        <div class="row" style="flex-wrap: nowrap; align-items: flex-start"><div class="mat" style="width: 72px; padding: 6px; flex: none"><canvas class="art" data-seed="26" data-style="orbit" data-ratio="1/1"></canvas></div><div class="grow"><strong>Kolam at Dawn</strong><br><span class="small muted">Print · A3 giclee · ₹2,200 each</span></div><span class="badge accent" style="font-size: 14px">× 2</span></div>
+        <div class="row" style="flex-wrap: nowrap; align-items: flex-start"><div class="mat" style="width: 72px; padding: 6px; flex: none"><canvas class="art" data-seed="3" data-style="horizon" data-ratio="5/4"></canvas></div><div class="grow"><strong>Monsoon Over Marina</strong><br><span class="small muted">Print · A3 giclee · ₹2,500 each</span></div><span class="badge accent" style="font-size: 14px">× 1</span></div>
+        <hr><div class="sum-row total"><span>Buyer paid</span><span class="num">₹6,900</span></div>
+        <div class="alert info"><i data-i="package"></i><div>Pack prints flat between boards or rolled in a tube. Add a handwritten note if you like. Damage on arrival can lead to a Refund.</div></div></section>
+
+      <section class="panel stack" data-c="Tracking" data-s="shipped"><h3>Shipment</h3><dl class="kv"><dt>Courier</dt><dd>DTDC</dd><dt>Tracking</dt><dd class="mono">DT4830012IN <button class="btn-link small" data-copy="DT4830012IN" aria-label="Copy tracking number"><i data-i="copy" data-size="14"></i></button></dd><dt>Shipped</dt><dd>6 Nov 2026</dd></dl></section>
+
+      <section class="panel" data-c="Timeline"><h3 style="margin-bottom: 16px">Timeline</h3><ol class="timeline"><li class="now" data-s="paid"><div class="tt">Waiting for you to ship</div><div class="ts">DEADLINE 10 NOV</div></li><li class="now" data-s="shipped"><div class="tt">Waiting for the Buyer to confirm Received</div><div class="ts">AUTO-RECEIVED 20 NOV</div></li><li class="done" data-s="shipped"><div class="tt">You marked it Shipped</div><div class="ts">6 NOV · 16:20</div></li><li class="done"><div class="tt">Buyer paid ₹6,900</div><div class="ts">3 NOV · 11:42</div></li></ol></section>
+    </div>
+    <aside class="stack sticky">
+      <section class="panel stack" data-c="Ship to"><div class="row between"><h4>Ship to</h4><span class="badge ok"><i data-i="lock" data-size="12"></i> Only you see this</span></div>
+        <p>Ananya Verma<br>Flat 402, Sea Breeze Apartments<br>Carter Road, Bandra West<br>Mumbai 400050, Maharashtra<br><span class="mono">+91 98765 43210</span></p>
+        <button class="btn btn-secondary btn-sm" data-copy="Ananya Verma, Flat 402, Sea Breeze Apartments, Carter Road, Bandra West, Mumbai 400050"><i data-i="copy" data-size="16"></i>Copy address</button>
+        <p class="xs faint">Use this only to post this parcel. It's shown because the Order is Paid.</p></section>
+      <section class="panel stack" data-c="Your share"><h4>What you receive</h4><div><div class="sum-row"><span>Buyer paid</span><span class="num">₹6,900</span></div><div class="sum-row"><span>CraftMe's share and payment cost</span><span class="num err-t">−₹828</span></div><div class="sum-row total"><span>You receive</span><span class="num">₹6,072</span></div></div>
+        <p class="xs faint">You're paid on the next 1st or 15th after it arrives.</p></section>
+    </aside>
+  </div>
+</main>
+<div class="modal-backdrop" id="ship" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="sh-t"><div class="modal-head"><h3 id="sh-t">Mark as Shipped</h3><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+  <div class="modal-body"><div class="form-grid"><div class="field"><label for="co">Courier <span class="req">*</span></label><select class="select" id="co"><option>DTDC</option><option>India Post</option><option>Delhivery</option><option>Blue Dart</option><option>Other</option></select></div><div class="field"><label for="tn">Tracking number <span class="req">*</span></label><input class="input mono" id="tn" value="DT4830012IN"></div><div class="field"><label for="sd">Date posted</label><input class="input" id="sd" type="date" value="2026-11-06"></div></div>
+    <div class="alert info"><i data-i="info"></i><div>The Buyer is notified and sees the tracking number. You can't undo "Shipped", but you can edit the tracking.</div></div></div>
+  <div class="modal-foot"><button class="btn btn-ghost" data-close>Cancel</button><a class="btn btn-primary" href="dash-order-detail.html#shipped">Mark as Shipped</a></div></div></div>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

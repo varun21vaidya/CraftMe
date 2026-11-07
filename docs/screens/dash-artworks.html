@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S22 My Artworks · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S22" data-layout="shell-artist" data-user="artist" data-active="artworks" data-states="default,empty">
+<main>
+  <div class="page-head"><div><h1>My Artworks</h1><p>An Artwork is what Buyers browse. Its Listings are what they buy.</p></div><a class="btn btn-primary" href="dash-artwork-edit.html"><i data-i="plus"></i>Add Artwork</a></div>
+
+  <div data-s="default" class="stack lg">
+    <div class="row between" data-c="Toolbar"><div class="tabs" role="tablist" data-tabs style="border: 0" aria-label="Status filter"><button class="tab" role="tab" aria-selected="true" data-tab="aw-t">All <span class="badge">12</span></button><button class="tab" role="tab" aria-selected="false" data-tab="aw-t">Published <span class="badge ok">8</span></button><button class="tab" role="tab" aria-selected="false" data-tab="aw-t">Drafts <span class="badge warn">3</span></button><button class="tab" role="tab" aria-selected="false" data-tab="aw-t">Sold</button><button class="tab" role="tab" aria-selected="false" data-tab="aw-t">Ended</button></div>
+      <div class="search-big" style="width: min(100%, 280px)"><i data-i="search"></i><input class="input" placeholder="Search my Artworks" aria-label="Search my Artworks" style="min-height: 40px"></div></div>
+    <div class="table-wrap" id="aw-t" data-c="Artworks table"><table class="table"><thead><tr><th>Artwork</th><th>Listings</th><th>Status</th><th class="r">Views</th><th>Updated</th><th></th></tr></thead><tbody>
+      <tr><td><div class="cell-art"><div class="thumb"><canvas class="art" data-seed="3" data-style="horizon" data-ratio="1/1"></canvas></div><div><strong>Monsoon Over Marina</strong><br><span class="small muted">Painting · 2025</span></div></div></td>
+        <td><div class="stack sm small"><span><span class="badge accent">Original</span> ₹42,000 · <span class="warn-t">1 left</span></span><span><span class="badge">Print</span> ₹2,500 · 50 in stock</span></div></td><td><span class="badge ok dot">Published</span></td><td class="r">1,842</td><td class="mono small">2 Nov</td>
+        <td><div class="table-actions"><a class="btn btn-secondary btn-sm" href="dash-artwork-edit.html">Edit</a><button class="btn btn-ghost btn-sm" data-open="end">End</button></div></td></tr>
+      <tr><td><div class="cell-art"><div class="thumb"><canvas class="art" data-seed="26" data-style="orbit" data-ratio="1/1"></canvas></div><div><strong>Kolam at Dawn</strong><br><span class="small muted">Painting · 2024</span></div></div></td>
+        <td><div class="stack sm small"><span><span class="badge accent">Original</span> ₹31,000 · <span class="warn-t">1 left</span></span><span><span class="badge">Print</span> ₹2,200 · 12 in stock</span></div></td><td><span class="badge ok dot">Published</span></td><td class="r">1,310</td><td class="mono small">29 Oct</td>
+        <td><div class="table-actions"><a class="btn btn-secondary btn-sm" href="dash-artwork-edit.html">Edit</a><button class="btn btn-ghost btn-sm" data-open="end">End</button></div></td></tr>
+      <tr><td><div class="cell-art"><div class="thumb"><canvas class="art" data-seed="14" data-style="bloom" data-ratio="1/1"></canvas></div><div><strong>Temple Tank, Evening</strong><br><span class="small muted">Painting · 2025</span></div></div></td>
+        <td><div class="stack sm small"><span><span class="badge accent">Original</span> ₹36,000 · <span class="strong"><strong>Sold</strong></span></span></div></td><td><span class="badge dot" style="background: var(--ink); color: var(--bg)">Sold</span></td><td class="r">2,904</td><td class="mono small">14 Oct</td>
+        <td><div class="table-actions"><a class="btn btn-secondary btn-sm" href="dash-artwork-edit.html">View</a><button class="btn btn-ghost btn-sm" disabled title="Artworks with sales can't be deleted">Delete</button></div></td></tr>
+      <tr><td><div class="cell-art"><div class="thumb"><canvas class="art" data-seed="33" data-style="hatch" data-ratio="1/1"></canvas></div><div><strong>Coconut Grove, Study 2</strong><br><span class="small muted">Painting · 2025</span></div></div></td>
+        <td><div class="small faint">No Listings yet</div></td><td><span class="badge warn dot">Draft</span></td><td class="r">0</td><td class="mono small">1 Nov</td>
+        <td><div class="table-actions"><a class="btn btn-primary btn-sm" href="dash-artwork-edit.html">Finish</a><button class="btn btn-ghost btn-sm" data-toast="Draft deleted" aria-label="Delete draft"><i data-i="trash" data-size="16"></i></button></div></td></tr>
+      <tr><td><div class="cell-art"><div class="thumb"><canvas class="art" data-seed="9" data-style="field" data-ratio="1/1"></canvas></div><div><strong>Pongal Morning</strong><br><span class="small muted">Painting · 2023</span></div></div></td>
+        <td><div class="stack sm small"><span><span class="badge">Print</span> ₹1,900 · <span class="faint">Ended</span></span></div></td><td><span class="badge dot">Ended</span></td><td class="r">640</td><td class="mono small">3 Sep</td>
+        <td><div class="table-actions"><a class="btn btn-secondary btn-sm" href="dash-artwork-edit.html">Edit</a><button class="btn btn-ghost btn-sm" data-toast="Listing reopened">Reopen</button></div></td></tr>
+    </tbody></table></div>
+    <nav class="pagination" aria-label="Pagination"><a href="#" aria-current="page">1</a><a href="#">2</a><a href="#" aria-label="Next"><i data-i="chevron-right" data-size="16"></i></a></nav>
+  </div>
+
+  <div class="empty" data-s="empty" data-c="Empty state"><div class="ic-wrap"><i data-i="image" data-size="26"></i></div><h3>Your wall is empty</h3><p>Add your first Artwork with photos, then create a Listing for the Original, a Print, or both.</p><a class="btn btn-primary" href="dash-artwork-edit.html"><i data-i="plus"></i>Add your first Artwork</a></div>
+</main>
+<div class="modal-backdrop" id="end" hidden><div class="modal sm" role="alertdialog" aria-modal="true" aria-labelledby="en-t"><div class="modal-head"><h3 id="en-t">End all Listings of this Artwork?</h3><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+  <div class="modal-body"><p class="muted">Ended Listings leave the shop and can't be bought. Paid Orders aren't affected, and you can reopen them any time.</p></div>
+  <div class="modal-foot"><button class="btn btn-ghost" data-close>Keep selling</button><button class="btn btn-primary" data-close data-toast="Listings ended">End Listings</button></div></div></div>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>
