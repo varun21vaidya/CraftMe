@@ -117,4 +117,4 @@ async function sweep(db, clock) {
   return counts;
 }
 
-module.exports = {sweep, rules};
+module.exports = {sweep};

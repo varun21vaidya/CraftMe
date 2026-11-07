@@ -19,4 +19,4 @@ const ok = (data, requestId) => ({ok: true, data: data ?? {}, requestId});
 const fail = (code, requestId, extra = {}) => ({ok: false, error: {code, ...extra}, requestId});
 
 /** @typedef {{ok:true,data:any,requestId:string}|{ok:false,error:{code:string,reason?:string,fields?:string[]},requestId:string}} Envelope */
-module.exports = {CODES, CommandError, ok, fail};
+module.exports = {CommandError, ok, fail};

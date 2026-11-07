@@ -82,7 +82,7 @@ export default function CheckoutPage() {
   return (
     <main className="wrap page" style={{ maxWidth: 640 }}>
       <div className="page-head"><div><h1>Checkout</h1></div></div>
-      {error && <p className="alert err" role="alert">{error} {error && <Link to="/cart">Check your Cart</Link>}</p>}
+      {error && <p className="alert err" role="alert">{error} <Link to="/cart">Check your Cart</Link></p>}
       {hold ? <HeldPayment hold={hold} onPay={() => pay(hold)} busy={busy} /> : (
         <Formik initialValues={{ name: '', phone: '', address: '', city: '', state: '', pin: '' }} validationSchema={schema} onSubmit={place}>
           {({ values, errors, touched, handleChange, handleBlur, isSubmitting }) => (

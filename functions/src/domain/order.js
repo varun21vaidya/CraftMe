@@ -10,8 +10,6 @@ const WINDOWS = {
   review: 30 * DAY, // Received + 30 days
 };
 
-const STAGES = ["hold", "paid", "shipped", "received", "hold_expired", "refunded"];
-
 // stage -> event -> next stage. A missing entry means the move is not allowed.
 const TRANSITIONS = {
   none: {place: "hold"},
@@ -73,4 +71,4 @@ const advance = (order, event, patch, now) => {
   return {...patch, stage, ...withActions({...order, ...patch, stage}, now)};
 };
 
-module.exports = {STAGES, WINDOWS, DAY, MINUTE, next, isRefundable, allowedActions, withActions, touch, patches, advance};
+module.exports = {WINDOWS, DAY, next, isRefundable, allowedActions, withActions, touch, patches, advance};

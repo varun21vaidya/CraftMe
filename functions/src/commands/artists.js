@@ -53,7 +53,7 @@ const payOnboardingFee = {
     let order;
     try {
       order = await ports.payments.createOrder(fee, `fee_${uid}`);
-    } catch (e) {
+    } catch {
       throw new CommandError("unavailable", "payments_down");
     }
     await ref.update({onboardingOrderId: order.id, onboardingAmount: fee});

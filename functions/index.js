@@ -7,7 +7,7 @@ setGlobalOptions({region: "asia-south1"});
 
 for (const mod of ["orders", "artists", "trust", "admin", "payouts", "instagram"]) {
   for (const [name, c] of Object.entries(require(`./src/commands/${mod}`).commands)) {
-    exports[name] = command(name, c.spec, c.handler);
+    exports[name] = command(c.spec, c.handler);
   }
 }
 

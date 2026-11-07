@@ -1,8 +1,8 @@
 // Ports: the only things tests must fake. Payments (Razorpay), Messaging (SendGrid), Clock.
 // Firestore, Storage and Instagram are called directly from one module each.
 
-const crypto = require("crypto");
 const {defineSecret} = require("firebase-functions/params");
+const {hmacHex, safeEqual} = require("./lib/hmac");
 
 const RAZORPAY_KEY_ID = defineSecret("RAZORPAY_KEY_ID");
 const RAZORPAY_KEY_SECRET = defineSecret("RAZORPAY_KEY_SECRET");
@@ -14,15 +14,6 @@ const SECRETS = [
   RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET, SENDGRID_API_KEY,
   INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET,
 ];
-
-const hmacHex = (secret, payload) => crypto.createHmac("sha256", secret).update(payload).digest("hex");
-
-/** Constant-time compare that also tolerates different lengths. */
-const safeEqual = (a, b) => {
-  const x = Buffer.from(String(a));
-  const y = Buffer.from(String(b));
-  return x.length === y.length && crypto.timingSafeEqual(x, y);
-};
 
 /**
  * @typedef {{keyId:string,
@@ -78,4 +69,4 @@ const systemClock = {now: () => Date.now()};
 
 const makePorts = () => ({payments: razorpayPayments(), messaging: sendgridMessaging()});
 
-module.exports = {SECRETS, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, hmacHex, safeEqual, makePorts, systemClock};
+module.exports = {SECRETS, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, makePorts, systemClock};

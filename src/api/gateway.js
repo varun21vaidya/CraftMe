@@ -96,13 +96,8 @@ export function useListingsByIds(ids) {
 export const useNotifications = (uid) => useCollectionData(
   uid ? query(collection(db, 'notifications'), where('userId', '==', uid), orderBy('createdAt', 'desc'), limit(20)) : null, ID,
 );
-export const useSettings = () => useDocumentData(doc(db, 'settings', 'public'));
 
 // ---------- direct writes (field-limited by the Firestore rules) ----------
-export const saveProfile = (uid, fields) => safe(async () => {
-  await updateDoc(doc(db, 'users', uid), pick(fields, ['displayName', 'photoURL', 'bio']));
-  return {};
-});
 export const markRead = (notificationId) => safe(async () => {
   await updateDoc(doc(db, 'notifications', notificationId), { read: true });
   return {};

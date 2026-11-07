@@ -81,7 +81,7 @@ const placeOrder = {
     let rz;
     try {
       rz = await ports.payments.createOrder(total, orderRef.id);
-    } catch (e) {
+    } catch {
       await expireHold(db, orderRef.id, now); // release the stock; the Buyer can try again
       throw new CommandError("unavailable", "payments_down");
     }

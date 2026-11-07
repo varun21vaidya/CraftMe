@@ -30,7 +30,7 @@ const firestoreStore = (db) => ({
 });
 
 /** Environment is built lazily so secrets resolve at run time, not at deploy analysis. */
-function command(name, spec, handler) {
+function command(spec, handler) {
   const {getEnv, SECRETS} = require("../env");
   return onCall({secrets: SECRETS}, async (request) => {
     const env = getEnv();

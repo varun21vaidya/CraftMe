@@ -82,4 +82,4 @@ async function markFeePaid({db, ports, now}, razorpayOrderId, paymentId) {
   return {paid: true};
 }
 
-module.exports = {markPaid, markFeePaid, DEFAULT_COMMISSION_BPS};
+module.exports = {markPaid, markFeePaid};

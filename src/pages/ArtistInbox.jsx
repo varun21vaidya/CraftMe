@@ -1,19 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { call, useArtistInbox } from '../api/gateway';
 import { useAuth } from '../contexts/AuthContext';
-import { ArtworkUploadForm } from '../components/dashboard/ArtworkUploadForm';
 import { errorText, formatDate, formatINR, STAGE_LABEL } from '../lib/format';
-
-export function NewArtwork() {
-  const navigate = useNavigate();
-  return (
-    <main className="wrap page" style={{ maxWidth: 640 }}>
-      <div className="page-head"><div><h1>Add an artwork</h1></div></div>
-      <div className="panel"><ArtworkUploadForm onSaved={() => navigate('/dashboard/orders')} /></div>
-    </main>
-  );
-}
 
 function ShipForm({ orderId }) {
   const [courier, setCourier] = useState('');
@@ -34,7 +22,7 @@ function ShipForm({ orderId }) {
   );
 }
 
-export function ArtistInbox() {
+export default function ArtistInbox() {
   const { currentUser } = useAuth();
   const [orders, loading] = useArtistInbox(currentUser.uid);
   return (
