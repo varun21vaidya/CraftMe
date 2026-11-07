@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S15 Write a Review · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S15" data-layout="public" data-user="buyer" data-states="default,closed">
+<main class="wrap narrow page">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="orders.html">My orders</a><i data-i="chevron-right" data-size="14"></i><a href="order-detail.html#received">CM-20344</a><i data-i="chevron-right" data-size="14"></i><span aria-current="page">Review</span></nav>
+  <div class="page-head"><div><h1>Review Tanvi Rao</h1><p>Reviews rate the Artist as a seller: the work as described, the packing, how she kept in touch. One Review per Order.</p></div></div>
+
+  <div class="alert err" data-s="closed" data-c="Window closed"><i data-i="clock"></i><div><strong>The Review window has closed</strong>Reviews can be written for 30 days after an Order is Received. This one closed on 13 Nov.<br><a class="btn btn-secondary btn-sm" href="order-detail.html#received">Back to Order</a></div></div>
+
+  <form class="stack lg" data-s="default" data-demo data-next="orders.html" data-ok="Thanks. Your Review will appear once CraftMe approves it." novalidate>
+    <section class="panel row" style="gap: 16px; flex-wrap: nowrap" data-c="Artist and Order"><span class="avatar lg">TR</span><div><strong>Tanvi Rao</strong> · Bengaluru<br><span class="small muted">Order CM-20344 · Received 12 Oct 2026 · Window closes in 11 days</span></div></section>
+    <section class="panel stack" data-c="Rating">
+      <div class="field"><span class="label" id="rate-l">Your rating <span class="req">*</span></span>
+        <div data-rate="4" data-out="rate-v" aria-labelledby="rate-l"></div><span class="small muted" id="rate-v">4 of 5</span></div>
+      <div class="field"><label for="rc">Your Review <span class="req">*</span></label><textarea class="textarea" id="rc" maxlength="500" data-counter="rc-c" style="min-height: 150px" placeholder="Was it as described? How was the packing? Did the Artist keep you updated?">Both prints were exactly as photographed. Riso inks look even richer in person. Packed flat between two boards and a tube sleeve, with a handwritten note.</textarea><div class="row between"><span class="hint">Don't include your address, phone number or links.</span><span class="counter" id="rc-c">155 / 500</span></div></div>
+      <div class="stack sm"><span class="label">Good things to mention</span><div class="chips"><button type="button" class="chip" aria-pressed="true">Packed well</button><button type="button" class="chip" aria-pressed="false">As described</button><button type="button" class="chip" aria-pressed="true">Fast shipping</button><button type="button" class="chip" aria-pressed="false">Good communication</button></div><span class="hint">Picks are added to the end of your Review.</span></div>
+    </section>
+    <div class="alert info"><i data-i="info"></i><div>Your Review appears on Tanvi's profile after CraftMe approves it, usually within a day. You can't edit it once sent.</div></div>
+    <div class="row end"><a class="btn btn-ghost" href="orders.html">Cancel</a><button class="btn btn-primary btn-lg" type="submit">Send Review</button></div>
+  </form>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

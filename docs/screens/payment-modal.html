@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S10 Payment test mode · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css">
+<style>body { background: color-mix(in srgb, var(--ink) 80%, var(--bg)); } .stage { min-height: calc(100dvh - 120px); display: grid; place-items: center; padding: 24px max(16px, env(safe-area-inset-left)) 24px; }</style></head>
+<body data-screen="S10" data-layout="plain" data-user="buyer" data-states="card,upi,success,failed">
+<main class="stage">
+  <div class="stack" style="width: 100%; align-items: center; gap: 12px">
+    <p class="small" style="color: var(--bg); opacity: .8; text-align: center; max-width: 60ch">The secure window that opens when you press Pay.</p>
+    <div class="razor" role="dialog" aria-modal="true" aria-label="Razorpay Checkout, test mode" data-c="Gateway pop-up">
+      <div class="rl" data-c="Order panel">
+        <div class="row" style="gap: 10px"><span class="avatar" style="background: var(--bg); color: var(--ink); border: 0">C</span><strong style="font: 600 18px var(--font-display)">CraftMe</strong></div>
+        <span class="badge warn" style="align-self: flex-start">TEST MODE</span>
+        <div><span class="eyebrow" style="color: color-mix(in srgb, var(--bg) 60%, transparent)">Amount to pay</span><div class="price" style="font-size: 36px">₹6,900</div></div>
+        <div class="small" style="opacity: .8">Order CM-20418<br>3 items from Meera Iyer<br><span class="mono xs">Held for 11:24</span></div>
+        <div class="small" style="opacity: .8; margin-top: auto; display: flex; gap: 8px"><i data-i="lock" data-size="16"></i> Secure payment</div>
+      </div>
+      <div class="rr">
+        <div class="row between"><h3>Pay with</h3><button class="iconbtn" data-toast="Payment cancelled. Your pieces are still held." aria-label="Close payment window"><i data-i="x"></i></button></div>
+
+        <div data-s="card upi failed" class="stack">
+          <div class="alert err" data-s="failed" role="alert"><i data-i="alert"></i><div><strong>Payment failed</strong>Your bank declined the payment. No money was taken. Try again or choose another method.</div></div>
+          <div class="stack sm" role="group" aria-label="Payment methods">
+            <button class="method" data-s="card failed" aria-pressed="true"><i data-i="card" data-size="22"></i><span class="grow"><strong>Card</strong><br><span class="xs muted">Visa, Mastercard, RuPay, Amex</span></span></button>
+            <button class="method" data-s="card failed" aria-pressed="false" onclick="location.hash='upi'"><i data-i="phone" data-size="22"></i><span class="grow"><strong>UPI</strong><br><span class="xs muted">Google Pay, PhonePe, Paytm, BHIM</span></span></button>
+            <button class="method" data-s="upi" aria-pressed="false" onclick="location.hash='card'"><i data-i="card" data-size="22"></i><span class="grow"><strong>Card</strong></span></button>
+            <button class="method" data-s="upi" aria-pressed="true"><i data-i="phone" data-size="22"></i><span class="grow"><strong>UPI</strong></span></button>
+            <button class="method" aria-pressed="false" data-toast="Netbanking is listed in test mode"><i data-i="wallet" data-size="22"></i><span class="grow"><strong>Netbanking</strong></span></button>
+            <button class="method" aria-pressed="false" data-toast="Wallets are listed in test mode"><i data-i="wallet" data-size="22"></i><span class="grow"><strong>Wallet</strong></span></button>
+          </div>
+          <form class="stack" data-s="card failed" data-demo data-next="payment-modal.html#success" data-loading="1" novalidate aria-label="Card details">
+            <div class="field"><label for="cardn">Card number</label><input class="input mono" id="cardn" value="4111 1111 1111 1111" inputmode="numeric" autocomplete="cc-number"></div>
+            <div class="form-grid"><div class="field"><label for="exp">Expiry</label><input class="input mono" id="exp" placeholder="MM / YY" value="12 / 29" autocomplete="cc-exp"></div><div class="field"><label for="cvv">CVV</label><input class="input mono" id="cvv" type="password" value="123" maxlength="4" autocomplete="cc-csc"></div></div>
+            <div class="field"><label for="cname">Name on card</label><input class="input" id="cname" value="Ananya Verma" autocomplete="cc-name"></div>
+            <button class="btn btn-primary btn-lg btn-block" type="submit">Pay ₹6,900</button>
+          </form>
+          <form class="stack" data-s="upi" data-demo data-next="payment-modal.html#success" data-loading="1" novalidate aria-label="UPI details">
+            <div class="field"><label for="vpa">UPI ID</label><input class="input mono" id="vpa" value="success@razorpay" autocomplete="off"><span class="hint">The UPI ID you pay from.</span></div>
+            <div class="divider-text">or</div>
+            <div class="row" style="gap: 16px; flex-wrap: nowrap"><div class="mat tight" style="width: 110px; flex: none"><canvas class="art" data-seed="2" data-style="hatch" data-ratio="1/1" aria-label="QR code placeholder"></canvas></div><p class="small muted">Scan this QR code with any UPI app. We'll wait here until you approve.</p></div>
+            <button class="btn btn-primary btn-lg btn-block" type="submit">Verify and pay ₹6,900</button>
+          </form>
+        </div>
+
+        <div data-s="success" class="stack center" role="status" style="justify-items: center; padding: 20px 0">
+          <div class="avatar xl" style="background: var(--ok-soft); color: var(--ok); border-color: transparent"><i data-i="check" data-size="40"></i></div>
+          <h2>Payment successful</h2><p class="muted">₹6,900 paid to CraftMe. Taking you back to your Order in a moment.</p>
+          <div class="row"><div class="spinner"></div><span class="small muted">Confirming with the bank…</span></div>
+          <a class="btn btn-primary" href="order-placed.html">Continue to CraftMe</a>
+        </div>
+        <p class="xs faint" data-s="card upi failed">Your card details are never shared with CraftMe or the artist.</p>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

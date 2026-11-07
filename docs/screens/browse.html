@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S02 Browse · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S02" data-layout="public" data-user="buyer" data-active="browse" data-states="default,loading,empty">
+<main class="wrap page">
+  <nav class="crumbs" aria-label="Breadcrumb" data-c="Breadcrumbs"><a href="home.html">Home</a><i data-i="chevron-right" data-size="14"></i><span aria-current="page">Browse</span></nav>
+  <div class="page-head" data-c="Page header">
+    <div><h1>Browse art</h1><p data-s="default loading">86 Artworks match your filters.</p><p data-s="empty">No Artworks match your filters.</p></div>
+    <div class="row">
+      <div class="field" style="flex-direction: row; align-items: center; gap: 8px"><label for="sort" style="white-space: nowrap">Sort by</label>
+        <select class="select" id="sort" style="width: auto; min-width: 190px"><option>Newest first</option><option>Price: low to high</option><option>Price: high to low</option><option>Highest rated Artist</option></select></div>
+    </div>
+  </div>
+
+  <div class="split rev">
+    <aside data-c="Filters">
+      <details class="panel" id="filters" open>
+        <summary class="row between" style="cursor: pointer; font: 600 17px var(--font-display); list-style: none"><span><i data-i="filter"></i> Filters <span class="badge accent" id="fcount">3</span></span><button type="button" class="btn-link small" data-toast="Filters cleared">Clear all</button></summary>
+        <div class="stack lg" style="margin-top: 18px">
+          <div class="field"><label for="q">Search these results</label><div class="search-big"><i data-i="search"></i><input class="input" id="q" type="search" placeholder="Title, Artist or medium"></div></div>
+          <fieldset style="border: 0; padding: 0; margin: 0" class="stack sm"><legend class="label" style="padding: 0 0 8px">Category</legend>
+            <label class="check"><input type="checkbox" checked> Painting <span class="faint small">(412)</span></label>
+            <label class="check"><input type="checkbox"> Drawing &amp; illustration <span class="faint small">(268)</span></label>
+            <label class="check"><input type="checkbox" checked> Photography <span class="faint small">(305)</span></label>
+            <label class="check"><input type="checkbox"> Sculpture <span class="faint small">(97)</span></label>
+            <label class="check"><input type="checkbox"> Prints &amp; digital art <span class="faint small">(340)</span></label>
+            <label class="check"><input type="checkbox"> Crafts <span class="faint small">(183)</span></label>
+            <label class="check"><input type="checkbox"> Other <span class="faint small">(52)</span></label>
+          </fieldset>
+          <fieldset style="border: 0; padding: 0; margin: 0" class="stack sm"><legend class="label" style="padding: 0 0 8px">Type</legend>
+            <label class="check"><input type="checkbox" checked> Originals <span class="faint small">(311)</span></label>
+            <label class="check"><input type="checkbox"> Prints <span class="faint small">(702)</span></label>
+          </fieldset>
+          <div class="stack sm"><span class="label">Price</span>
+            <div class="row between mono small"><span id="pmin">₹500</span><span id="pmax">₹50,000</span></div>
+            <label class="sr" for="rmin">Minimum price</label><input class="range" id="rmin" type="range" min="0" max="100000" step="500" value="500" data-out="pmin" data-money="1">
+            <label class="sr" for="rmax">Maximum price</label><input class="range" id="rmax" type="range" min="0" max="100000" step="500" value="50000" data-out="pmax" data-money="1">
+            <div class="chips" data-exclusive><button type="button" class="chip" aria-pressed="false">Under ₹2,000</button><button type="button" class="chip" aria-pressed="false">₹2,000 to ₹10,000</button><button type="button" class="chip" aria-pressed="false">Over ₹10,000</button></div>
+          </div>
+          <div class="field"><label for="artist">Artist</label><select class="select" id="artist"><option>Any Artist</option><option>Meera Iyer</option><option>Arjun Deshmukh</option><option>Naina Kapoor</option><option>Imran Sheikh</option><option>Tanvi Rao</option><option>Sourav Mondal</option></select></div>
+          <label class="switch"><input type="checkbox" checked><span>Hide Sold Originals</span></label>
+        </div>
+      </details>
+    </aside>
+
+    <section class="stack lg" aria-label="Results">
+      <div class="chips" data-c="Active filters" aria-label="Active filters">
+        <span class="badge accent" style="padding: 5px 6px 5px 12px; font-size: 12.5px">Painting <button type="button" class="btn-ghost" style="border:0;background:none;cursor:pointer;color:inherit;display:grid" aria-label="Remove Painting" data-toast="Filter removed"><i data-i="x" data-size="14"></i></button></span>
+        <span class="badge accent" style="padding: 5px 6px 5px 12px; font-size: 12.5px">Photography <button type="button" style="border:0;background:none;cursor:pointer;color:inherit;display:grid" aria-label="Remove Photography" data-toast="Filter removed"><i data-i="x" data-size="14"></i></button></span>
+        <span class="badge accent" style="padding: 5px 6px 5px 12px; font-size: 12.5px">Originals <button type="button" style="border:0;background:none;cursor:pointer;color:inherit;display:grid" aria-label="Remove Originals" data-toast="Filter removed"><i data-i="x" data-size="14"></i></button></span>
+      </div>
+
+      <div data-s="default" class="stack lg">
+        <div class="grid g3" data-c="Artwork grid" data-artcards="1,2,3,4,5,6,7,8,9,10,11,12"></div>
+        <nav class="pagination" aria-label="Pagination" data-c="Pagination"><a href="#" aria-label="Previous page"><i data-i="chevron-left" data-size="16"></i></a><a href="#" aria-current="page">1</a><a href="#">2</a><a href="#">3</a><span class="gap">…</span><a href="#">8</a><a href="#" aria-label="Next page"><i data-i="chevron-right" data-size="16"></i></a></nav>
+      </div>
+
+      <div data-s="loading" class="grid g3" aria-busy="true" aria-label="Loading Artworks">
+        <div class="stack sm"><div class="skeleton" style="aspect-ratio: 1 / 1.1"></div><div class="skeleton" style="height: 12px; width: 40%"></div><div class="skeleton" style="height: 18px; width: 75%"></div><div class="skeleton" style="height: 12px; width: 55%"></div></div>
+        <div class="stack sm"><div class="skeleton" style="aspect-ratio: 1 / 1.1"></div><div class="skeleton" style="height: 12px; width: 40%"></div><div class="skeleton" style="height: 18px; width: 75%"></div><div class="skeleton" style="height: 12px; width: 55%"></div></div>
+        <div class="stack sm"><div class="skeleton" style="aspect-ratio: 1 / 1.1"></div><div class="skeleton" style="height: 12px; width: 40%"></div><div class="skeleton" style="height: 18px; width: 75%"></div><div class="skeleton" style="height: 12px; width: 55%"></div></div>
+        <div class="stack sm"><div class="skeleton" style="aspect-ratio: 1 / 1.1"></div><div class="skeleton" style="height: 12px; width: 40%"></div><div class="skeleton" style="height: 18px; width: 75%"></div><div class="skeleton" style="height: 12px; width: 55%"></div></div>
+        <div class="stack sm"><div class="skeleton" style="aspect-ratio: 1 / 1.1"></div><div class="skeleton" style="height: 12px; width: 40%"></div><div class="skeleton" style="height: 18px; width: 75%"></div><div class="skeleton" style="height: 12px; width: 55%"></div></div>
+        <div class="stack sm"><div class="skeleton" style="aspect-ratio: 1 / 1.1"></div><div class="skeleton" style="height: 12px; width: 40%"></div><div class="skeleton" style="height: 18px; width: 75%"></div><div class="skeleton" style="height: 12px; width: 55%"></div></div>
+      </div>
+
+      <div data-s="empty" class="empty" data-c="Empty state">
+        <div class="ic-wrap"><i data-i="search" data-size="26"></i></div>
+        <h3>Nothing matches those filters</h3>
+        <p>Try removing a Category or widening the price range. Originals are one of a kind, so new ones appear every day.</p>
+        <div class="row" style="justify-content: center"><button class="btn btn-primary" data-toast="Filters cleared">Clear all filters</button><a class="btn btn-secondary" href="browse.html">Browse everything</a></div>
+      </div>
+    </section>
+  </div>
+</main>
+<script>if (innerWidth < 1000) { var f = document.getElementById('filters'); if (f) f.open = false; }</script>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S18 Become an Artist · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S18" data-layout="public" data-user="buyer" data-active="sell" data-states="step1,step2,step3,done">
+<main class="wrap mid page">
+  <div class="page-head" data-s="step1 step2 step3"><div><span class="eyebrow">Sell on CraftMe</span><h1>Become an Artist</h1><p>Three short steps. You can keep buying with the same Account.</p></div></div>
+  <ol class="stepper" aria-label="Steps to become an Artist" data-s="step1 step2 step3" data-c="Stepper"><li class="now" data-s="step1">Your details</li><li class="done" data-s="step2 step3">Your details</li><li data-s="step1">Verify phone</li><li class="now" data-s="step2">Verify phone</li><li class="done" data-s="step3">Verify phone</li><li data-s="step1 step2">Open your shop</li><li class="now" data-s="step3">Open your shop</li></ol>
+
+  <div class="split" data-s="step1">
+    <form class="stack lg" data-demo data-next="become-artist.html#step2" data-loading="0" novalidate aria-label="Artist Verification details">
+      <section class="panel stack" data-c="Identity"><h3>Who you are</h3>
+        <div class="alert info"><i data-i="lock"></i><div><strong>Private to you.</strong>Buyers never see this. We use it to pay you.</div></div>
+        <div class="form-grid"><div class="field"><label for="ln">Legal name <span class="req">*</span></label><input class="input" id="ln" value="Meera Iyer" autocomplete="name"><span class="hint">Exactly as on your PAN card.</span></div>
+          <div class="field"><label for="pan">PAN <span class="req">*</span></label><input class="input mono" id="pan" value="ABCDE1234F" maxlength="10" autocomplete="off"><span class="hint">10 characters, like ABCDE1234F.</span></div>
+          <div class="field"><label for="ac">City <span class="req">*</span></label><input class="input" id="ac" value="Chennai"></div>
+          <div class="field"><label for="as">State <span class="req">*</span></label><select class="select" id="as"><option>Tamil Nadu</option><option>Maharashtra</option><option>Karnataka</option></select></div></div></section>
+      <section class="panel stack" data-c="Payout details"><h3>Where should we pay you?</h3><p class="small muted">You're paid twice a month, on the 1st and 15th.</p>
+        <div class="grid g2" role="radiogroup" aria-label="Payout method"><label class="option-card"><input type="radio" name="pm" checked><span><strong>UPI ID</strong><br><span class="small muted">Fastest. Instant transfer.</span></span></label><label class="option-card"><input type="radio" name="pm"><span><strong>Bank account</strong><br><span class="small muted">NEFT or IMPS.</span></span></label></div>
+        <div class="field"><label for="upi">UPI ID <span class="req">*</span></label><input class="input mono" id="upi" value="meera.iyer@okhdfc" autocomplete="off"></div>
+        <div class="form-grid"><div class="field"><label for="bn">Account holder name</label><input class="input" id="bn" placeholder="Shown only if you pick bank account" disabled></div><div class="field"><label for="ifsc">IFSC</label><input class="input mono" id="ifsc" placeholder="HDFC0001234" disabled></div><div class="field"><label for="an">Account number</label><input class="input mono" id="an" disabled></div><div class="field"><label for="an2">Confirm account number</label><input class="input mono" id="an2" disabled></div></div></section>
+      <section class="panel stack" data-c="Your shop"><h3>Your shop</h3>
+        <div class="field"><label for="sb">Short bio <span class="req">*</span></label><textarea class="textarea" id="sb" maxlength="300" data-counter="sb-c">Paints the Coromandel coast in layered acrylics and kolam geometry.</textarea><span class="counter" id="sb-c">66 / 300</span></div>
+        <div class="field"><span class="label">What do you make?</span><div class="chips"><button type="button" class="chip" aria-pressed="true">Painting</button><button type="button" class="chip" aria-pressed="false">Drawing &amp; illustration</button><button type="button" class="chip" aria-pressed="false">Photography</button><button type="button" class="chip" aria-pressed="false">Sculpture</button><button type="button" class="chip" aria-pressed="false">Prints &amp; digital art</button><button type="button" class="chip" aria-pressed="false">Crafts</button></div></div>
+        <label class="check"><input type="checkbox" checked> <span>Everything I sell is my own work.</span></label>
+        <label class="check"><input type="checkbox" checked> <span>I am 18 or older and I accept the <a href="legal.html#artist">Artist agreement</a>.</span></label></section>
+      <div class="row end"><a class="btn btn-ghost" href="profile.html">Cancel</a><button class="btn btn-primary btn-lg" type="submit">Continue to phone check</button></div>
+    </form>
+    <aside class="stack sticky" data-c="How selling works"><section class="panel stack"><h4>How selling works</h4>
+      <ul class="list small"><li><i data-i="tag" data-size="18"></i><span>You list Artworks and Listings (an Original, Prints, or both).</span></li><li><i data-i="wallet" data-size="18"></i><span>Buyers pay CraftMe. You ship within 7 days.</span></li><li><i data-i="clock" data-size="18"></i><span>You're paid on the 1st and 15th.</span></li><li><i data-i="percent" data-size="18"></i><span>You only pay when you sell.</span></li></ul></section></aside>
+  </div>
+
+  <section class="panel stack" style="max-width: 560px; margin: 0 auto; width: 100%" data-s="step2" data-c="Phone check">
+    <div class="stack sm"><h3>Verify your phone</h3><p class="muted">We sent a 6-digit code by SMS to <strong class="mono">+91 98765 43210</strong>. It works for 10 minutes.</p></div>
+    <div class="otp" role="group" aria-label="6-digit code"><input maxlength="1" inputmode="numeric" aria-label="Digit 1" value="4"><input maxlength="1" inputmode="numeric" aria-label="Digit 2" value="8"><input maxlength="1" inputmode="numeric" aria-label="Digit 3" value="1"><input maxlength="1" inputmode="numeric" aria-label="Digit 4"><input maxlength="1" inputmode="numeric" aria-label="Digit 5"><input maxlength="1" inputmode="numeric" aria-label="Digit 6"></div>
+    <div class="row between"><span class="small muted">Didn't get it? Resend in <span class="countdown" data-countdown="00:42">00:42</span></span><button class="btn-link small" data-toast="Number change opens here">Change number</button></div>
+    <div class="row end"><a class="btn btn-ghost" href="become-artist.html#step1">Back</a><a class="btn btn-primary btn-lg" href="become-artist.html#step3">Verify and continue</a></div>
+  </section>
+
+  <div class="split" data-s="step3">
+    <section class="panel stack" data-c="Onboarding fee"><h3>Open your shop</h3>
+      <p class="muted">One small payment, once, to open your shop.</p>
+      <div class="callout row between"><div><span class="eyebrow">To open your shop</span><div class="price" style="font-size: 36px">₹499</div></div></div>
+      <ul class="list small"><li><i data-i="check" data-size="18"></i>Your public Artist profile and Instagram Showcase</li><li><i data-i="check" data-size="18"></i>Unlimited Artworks and Listings</li><li><i data-i="check" data-size="18"></i>Order inbox, Payouts twice a month, Reviews</li></ul>
+      <div class="alert info"><i data-i="info"></i><div><strong>You only pay when you sell</strong>A small share of each sale. Nothing monthly.</div></div>
+      <label class="check"><input type="checkbox" checked> <span>I understand this payment isn't refunded.</span></label>
+      <a class="btn btn-primary btn-lg" href="payment-modal.html"><i data-i="lock"></i>Open my shop for ₹499</a>
+    </section>
+    <aside class="stack sticky"><section class="panel stack"><h4>What happens after</h4><ol class="timeline"><li class="done"><div class="tt">You open your shop</div></li><li class="now"><div class="tt">You become an Artist</div><div class="small muted">You can add Artworks and Listings straight away.</div></li><li class="todo"><div class="tt">CraftMe checks your details</div><div class="small muted">A quick check so you can be paid.</div></li></ol></section></aside>
+  </div>
+
+  <section class="stack center" style="justify-items: center; max-width: 620px; margin: 0 auto" data-s="done" role="status" data-c="Done">
+    <div class="avatar xl" style="background: var(--ok-soft); color: var(--ok); border-color: transparent"><i data-i="check" data-size="40"></i></div>
+    <h1>You're an Artist on CraftMe</h1><p class="lead">Your shop is ready for its first piece.</p>
+    <div class="panel stack" style="width: 100%; text-align: left"><h4>Your first steps</h4>
+      <ul class="list"><li><span class="badge ok">Done</span> Open your shop</li><li><span class="badge accent">Next</span><a href="dash-artwork-edit.html" class="grow">Add your first Artwork</a><i data-i="chevron-right" data-size="16"></i></li><li><span class="badge">Optional</span><a href="dash-instagram.html" class="grow">Connect Instagram</a><i data-i="chevron-right" data-size="16"></i></li><li><span class="badge warn">Pending</span><span class="grow muted">We're checking your details so you can be paid</span></li></ul></div>
+    <a class="btn btn-primary btn-lg" href="dash-home.html">Go to my dashboard</a>
+  </section>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

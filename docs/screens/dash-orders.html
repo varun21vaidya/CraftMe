@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S24 Order inbox · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S24" data-layout="shell-artist" data-user="artist" data-active="orders" data-states="default,empty">
+<main>
+  <div class="page-head"><div><h1>Orders</h1><p>Ship within 7 days of payment. You see a Buyer's address once the Order is Paid.</p></div></div>
+  <div data-s="default" class="stack lg">
+    <div class="tabs" role="tablist" data-tabs aria-label="Order filters" data-c="Tabs"><button class="tab" role="tab" aria-selected="true" data-tab="o-all">To ship <span class="badge warn">3</span></button><button class="tab" role="tab" aria-selected="false" data-tab="o-all">Shipped <span class="badge info">2</span></button><button class="tab" role="tab" aria-selected="false" data-tab="o-all">Received <span class="badge">8</span></button><button class="tab" role="tab" aria-selected="false" data-tab="o-all">Refunded <span class="badge">1</span></button><button class="tab" role="tab" aria-selected="false" data-tab="o-all">All</button></div>
+    <div class="table-wrap" id="o-all" data-c="Orders table"><table class="table"><thead><tr><th>Order</th><th>Buyer</th><th>Items</th><th>Paid</th><th>Ship by</th><th class="r">You receive</th><th></th></tr></thead><tbody>
+      <tr style="background: var(--err-soft)"><td class="mono"><strong>CM-20399</strong></td><td>Rahul N.<br><span class="small muted">Pune</span></td><td>Kolam at Dawn ×1</td><td class="mono small">26 Oct</td><td><span class="badge err dot">Overdue · was 2 Nov</span></td><td class="r">₹1,940</td><td class="r"><a class="btn btn-danger btn-sm" href="dash-order-detail.html#paid">Ship now</a></td></tr>
+      <tr><td class="mono"><strong>CM-20412</strong></td><td>Sneha M.<br><span class="small muted">Delhi</span></td><td>Monsoon Over Marina (Original)</td><td class="mono small">1 Nov</td><td><span class="badge warn dot">8 Nov · in 5 days</span></td><td class="r">₹37,000</td><td class="r"><a class="btn btn-primary btn-sm" href="dash-order-detail.html#paid">Ship</a></td></tr>
+      <tr><td class="mono"><strong>CM-20418</strong></td><td>Ananya V.<br><span class="small muted">Mumbai</span></td><td>Kolam at Dawn ×2, Monsoon print ×1</td><td class="mono small">3 Nov</td><td><span class="badge warn dot">10 Nov · in 7 days</span></td><td class="r">₹6,070</td><td class="r"><a class="btn btn-primary btn-sm" href="dash-order-detail.html#paid">Ship</a></td></tr>
+    </tbody></table></div>
+    <p class="small muted">"You receive" is an estimate of what you will be paid for each order.</p>
+  </div>
+  <div class="empty" data-s="empty"><div class="ic-wrap"><i data-i="inbox" data-size="26"></i></div><h3>No Orders to ship</h3><p>When a Buyer pays for one of your Listings, the Order appears here and you get an email.</p><a class="btn btn-secondary" href="dash-artworks.html">Check my Listings</a></div>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

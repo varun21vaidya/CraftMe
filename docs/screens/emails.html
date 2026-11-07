@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S35 Emails · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S35" data-layout="plain" data-user="admin">
+<main class="wrap mid page">
+  <div class="page-head"><div><span class="eyebrow">System</span><h1>Launch emails</h1><p>Three emails go out at launch. Emails always use a light background, whatever your theme.</p></div></div>
+  <div class="tabs" role="tablist" data-tabs data-hash="1" aria-label="Emails" data-c="Email tabs"><button class="tab" role="tab" aria-selected="true" data-tab="em-buyer">Buyer: Order confirmation</button><button class="tab" role="tab" aria-selected="false" data-tab="em-new">Artist: New Order</button><button class="tab" role="tab" aria-selected="false" data-tab="em-pay">Artist: Payout sent</button></div>
+
+  <section id="em-buyer" role="tabpanel"><div class="emailframe"><div class="eh2"><span><strong>From:</strong> CraftMe &lt;orders@craftme.example&gt;</span><span><strong>To:</strong> ananya.verma@example.com</span><span><strong>Subject:</strong> Your CraftMe Order CM-20418 is Paid</span></div>
+    <div class="eb"><div style="font: 500 22px 'Google Sans Flex', Arial, sans-serif">CraftMe</div><h2 style="margin: 0; font: 400 24px 'Google Sans Flex', Arial, sans-serif">Thank you, Ananya. Your Order is Paid.</h2>
+      <p>Meera Iyer has been told to pack your Order. She has until <strong>10 Nov</strong> to ship it, and you'll get a tracking number when she does.</p>
+      <table class="mini"><tr><td>Kolam at Dawn, Print A3 × 2</td><td style="text-align: right">₹4,400</td></tr><tr><td>Monsoon Over Marina, Print A3 × 1</td><td style="text-align: right">₹2,500</td></tr><tr><td>Shipping within India</td><td style="text-align: right">Included</td></tr><tr><td><strong>Total paid</strong></td><td style="text-align: right"><strong>₹6,900</strong></td></tr></table>
+      <p style="font-size: 14px; color: #4a5158">Ship to: Ananya Verma, Flat 402, Sea Breeze Apartments, Carter Road, Bandra West, Mumbai 400050<br>Order CM-20418 · 3 Nov 2026</p>
+      <a class="ebtn" href="order-detail.html#paid">View your Order</a>
+      <p style="font-size: 13px; color: #6f767d">Anything wrong? Just reply to this email and we will help.</p></div></div></section>
+
+  <section id="em-new" role="tabpanel" hidden><div class="emailframe"><div class="eh2"><span><strong>From:</strong> CraftMe &lt;orders@craftme.example&gt;</span><span><strong>To:</strong> meera@example.com</span><span><strong>Subject:</strong> New Order CM-20418: ship by 10 Nov</span></div>
+    <div class="eb"><div style="font: 500 22px 'Google Sans Flex', Arial, sans-serif">CraftMe</div><h2 style="margin: 0; font: 400 24px 'Google Sans Flex', Arial, sans-serif">You have a new Order to ship</h2>
+      <p>Ananya V. in Mumbai paid for 3 items. Please post them by <strong>10 Nov 2026</strong>. Please post it by then so your customer isn't kept waiting.</p>
+      <table class="mini"><tr><td>Kolam at Dawn, Print A3 × 2</td><td style="text-align: right">₹4,400</td></tr><tr><td>Monsoon Over Marina, Print A3 × 1</td><td style="text-align: right">₹2,500</td></tr><tr><td>You receive (estimate)</td><td style="text-align: right">₹6,072</td></tr></table>
+      <a class="ebtn" href="dash-order-detail.html#paid">See address and ship</a>
+      <p style="font-size: 13px; color: #6f767d">The address is on the Order page, not in this email, so it stays private.</p></div></div></section>
+
+  <section id="em-pay" role="tabpanel" hidden><div class="emailframe"><div class="eh2"><span><strong>From:</strong> CraftMe &lt;payouts@craftme.example&gt;</span><span><strong>To:</strong> meera@example.com</span><span><strong>Subject:</strong> Your CraftMe Payout of ₹22,340 was sent</span></div>
+    <div class="eb"><div style="font: 500 22px 'Google Sans Flex', Arial, sans-serif">CraftMe</div><h2 style="margin: 0; font: 400 24px 'Google Sans Flex', Arial, sans-serif">Your Payout was sent</h2>
+      <p>We sent <strong>₹22,340</strong> to meera.iyer@okhdfc on 1 Nov 2026. Reference <strong>3048827711</strong>.</p>
+      <table class="mini"><tr><td>5 Orders, price paid</td><td style="text-align: right">₹25,600</td></tr><tr><td>CraftMe's share and payment cost</td><td style="text-align: right">−₹3,260</td></tr><tr><td><strong>Net Payout</strong></td><td style="text-align: right"><strong>₹22,340</strong></td></tr></table>
+      <a class="ebtn" href="dash-payouts.html">See the full statement</a>
+      <p style="font-size: 13px; color: #6f767d">Didn't get it within 2 working days? Reply to this email with your reference.</p></div></div></section>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

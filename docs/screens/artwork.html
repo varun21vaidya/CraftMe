@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S03 Artwork · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S03" data-layout="public" data-user="buyer" data-active="browse" data-states="default,sold,own,cart-clash">
+<main class="wrap page">
+  <nav class="crumbs" aria-label="Breadcrumb" data-c="Breadcrumbs"><a href="home.html">Home</a><i data-i="chevron-right" data-size="14"></i><a href="browse.html">Browse</a><i data-i="chevron-right" data-size="14"></i><a href="browse.html">Painting</a><i data-i="chevron-right" data-size="14"></i><span aria-current="page">Monsoon Over Marina</span></nav>
+
+  <div class="split wide">
+    <section class="stack" aria-label="Photos and video" data-c="Gallery">
+      <div class="mat" style="padding: clamp(14px, 6%, 40px)">
+        <span class="badge solid sold-tag" data-s="sold">Original sold</span>
+        <canvas class="art" id="main-art" data-seed="3" data-style="horizon" data-ratio="5/4" role="img" aria-label="Monsoon Over Marina, photo 1 of 5"></canvas>
+      </div>
+      <div class="gallery-thumbs" data-gallery="main-art" aria-label="Photos">
+        <button type="button" aria-current="true" data-seed="3" data-style="horizon" aria-label="Photo 1, front"><canvas class="art" data-seed="3" data-style="horizon" data-ratio="1/1"></canvas></button>
+        <button type="button" aria-current="false" data-seed="23" data-style="bloom" aria-label="Photo 2, detail"><canvas class="art" data-seed="23" data-style="bloom" data-ratio="1/1"></canvas></button>
+        <button type="button" aria-current="false" data-seed="33" data-style="hatch" aria-label="Photo 3, brushwork"><canvas class="art" data-seed="33" data-style="hatch" data-ratio="1/1"></canvas></button>
+        <button type="button" aria-current="false" data-seed="13" data-style="field" aria-label="Photo 4, signature"><canvas class="art" data-seed="13" data-style="field" data-ratio="1/1"></canvas></button>
+        <button type="button" aria-current="false" data-seed="43" data-style="orbit" aria-label="Photo 5, on a wall"><canvas class="art" data-seed="43" data-style="orbit" data-ratio="1/1"></canvas></button>
+      </div>
+      <div class="embed" style="max-width: 360px" data-c="Instagram reel">
+        <div class="eh"><span class="avatar">MI</span><span>meera.paints</span><span class="badge info" style="margin-left:auto">Reel</span></div>
+        <div class="em"><canvas class="art" data-seed="7" data-style="bloom" data-ratio="4/5"></canvas><div class="play"><span><i data-i="play" data-size="22"></i></span></div></div>
+        <div class="ef"><span>Making of Monsoon Over Marina</span><a href="https://www.instagram.com/" class="small">View on Instagram <i data-i="external" data-size="13"></i></a></div>
+      </div>
+      <p class="xs faint" style="max-width: 360px">Shown from Instagram. CraftMe stores only the link, never a copy of the video.</p>
+    </section>
+
+    <section class="stack lg sticky" aria-label="Buy" data-c="Purchase panel">
+      <div class="stack sm">
+        <span class="eyebrow">Painting · 2025 · Acrylic on canvas</span>
+        <h1 style="font-size: clamp(30px, 4vw, 40px)">Monsoon Over Marina</h1>
+        <a href="artist-profile.html" class="row" style="text-decoration: none; color: var(--ink)" data-c="Artist link"><span class="avatar">MI</span><span><strong>Meera Iyer</strong> <span class="muted small">· Chennai</span><br><span data-stars="4.9"></span> <span class="small muted">4.9 · 38 Reviews</span></span></a>
+      </div>
+
+      <div data-s="default sold cart-clash" class="stack">
+        <fieldset style="border: 0; padding: 0; margin: 0" class="stack sm" data-c="Listings"><legend class="label" style="padding-bottom: 8px">Choose how to buy it</legend>
+          <label class="option-card" style="opacity: 1" id="opt-original"><input type="radio" name="listing" checked><span class="grow"><strong>Original</strong> <span class="badge warn" data-s="default cart-clash">Only 1 available</span><span class="badge solid" data-s="sold">Sold</span><br><span class="small muted">60 × 90 cm · Acrylic on canvas · Signed verso · Unframed</span></span><span class="price">₹42,000</span></label>
+          <label class="option-card"><input type="radio" name="listing"><span class="grow"><strong>Print</strong> <span class="badge ok">50 in stock</span><br><span class="small muted">A3 giclee on 300 gsm cotton rag · Unsigned · Rolled in a tube</span></span><span class="price">₹2,500</span></label>
+        </fieldset>
+        <div class="row between"><div class="stack sm"><span class="label">Quantity</span><div class="qty"><button type="button" data-d="-" aria-label="Decrease"><i data-i="minus" data-size="16"></i></button><input value="1" aria-label="Quantity" data-max="50"><button type="button" data-d="+" aria-label="Increase"><i data-i="plus" data-size="16"></i></button></div><span class="hint">Originals are always 1.</span></div>
+          <div class="right"><span class="eyebrow">Total, shipping included</span><div class="price" style="font-size: 30px">₹42,000</div></div></div>
+        <div class="alert info" data-s="sold"><i data-i="info"></i><div><strong>This Original has found a home.</strong>Prints of this Artwork are still available.</div></div>
+        <div class="stack sm">
+          <button class="btn btn-primary btn-lg btn-block" data-toast="Added to your Cart" data-s="default"><i data-i="cart"></i>Add to Cart</button>
+          <button class="btn btn-primary btn-lg btn-block" data-open="newcart" data-s="cart-clash"><i data-i="cart"></i>Add to Cart</button>
+          <button class="btn btn-primary btn-lg btn-block" disabled data-s="sold"><i data-i="cart"></i>Original is Sold</button>
+          <button class="btn btn-secondary btn-block" data-toast="Payment starts at Checkout">Buy now</button>
+        </div>
+      </div>
+
+      <div class="alert warn" data-s="own" data-c="Own listing notice"><i data-i="alert"></i><div><strong>This is your Artwork.</strong>Artists can't buy their own Listings. You can edit it from your dashboard.<br><a class="btn btn-secondary btn-sm" href="dash-artwork-edit.html">Edit in dashboard</a></div></div>
+
+      <ul class="list" data-c="Shipping and protection">
+        <li><i data-i="truck" data-size="22"></i><span><strong>Shipped by Meera</strong>, within 7 days of payment. Shipping within India is included, you pay nothing extra.</span></li>
+        <li><i data-i="clock" data-size="22"></i><span><strong>Yours while you pay.</strong> Nobody else can buy it while you check out.</span></li>
+        <li><i data-i="shield" data-size="22"></i><span><strong>Arrives safely or you get your money back.</strong> If it is damaged, tell us within 3 days.</span></li>
+      </ul>
+      <button class="btn-link small" data-open="report" style="justify-self: start"><i data-i="flag" data-size="14"></i> Report this Artwork</button>
+    </section>
+  </div>
+
+  <section class="split" style="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)" data-c="Details">
+    <div class="stack"><h2>About this piece</h2><p class="prose">Painted over the monsoon of 2025 from the terrace of a Mylapore house, looking towards the Marina. The sky is built from eleven thin glazes of ultramarine and teal, then broken by a single dark sun. The canvas is stretched on a 3.5 cm deep frame, so it hangs without a frame.</p></div>
+    <div class="panel"><h3 style="margin-bottom: 14px">Wall label</h3>
+      <dl class="kv"><dt>Artist</dt><dd>Meera Iyer, Chennai</dd><dt>Title</dt><dd>Monsoon Over Marina</dd><dt>Year</dt><dd>2025</dd><dt>Medium</dt><dd>Acrylic on canvas</dd><dt>Size</dt><dd>60 × 90 cm (Original) · A3 (Print)</dd><dt>Category</dt><dd>Painting</dd><dt>Signed</dt><dd>Verso, with year</dd><dt>Ships from</dt><dd>Chennai, Tamil Nadu</dd><dt>Item code</dt><dd class="mono">AW-00184 <button class="btn-link small" data-copy="AW-00184" aria-label="Copy item code"><i data-i="copy" data-size="14"></i></button></dd></dl></div>
+  </section>
+
+  <section class="stack" aria-labelledby="rv-h" data-c="Artist Reviews">
+    <div class="page-head"><div><span class="eyebrow">Reviews rate the Artist</span><h2 id="rv-h">What Buyers say about Meera</h2></div><a class="tag-link" href="artist-profile.html">All 38 Reviews <i data-i="arrow-right" data-size="16"></i></a></div>
+    <div class="grid g3">
+      <article class="panel stack sm"><div class="row between"><span data-stars="5"></span><span class="xs faint mono">12 Oct 2026</span></div><p>Packed like a museum piece. Arrived in 3 days and the colours are exactly as photographed.</p><span class="small muted">Karthik R., Hyderabad · Bought a Print</span></article>
+      <article class="panel stack sm"><div class="row between"><span data-stars="5"></span><span class="xs faint mono">29 Sep 2026</span></div><p>Meera sent a handwritten note and a photo of the canvas before posting. Lovely.</p><span class="small muted">Divya S., Mumbai · Bought an Original</span></article>
+      <article class="panel stack sm"><div class="row between"><span data-stars="4"></span><span class="xs faint mono">3 Sep 2026</span></div><p>Beautiful work. Shipped on day 6, a little later than I hoped, but she kept me updated.</p><span class="small muted">Rohan P., Delhi · Bought a Print</span></article>
+    </div>
+  </section>
+
+  <section class="stack" aria-labelledby="more-h" data-c="More from the Artist">
+    <div class="page-head"><h2 id="more-h">More from Meera Iyer</h2></div>
+    <div class="grid g4" data-artcards="7,1"></div>
+  </section>
+  <section class="stack" aria-labelledby="sim-h" data-c="Similar Artworks">
+    <div class="page-head"><h2 id="sim-h">More paintings</h2></div>
+    <div class="grid g4" data-artcards="3,5,6,12"></div>
+  </section>
+</main>
+
+<div class="modal-backdrop" id="report" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rep-t">
+    <div class="modal-head"><div><h3 id="rep-t">Report this Artwork</h3><p class="small muted" style="margin-top: 4px">Reports go to the CraftMe team. The Artist isn't told who reported.</p></div><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+    <div class="modal-body">
+      <fieldset style="border: 0; padding: 0; margin: 0" class="stack sm"><legend class="label" style="padding-bottom: 6px">What's wrong?</legend>
+        <label class="radio"><input type="radio" name="why" checked> It looks copied or stolen from another Artist</label>
+        <label class="radio"><input type="radio" name="why"> It isn't what the photos show</label>
+        <label class="radio"><input type="radio" name="why"> Offensive or inappropriate</label>
+        <label class="radio"><input type="radio" name="why"> Something else</label></fieldset>
+      <div class="field"><label for="why-d">Details <span class="opt">optional</span></label><textarea class="textarea" id="why-d" maxlength="500" data-counter="why-c" placeholder="Link to the original, or what you noticed"></textarea><span class="counter" id="why-c">0 / 500</span></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-close data-toast="Report sent. Thank you.">Send report</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="newcart" data-s="cart-clash" hidden>
+  <div class="modal sm" role="dialog" aria-modal="true" aria-labelledby="nc-t">
+    <div class="modal-head"><h3 id="nc-t">Start a new Cart?</h3><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+    <div class="modal-body"><p class="muted">Your Cart already has Brass Heron from Imran Sheikh. A Cart can hold work from one Artist only, because each Order is one parcel from one Artist.</p>
+      <div class="alert info"><i data-i="info"></i><div>Replacing the Cart removes Brass Heron. It isn't Sold, and you can add it again later.</div></div></div>
+    <div class="modal-foot"><button class="btn btn-secondary" data-close>Keep my Cart</button><button class="btn btn-primary" data-close data-toast="New Cart started">Replace with this</button></div>
+  </div>
+</div>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

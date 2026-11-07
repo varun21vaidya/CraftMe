@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S07 Reset password · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S07" data-layout="auth" data-user="guest" data-states="default,sent">
+<main class="wrap page" style="padding-block: 56px">
+  <section class="panel stack lg" style="padding: clamp(22px, 4vw, 40px); max-width: 480px; width: 100%; margin: 0 auto" data-c="Reset card">
+    <div data-s="default" class="stack lg">
+      <div class="stack sm"><div class="avatar lg"><i data-i="lock" data-size="26"></i></div><h1 style="font-size: 30px">Reset your password</h1><p class="muted">Enter the email on your Account. We'll send a link that works for 1 hour.</p></div>
+      <form class="stack" data-demo data-next="reset.html#sent" data-loading="1" novalidate>
+        <div class="field"><label for="re">Email</label><input class="input" id="re" type="email" placeholder="you@example.com" autocomplete="email"></div>
+        <button class="btn btn-primary btn-lg btn-block" type="submit">Send reset link</button>
+      </form>
+      <a class="btn btn-ghost" href="login.html"><i data-i="arrow-left" data-size="16"></i>Back to log in</a>
+    </div>
+    <div data-s="sent" class="stack lg" role="status">
+      <div class="stack sm"><div class="avatar lg" style="background: var(--ok-soft); color: var(--ok); border-color: transparent"><i data-i="mail" data-size="26"></i></div><h1 style="font-size: 30px">Check your email</h1>
+        <p class="muted">If an Account exists for <strong class="mono" style="font-size: 14px">ananya.verma@example.com</strong>, a reset link is on its way. It can take a couple of minutes. Check spam too.</p></div>
+      <div class="row between"><button class="btn btn-secondary" disabled>Send again in <span class="countdown" data-countdown="00:30">00:30</span></button><a class="btn btn-ghost" href="login.html">Back to log in</a></div>
+    </div>
+  </section>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

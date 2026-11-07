@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S21 Dashboard overview · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S21" data-layout="shell-artist" data-user="artist" data-active="overview" data-states="default,owed,restricted">
+<main>
+  <div class="page-head" data-c="Page header"><div><span class="eyebrow">Mon 3 Nov 2026</span><h1>Good morning, Meera</h1><p>Here's what needs you today.</p></div><div class="row"><a class="btn btn-secondary" href="artist-profile.html"><i data-i="eye"></i>View my shop</a><a class="btn btn-primary" href="dash-artwork-edit.html"><i data-i="plus"></i>Add Artwork</a></div></div>
+
+  <div class="alert err" data-s="restricted" role="alert" data-c="Restricted banner"><i data-i="ban"></i><div><strong>Your shop is paused</strong>You have a balance of ₹3,200 to clear. Your pieces are hidden for now and you can't take new orders. Please still post your 2 open orders.<br><a class="btn btn-danger btn-sm" href="dash-payouts.html#owed">Clear my balance</a></div></div>
+  <div class="alert warn" data-s="owed" data-c="Amount Owed banner"><i data-i="alert"></i><div><strong>₹3,200 will be taken from your next payment</strong>A customer was refunded for order CM-20290 after you were paid.<br><a class="btn btn-secondary btn-sm" href="dash-payouts.html#owed">See details</a></div></div>
+
+  <section class="grid g4" aria-label="Key numbers" data-c="Stats" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr))">
+    <div class="stat"><span class="l">Sales this month</span><span class="v">₹58,400</span><span class="d up">▲ 24% vs October</span></div>
+    <div class="stat"><span class="l">Orders this month</span><span class="v">17</span><span class="d">3 to ship · 2 on the way</span></div>
+    <div class="stat"><span class="l">Next payment, 1 Dec</span><span class="v">₹41,260</span><span class="d">On its way to you</span></div>
+    <div class="stat"><span class="l">Rating</span><span class="v">4.9 <span data-stars="4.9" data-size="14"></span></span><span class="d">38 Reviews</span></div>
+  </section>
+
+  <div class="split">
+    <div class="stack lg">
+      <section class="panel flush" data-c="Orders to ship">
+        <div class="panel-head"><h3>Orders to ship <span class="badge warn">3</span></h3><a href="dash-orders.html" class="tag-link">All Orders <i data-i="arrow-right" data-size="16"></i></a></div>
+        <div class="table-wrap" style="border: 0; border-radius: 0"><table class="table"><thead><tr><th>Order</th><th>Items</th><th>Ship by</th><th class="r">Total</th><th></th></tr></thead><tbody>
+          <tr><td class="mono"><strong>CM-20418</strong></td><td>Kolam at Dawn ×2, Monsoon print ×1</td><td><span class="badge warn dot">10 Nov · in 7 days</span></td><td class="r">₹6,900</td><td class="r"><a class="btn btn-primary btn-sm" href="dash-order-detail.html#paid">Ship</a></td></tr>
+          <tr><td class="mono"><strong>CM-20412</strong></td><td>Monsoon Over Marina (Original)</td><td><span class="badge warn dot">8 Nov · in 5 days</span></td><td class="r">₹42,000</td><td class="r"><a class="btn btn-primary btn-sm" href="dash-order-detail.html#paid">Ship</a></td></tr>
+          <tr><td class="mono"><strong>CM-20399</strong></td><td>Kolam at Dawn ×1</td><td><span class="badge err dot">Overdue · was 2 Nov</span></td><td class="r">₹2,200</td><td class="r"><a class="btn btn-danger btn-sm" href="dash-order-detail.html#paid">Ship now</a></td></tr>
+        </tbody></table></div>
+      </section>
+
+      <section class="panel" data-c="Sales chart"><div class="panel-head"><div><h3>Sales, last 8 weeks</h3><p class="small muted">What customers paid, and what you receive.</p></div><div class="chips" data-exclusive><button class="chip" aria-pressed="true">8 weeks</button><button class="chip" aria-pressed="false">6 months</button></div></div>
+        <div class="chart" data-chart="line" data-title="Weekly sales in rupees" data-money="1" data-h="260" data-labels="14 Sep,21 Sep,28 Sep,5 Oct,12 Oct,19 Oct,26 Oct,2 Nov" data-series='[[6200,9800,7400,12600,15200,9100,18400,21500],[5460,8630,6520,11100,13380,8010,16190,18920]]'></div>
+        <div class="legend"><span><i class="lg0"></i>Paid by Buyers</span><span><i class="lg1"></i>You receive (estimate)</span></div></section>
+
+      <section class="panel flush" data-c="Coming up for payment">
+        <div class="panel-head"><h3>Coming up for payment</h3><a href="dash-payouts.html" class="tag-link">Payouts <i data-i="arrow-right" data-size="16"></i></a></div>
+        <div class="table-wrap" style="border: 0; border-radius: 0"><table class="table"><thead><tr><th>Order</th><th>Stage</th><th>You're paid</th><th class="r">You receive</th></tr></thead><tbody>
+          <tr><td class="mono">CM-20391</td><td><span class="badge info dot">Shipped</span></td><td>After Received + 3 days</td><td class="r">₹3,300</td></tr>
+          <tr><td class="mono">CM-20344</td><td><span class="badge warn dot">Settling in</span></td><td>15 Nov</td><td class="r">₹2,860</td></tr>
+          <tr><td class="mono">CM-20301</td><td><span class="badge ok dot">Ready</span></td><td>1 Dec</td><td class="r">₹38,400</td></tr>
+        </tbody></table></div>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="panel stack" data-c="Setup checklist"><h4>Your shop</h4>
+        <ul class="list small"><li><span class="badge ok">Done</span>Shop opened</li><li><span class="badge warn">Pending</span><span class="grow">We're checking your details so you can be paid.</span></li><li><span class="badge accent">Tip</span><a href="dash-instagram.html" class="grow">Connect Instagram to show your reels</a></li><li><span class="badge accent">Tip</span><a href="dash-artworks.html" class="grow">3 Artworks are drafts. Publish them.</a></li></ul></section>
+      <section class="panel stack" data-c="New Reviews"><div class="row between"><h4>Recent Reviews</h4><a class="small" href="artist-profile.html">All</a></div>
+        <article class="stack sm"><div class="row between"><span data-stars="5"></span><span class="xs faint mono">12 Oct</span></div><p class="small">Packed like a museum piece. Arrived in 3 days.</p><span class="xs muted">Karthik R.</span></article><hr>
+        <article class="stack sm"><div class="row between"><span data-stars="4"></span><span class="xs faint mono">3 Sep</span></div><p class="small">Beautiful work. Shipped on day 6, a little later than hoped.</p><span class="xs muted">Rohan P.</span></article></section>
+      <section class="panel stack" data-c="Activity"><h4>Activity</h4>
+        <ol class="timeline"><li class="done"><div class="tt">Order CM-20418 Paid</div><div class="ts">TODAY · 11:42</div></li><li class="done"><div class="tt">Review approved from Karthik R.</div><div class="ts">YESTERDAY</div></li><li class="done"><div class="tt">₹22,340 paid to you</div><div class="ts">1 NOV</div></li></ol></section>
+    </aside>
+  </div>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

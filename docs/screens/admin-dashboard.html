@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S29 Admin overview · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S29" data-layout="shell-admin" data-user="admin" data-active="overview">
+<main>
+  <div class="page-head"><div><span class="eyebrow">Mon 3 Nov 2026</span><h1>Overview</h1><p>The shop at a glance, and what needs a decision.</p></div>
+    <div class="row"><div class="field" style="flex-direction: row; align-items: center; gap: 8px"><label for="rng">Period</label><select class="select" id="rng" style="width: auto"><option>Last 30 days</option><option>Last 7 days</option><option>Last 90 days</option><option>This year</option></select></div></div></div>
+
+  <section class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))" aria-label="Key numbers" data-c="KPIs">
+    <div class="stat"><span class="l">Orders</span><span class="v">214</span><span class="d up">▲ 18% vs previous 30 days</span></div>
+    <div class="stat"><span class="l">Paid by Buyers</span><span class="v">₹9,42,600</span><span class="d up">▲ 22%</span></div>
+    <div class="stat"><span class="l">Commission earned</span><span class="v">₹94,260</span><span class="d">At 10% (example rate)</span></div>
+    <div class="stat"><span class="l">Owed to Artists, payable now</span><span class="v">₹4,12,300</span><span class="d">For the 1 Dec run</span></div>
+  </section>
+
+  <div class="split">
+    <div class="stack lg">
+      <section class="panel" data-c="Sales chart"><div class="panel-head"><div><h3>Paid by Buyers and Commission</h3><p class="small muted">Weekly, last 8 weeks</p></div></div>
+        <div class="chart" data-chart="line" data-title="Weekly paid by Buyers and Commission" data-money="1" data-h="270" data-labels="14 Sep,21 Sep,28 Sep,5 Oct,12 Oct,19 Oct,26 Oct,2 Nov" data-series='[[96000,118000,104000,142000,161000,139000,188000,212000],[9600,11800,10400,14200,16100,13900,18800,21200]]'></div>
+        <div class="legend"><span><i class="lg0"></i>Paid by Buyers</span><span><i class="lg1"></i>Commission</span></div></section>
+      <section class="panel" data-c="Orders by category"><div class="panel-head"><h3>Orders by Category</h3></div>
+        <div class="chart" data-chart="bars" data-title="Orders by category" data-h="240" data-labels="Painting,Drawing,Photo,Sculpture,Prints,Crafts,Other" data-series='[[62,31,48,14,41,16,2]]'></div></section>
+      <section class="panel flush" data-c="Recent Orders"><div class="panel-head"><h3>Recent Orders</h3><a class="tag-link" href="admin-orders.html">All Orders <i data-i="arrow-right" data-size="16"></i></a></div>
+        <div class="table-wrap" style="border: 0; border-radius: 0"><table class="table"><thead><tr><th>Order</th><th>Artist</th><th>Buyer</th><th>Stage</th><th class="r">Total</th></tr></thead><tbody>
+          <tr><td class="mono">CM-20418</td><td>Meera Iyer</td><td>Ananya V.</td><td><span class="badge ok dot">Paid</span></td><td class="r">₹6,900</td></tr>
+          <tr><td class="mono">CM-20417</td><td>Imran Sheikh</td><td>Vikram S.</td><td><span class="badge ok dot">Paid</span></td><td class="r">₹15,500</td></tr>
+          <tr><td class="mono">CM-20416</td><td>Tanvi Rao</td><td>Priya K.</td><td><span class="badge info dot">Shipped</span></td><td class="r">₹3,300</td></tr>
+          <tr><td class="mono">CM-20415</td><td>Arjun Deshmukh</td><td>Neha J.</td><td><span class="badge dot">Received</span></td><td class="r">₹7,600</td></tr>
+        </tbody></table></div></section>
+    </div>
+    <aside class="stack">
+      <section class="panel stack" data-c="Queues"><div class="row between"><h4>Needs a decision</h4><a class="small" href="admin-queues.html">Open queues</a></div>
+        <ul class="list"><li><span class="grow"><strong>Damage Reports</strong><br><span class="xs muted">Oldest 2 days</span></span><span class="badge warn">4</span></li><li><span class="grow"><strong>Overdue Orders</strong><br><span class="xs muted">Oldest 3 days</span></span><span class="badge err">3</span></li><li><span class="grow"><strong>Reviews to approve</strong><br><span class="xs muted">Oldest 9 hours</span></span><span class="badge accent">5</span></li><li><span class="grow"><strong>Reports</strong><br><span class="xs muted">Oldest 1 day</span></span><span class="badge">2</span></li><li><span class="grow"><strong>Artist verification</strong><br><span class="xs muted">Oldest 2 days</span></span><span class="badge accent">6</span></li></ul></section>
+      <section class="panel stack" data-c="Watch list"><h4>Watch list</h4>
+        <div class="alert warn"><i data-i="clock"></i><div><strong>Payout run in 28 days</strong>1 Dec. The draft list builds automatically that morning.</div></div>
+        <div class="alert err"><i data-i="alert"></i><div><strong>1 Artist near 60 days owed</strong>Imran Sheikh, ₹3,200, day 52. Restricted automatically on day 60.</div></div></section>
+    </aside>
+  </div>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

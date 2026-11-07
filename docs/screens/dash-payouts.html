@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S26 Payouts · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S26" data-layout="shell-artist" data-user="artist" data-active="payouts" data-states="default,owed">
+<main>
+  <div class="page-head"><div><h1>Payouts</h1><p>You're paid on the 1st and 15th for orders that have arrived.</p></div></div>
+  <div class="alert warn" data-s="owed" id="owed" data-c="Amount Owed"><i data-i="alert"></i><div><strong>₹3,200 will be taken from your next payment</strong>A customer was refunded for order CM-20290 after you were paid. You can also pay it now.<br><a class="btn btn-secondary btn-sm" href="payment-modal.html">Pay ₹3,200 now</a></div></div>
+
+  <section class="grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr))" aria-label="Payout summary" data-c="Summary">
+    <div class="stat"><span class="l">Ready for your 1 Dec payment</span><span class="v">₹41,260</span><span class="d">Paid on 1 Dec</span></div>
+    <div class="stat"><span class="l">Coming up</span><span class="v">₹6,160</span><span class="d">On their way to customers</span></div>
+    <div class="stat"><span class="l">To come off your next payment</span><span class="v" data-s="default">₹0</span><span class="v err-t" data-s="owed">₹3,200</span><span class="d">For a refund after you were paid</span></div>
+    <div class="stat"><span class="l">Paid to you so far</span><span class="v">₹1,08,720</span><span class="d">7 Payouts</span></div>
+  </section>
+
+  <div class="split">
+    <div class="stack lg">
+      <section class="panel flush" data-c="Payable Orders"><div class="panel-head"><h3>In your 1 Dec payment</h3><span class="badge ok">3 Orders</span></div>
+        <div class="table-wrap" style="border: 0; border-radius: 0"><table class="table"><thead><tr><th>Order</th><th>Received</th><th class="r">Price</th><th class="r">CraftMe's share</th><th class="r">Payment cost</th><th class="r">Refunds</th><th class="r">You receive</th></tr></thead><tbody>
+          <tr><td class="mono">CM-20301</td><td class="mono small">24 Oct</td><td class="r">₹42,000</td><td class="r">−₹4,200</td><td class="r">−₹840</td><td class="r">—</td><td class="r"><strong>₹36,960</strong></td></tr>
+          <tr><td class="mono">CM-20288</td><td class="mono small">22 Oct</td><td class="r">₹4,400</td><td class="r">−₹440</td><td class="r">−₹88</td><td class="r">—</td><td class="r"><strong>₹3,872</strong></td></tr>
+          <tr><td class="mono">CM-20344</td><td class="mono small">12 Oct</td><td class="r">₹3,300</td><td class="r">−₹330</td><td class="r">−₹66</td><td class="r">—</td><td class="r"><strong>₹2,904</strong></td></tr>
+        </tbody><tfoot><tr><td colspan="6">Total for 1 Dec</td><td class="r">₹43,736</td></tr><tr data-s="owed"><td colspan="6" class="err-t">Taken for the refund</td><td class="r err-t">−₹3,200</td></tr><tr data-s="owed"><td colspan="6">You're paid</td><td class="r">₹40,536</td></tr></tfoot></table></div></section>
+
+      <section class="panel flush" data-c="History"><div class="panel-head"><h3>Payout history</h3></div>
+        <div class="table-wrap" style="border: 0; border-radius: 0"><table class="table"><thead><tr><th>Date</th><th class="r">Orders</th><th class="r">Net</th><th>Sent to</th><th>Reference</th><th>Status</th><th></th></tr></thead><tbody>
+          <tr><td class="mono">1 Nov 2026</td><td class="r">5</td><td class="r"><strong>₹22,340</strong></td><td class="mono small">meera.iyer@okhdfc</td><td class="mono small">3048827711</td><td><span class="badge ok dot">Sent</span></td><td><button class="btn btn-ghost btn-sm" data-open="stmt">Statement</button></td></tr>
+          <tr><td class="mono">15 Oct 2026</td><td class="r">3</td><td class="r"><strong>₹14,980</strong></td><td class="mono small">meera.iyer@okhdfc</td><td class="mono small">3041192046</td><td><span class="badge ok dot">Sent</span></td><td><button class="btn btn-ghost btn-sm" data-open="stmt">Statement</button></td></tr>
+          <tr><td class="mono">1 Oct 2026</td><td class="r">6</td><td class="r"><strong>₹31,200</strong></td><td class="mono small">meera.iyer@okhdfc</td><td class="mono small">3033650812</td><td><span class="badge ok dot">Sent</span></td><td><button class="btn btn-ghost btn-sm" data-open="stmt">Statement</button></td></tr>
+        </tbody></table></div></section>
+    </div>
+    <aside class="stack sticky">
+      <section class="panel stack" data-c="Next Payout"><h4>Next Payout</h4><div class="price" style="font-size: 30px">1 Dec 2026</div><p class="small muted">in 28 days. Payouts happen on the 1st and 15th.</p><hr>
+        <dl class="kv"><dt>Sent to</dt><dd class="mono">m•••@okhdfc</dd><dt>Method</dt><dd>UPI</dd></dl><a class="btn btn-secondary btn-sm" href="dash-settings.html">Change payout details</a></section>
+      <section class="panel stack" data-c="How it's worked out"><h4>How you're paid</h4><ol class="small muted" style="display: grid; gap: 6px"><li>What the customer paid</li><li>minus Refunds</li><li>minus CraftMe's share</li><li>minus the payment cost</li><li>minus anything owed for a refund</li></ol></section>
+    </aside>
+  </div>
+</main>
+<div class="modal-backdrop" id="stmt" hidden><div class="modal lg" role="dialog" aria-modal="true" aria-labelledby="sm-t"><div class="modal-head"><div><h3 id="sm-t">Payout statement, 1 Nov 2026</h3><p class="small muted">Reference 3048827711 · sent to meera.iyer@okhdfc</p></div><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+  <div class="modal-body"><div class="table-wrap"><table class="table"><thead><tr><th>Order</th><th class="r">Price</th><th class="r">Refunds</th><th class="r">CraftMe's share</th><th class="r">Cost</th><th class="r">Net</th></tr></thead><tbody>
+    <tr><td class="mono">CM-20190</td><td class="r">₹12,500</td><td class="r">—</td><td class="r">−₹1,250</td><td class="r">−₹250</td><td class="r">₹11,000</td></tr><tr><td class="mono">CM-20203</td><td class="r">₹6,800</td><td class="r">—</td><td class="r">−₹680</td><td class="r">−₹136</td><td class="r">₹5,984</td></tr><tr><td class="mono">CM-20215</td><td class="r">₹4,400</td><td class="r">—</td><td class="r">−₹440</td><td class="r">−₹88</td><td class="r">₹3,872</td></tr><tr><td class="mono">CM-20230</td><td class="r">₹1,800</td><td class="r">—</td><td class="r">−₹180</td><td class="r">−₹36</td><td class="r">₹1,584</td></tr><tr><td class="mono">CM-20244</td><td class="r">₹100</td><td class="r">—</td><td class="r">−₹10</td><td class="r">−₹2</td><td class="r">₹88</td></tr>
+  </tbody><tfoot><tr><td>Total</td><td class="r">₹25,600</td><td class="r">—</td><td class="r">−₹2,560</td><td class="r">−₹512</td><td class="r">₹22,528</td></tr></tfoot></table></div><p class="small muted">You were paid ₹22,340 after small rounding changes.</p></div>
+  <div class="modal-foot"><button class="btn btn-secondary" data-close>Close</button></div></div></div>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

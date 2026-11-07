@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S14 Damage Report · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S14" data-layout="public" data-user="buyer" data-states="default,submitted">
+<main class="wrap mid page">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="orders.html">My orders</a><i data-i="chevron-right" data-size="14"></i><a href="order-detail.html#received">CM-20418</a><i data-i="chevron-right" data-size="14"></i><span aria-current="page">Report damage</span></nav>
+  <div class="page-head"><div><h1>Report damage</h1><p>Tell us what happened and show us. CraftMe decides, usually within 2 working days.</p></div></div>
+
+  <div class="stack lg" data-s="submitted" role="status" data-c="Submitted">
+    <div class="alert ok"><i data-i="check"></i><div><strong>Report sent</strong>Reference <span class="mono">DR-0192</span>. We'll email you when we've decided.</div></div>
+    <section class="panel stack"><h3>What happens now</h3>
+      <ol class="timeline"><li class="done"><div class="tt">You sent the report</div><div class="ts">13 NOV · 18:40</div></li><li class="now"><div class="tt">CraftMe reviews your photos</div><div class="small muted">We'll reply within 2 working days.</div></li><li class="todo"><div class="tt">Decision</div><div class="small muted">If upheld, you're refunded for the damaged items. If not, we tell you why.</div></li></ol>
+      <div class="row"><a class="btn btn-primary" href="order-detail.html#received">Back to Order</a></div></section>
+  </div>
+
+  <div class="split" data-s="default">
+    <form class="stack lg" data-demo data-next="damage-report.html#submitted" data-ok="Report sent" novalidate>
+      <div class="alert info" data-c="Window notice"><i data-i="clock"></i><div><strong>Please tell us by 15 Nov</strong>So we can sort it out quickly.</div></div>
+      <section class="panel stack" data-c="Affected items"><h3>Which items are damaged?</h3>
+        <label class="option-card"><input type="checkbox" checked><div class="mat" style="width: 56px; padding: 4px; flex: none"><canvas class="art" data-seed="26" data-style="orbit" data-ratio="1/1"></canvas></div><span class="grow"><strong>Kolam at Dawn</strong> × 2<br><span class="small muted">Print · ₹4,400</span></span></label>
+        <label class="option-card"><input type="checkbox"><div class="mat" style="width: 56px; padding: 4px; flex: none"><canvas class="art" data-seed="3" data-style="horizon" data-ratio="5/4"></canvas></div><span class="grow"><strong>Monsoon Over Marina</strong> × 1<br><span class="small muted">Print · ₹2,500</span></span></label>
+        <span class="hint">Refunds are decided for each item separately.</span></section>
+      <section class="panel stack" data-c="What happened"><h3>What's wrong?</h3>
+        <fieldset style="border:0;padding:0;margin:0" class="stack sm"><legend class="sr">Type of damage</legend><label class="radio"><input type="radio" name="k" checked> Torn, creased or crushed</label><label class="radio"><input type="radio" name="k"> Broken or cracked</label><label class="radio"><input type="radio" name="k"> Water or moisture damage</label><label class="radio"><input type="radio" name="k"> Not the item I ordered</label><label class="radio"><input type="radio" name="k"> Something else</label></fieldset>
+        <div class="field"><label for="dd">Describe it <span class="req">*</span></label><textarea class="textarea" id="dd" maxlength="800" data-counter="dd-c" placeholder="What did you find when you opened the parcel?">The print tube arrived crushed in the middle and the sheet is creased across the sky.</textarea><span class="counter" id="dd-c">86 / 800</span></div></section>
+      <section class="panel stack" data-c="Photos"><h3>Photos <span class="req">*</span></h3><p class="small muted">Add at least 2: the outside of the parcel, and the damage up close. JPEG or PNG, up to 5 MB each, up to 6 photos.</p>
+        <label class="dropzone"><i data-i="upload" data-size="26"></i><strong>Drop photos here or choose files</strong><span class="small">Up to 6 · JPEG or PNG · 5 MB each</span><input type="file" accept="image/jpeg,image/png" multiple data-preview="dz"></label>
+        <div class="dz-previews" id="dz">
+          <div class="thumb"><canvas class="art" data-seed="61" data-style="field" data-ratio="1/1"></canvas><button type="button" class="x" aria-label="Remove photo"><i data-i="x" data-size="14"></i></button></div>
+          <div class="thumb"><canvas class="art" data-seed="62" data-style="hatch" data-ratio="1/1"></canvas><button type="button" class="x" aria-label="Remove photo"><i data-i="x" data-size="14"></i></button></div>
+          <div class="thumb"><canvas class="art" data-seed="63" data-style="bloom" data-ratio="1/1"></canvas><button type="button" class="x" aria-label="Remove photo"><i data-i="x" data-size="14"></i></button></div></div></section>
+      <div class="row end"><a class="btn btn-ghost" href="order-detail.html#received">Cancel</a><button class="btn btn-primary btn-lg" type="submit">Send report</button></div>
+    </form>
+    <aside class="stack sticky" data-c="What to expect"><section class="panel stack"><h4>What to expect</h4><ul class="list small"><li><i data-i="eye" data-size="18"></i>CraftMe reviews your photos and Meera's packing.</li><li><i data-i="undo" data-size="18"></i>If we agree, you get your money back for the damaged items.</li><li><i data-i="info" data-size="18"></i>You can send one Damage Report per Order.</li></ul></section></aside>
+  </div>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

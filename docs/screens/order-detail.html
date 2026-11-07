@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S13 Order detail · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S13" data-layout="public" data-user="buyer" data-states="paid,shipped,received,refunded">
+<main class="wrap page">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="orders.html">My orders</a><i data-i="chevron-right" data-size="14"></i><span aria-current="page">CM-20418</span></nav>
+  <div class="page-head" data-c="Order header">
+    <div><div class="row"><h1 class="mono" style="font-size: 32px">CM-20418</h1>
+      <span class="badge ok dot" data-s="paid">Paid</span><span class="badge info dot" data-s="shipped">Shipped</span><span class="badge ok dot" data-s="received">Received</span><span class="badge err dot" data-s="refunded">Refunded</span></div>
+      <p>Placed 3 Nov 2026 · From <a href="artist-profile.html">Meera Iyer</a>, Chennai</p></div>
+    <button class="btn btn-secondary" data-toast="Receipt opened"><i data-i="receipt"></i>Receipt</button>
+  </div>
+
+  <ol class="stepper" aria-label="Order stages" data-c="Stage tracker">
+    <li class="done" data-s="paid"><span class="sr">done </span>Paid</li><li class="now" data-s="paid">Shipped</li><li data-s="paid">Received</li>
+    <li class="done" data-s="shipped received refunded">Paid</li><li class="done" data-s="shipped received refunded">Shipped</li>
+    <li class="now" data-s="shipped">Received</li><li class="done" data-s="received refunded">Received</li>
+  </ol>
+
+  <div class="alert info" data-s="paid" data-c="Stage message"><i data-i="clock"></i><div><strong>Meera is preparing your Order</strong>She has until <strong>10 Nov</strong> to ship it. If she doesn't, CraftMe refunds you in full.</div></div>
+  <div class="alert info" data-s="shipped"><i data-i="truck"></i><div><strong>On its way, shipped 6 Nov</strong>Tap "I've received it" when it arrives. If you don't, we'll mark it Received on 20 Nov.</div></div>
+  <div class="alert ok" data-s="received"><i data-i="check"></i><div><strong>It arrived. Enjoy it.</strong>Something not right? Tell us in the next 2 days and we will make it right.</div></div>
+  <div class="alert err" data-s="refunded"><i data-i="undo"></i><div><strong>Your ₹2,500 refund is on its way</strong>It reaches your account in 5 to 7 working days.</div></div>
+
+  <div class="split">
+    <div class="stack lg">
+      <section class="panel stack" data-c="Items">
+        <h3>Items</h3>
+        <div class="row" style="flex-wrap: nowrap; align-items: flex-start"><div class="mat" style="width: 72px; padding: 6px; flex: none"><canvas class="art" data-seed="26" data-style="orbit" data-ratio="1/1"></canvas></div><div class="grow"><a href="artwork.html"><strong>Kolam at Dawn</strong></a><br><span class="small muted">Print · A3 giclee · × 2 · ₹2,200 each</span></div><span class="num">₹4,400</span></div>
+        <div class="row" style="flex-wrap: nowrap; align-items: flex-start"><div class="mat" style="width: 72px; padding: 6px; flex: none"><canvas class="art" data-seed="3" data-style="horizon" data-ratio="5/4"></canvas></div><div class="grow"><a href="artwork.html"><strong>Monsoon Over Marina</strong></a><br><span class="small muted">Print · A3 giclee · × 1 · ₹2,500 each</span><br><span class="badge err" data-s="refunded">Refunded ₹2,500 · damaged</span></div><span class="num"><span data-s="refunded" class="strike">₹2,500</span><span data-s="paid shipped received">₹2,500</span></span></div>
+        <hr><div class="sum-row total"><span>Total paid</span><span class="num">₹6,900</span></div>
+        <div class="sum-row" data-s="refunded"><span>Refunded</span><span class="num err-t">−₹2,500</span></div>
+      </section>
+
+      <section class="panel stack" data-c="Tracking" data-s="shipped received refunded">
+        <h3>Shipment</h3>
+        <dl class="kv"><dt>Courier</dt><dd>DTDC</dd><dt>Tracking</dt><dd><span class="mono">DT4830012IN</span> <button class="btn-link small" data-copy="DT4830012IN" aria-label="Copy tracking number"><i data-i="copy" data-size="14"></i></button></dd><dt>Shipped</dt><dd>6 Nov 2026</dd></dl>
+      </section>
+
+      <section class="panel stack" data-c="Refund details" data-s="refunded">
+        <h3>Refund</h3>
+        <dl class="kv"><dt>Reason</dt><dd>The print arrived damaged</dd><dt>Amount</dt><dd>₹2,500 for Monsoon Over Marina ×1</dd><dt>Issued</dt><dd>16 Nov 2026</dd><dt>Arrives</dt><dd>5 to 7 working days to your original payment method</dd></dl>
+      </section>
+
+      <section class="panel" data-c="Timeline">
+        <h3 style="margin-bottom: 16px">Timeline</h3>
+        <ol class="timeline">
+          <li class="done" data-s="refunded"><div class="tt">Refund issued</div><div class="ts">16 NOV · 10:30</div></li>
+          <li class="done" data-s="refunded"><div class="tt">CraftMe agreed to refund you</div><div class="ts">16 NOV · 10:05</div></li>
+          <li class="done" data-s="refunded"><div class="tt">You told us it arrived damaged</div><div class="ts">13 NOV · 18:40</div></li>
+          <li class="done" data-s="received refunded"><div class="tt">Received</div><div class="ts">12 NOV · 09:10 · you confirmed</div></li>
+          <li class="now" data-s="shipped"><div class="tt">Waiting for you to confirm it arrived</div><div class="ts">AUTO-RECEIVED 20 NOV</div></li>
+          <li class="done" data-s="shipped received refunded"><div class="tt">Shipped by Meera, tracking DT4830012IN</div><div class="ts">6 NOV · 16:20</div></li>
+          <li class="now" data-s="paid"><div class="tt">Waiting for Meera to ship</div><div class="ts">DEADLINE 10 NOV</div></li>
+          <li class="done"><div class="tt">Paid ₹6,900</div><div class="ts">3 NOV · 11:42 · UPI</div></li>
+        </ol>
+      </section>
+    </div>
+
+    <aside class="stack sticky">
+      <section class="panel stack" data-c="Actions">
+        <h3>What you can do</h3>
+        <button class="btn btn-primary btn-lg btn-block" data-open="recv" data-s="shipped"><i data-i="check"></i>I've received it</button>
+        <a class="btn btn-secondary btn-block" href="damage-report.html" data-s="received"><i data-i="alert"></i>Something not right?</a>
+        <a class="btn btn-primary btn-block" href="review.html" data-s="received refunded"><i data-i="star"></i>Review Meera</a>
+        <button class="btn btn-secondary btn-block" disabled data-s="paid"><i data-i="x"></i>Cancel Order</button>
+        <p class="xs faint" data-s="paid">Orders can't be cancelled once Paid. If you need a change, contact CraftMe and we'll ask Meera.</p>
+        <button class="btn btn-ghost btn-block" data-toast="CraftMe support opens here"><i data-i="mail"></i>Contact CraftMe</button>
+      </section>
+      <section class="panel stack" data-c="Shipping address"><h4>Ship to</h4><p class="small">Ananya Verma<br>Flat 402, Sea Breeze Apartments<br>Carter Road, Bandra West<br>Mumbai 400050, Maharashtra<br><span class="mono">+91 98765 43210</span></p></section>
+      <section class="panel stack" data-c="Payment"><h4>Payment</h4><dl class="kv"><dt>Method</dt><dd>UPI</dd></dl></section>
+    </aside>
+  </div>
+</main>
+<div class="modal-backdrop" id="recv" hidden><div class="modal sm" role="dialog" aria-modal="true" aria-labelledby="rc-t">
+  <div class="modal-head"><h3 id="rc-t">Confirm it arrived?</h3><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+  <div class="modal-body"><p class="muted">Only confirm if the parcel is in your hands. You can then review Meera.</p></div>
+  <div class="modal-foot"><button class="btn btn-ghost" data-close>Not yet</button><a class="btn btn-primary" href="order-detail.html#received">Yes, it arrived</a></div></div></div>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

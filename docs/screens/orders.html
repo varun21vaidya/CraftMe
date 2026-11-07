@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S12 My orders · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S12" data-layout="public" data-user="buyer" data-states="default,empty">
+<main class="wrap mid page">
+  <div class="page-head"><div><h1>My orders</h1><p>Every Order is one parcel from one Artist.</p></div></div>
+
+  <div data-s="default" class="stack lg">
+    <div class="tabs" role="tablist" data-tabs aria-label="Order filters" data-c="Filter tabs">
+      <button class="tab" role="tab" aria-selected="true" data-tab="all-o">All <span class="badge">5</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="all-o">To be shipped <span class="badge warn">1</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="all-o">Shipped <span class="badge info">1</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="all-o">Received <span class="badge">2</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="all-o">Refunded <span class="badge">1</span></button>
+    </div>
+    <div id="all-o" class="stack" data-c="Order list">
+      <article class="panel flush">
+        <div class="panel-head"><div class="row"><span class="mono strong"><strong>CM-20418</strong></span><span class="badge ok dot">Paid</span><span class="small muted">Placed 3 Nov 2026</span></div><span class="price sm">₹6,900</span></div>
+        <div class="row" style="padding: 16px 20px; flex-wrap: nowrap; gap: 16px"><div class="mat" style="width: 64px; padding: 5px; flex: none"><canvas class="art" data-seed="26" data-style="orbit" data-ratio="1/1"></canvas></div><div class="grow"><strong>Kolam at Dawn ×2, Monsoon Over Marina ×1</strong><br><span class="small muted">From Meera Iyer, Chennai · Meera has until 10 Nov to ship</span></div><a class="btn btn-secondary btn-sm" href="order-detail.html#paid">View Order</a></div>
+      </article>
+      <article class="panel flush">
+        <div class="panel-head"><div class="row"><strong class="mono">CM-20391</strong><span class="badge info dot">Shipped</span><span class="small muted">Placed 28 Oct 2026</span></div><span class="price sm">₹28,000</span></div>
+        <div class="row" style="padding: 16px 20px; flex-wrap: nowrap; gap: 16px"><div class="mat" style="width: 64px; padding: 5px; flex: none"><canvas class="art" data-seed="5" data-style="orbit" data-ratio="1/1"></canvas></div><div class="grow"><strong>Brass Heron</strong><br><span class="small muted">From Imran Sheikh, Lucknow · Tracking <span class="mono">DT4830012IN</span></span></div><a class="btn btn-secondary btn-sm" href="order-detail.html#shipped">View Order</a><button class="btn btn-primary btn-sm" data-toast="Marked as Received">Mark Received</button></div>
+      </article>
+      <article class="panel flush">
+        <div class="panel-head"><div class="row"><strong class="mono">CM-20344</strong><span class="badge dot" style="background: var(--ok-soft); color: var(--ok)">Received</span><span class="small muted">Placed 14 Oct 2026</span></div><span class="price sm">₹3,300</span></div>
+        <div class="row" style="padding: 16px 20px; flex-wrap: nowrap; gap: 16px"><div class="mat" style="width: 64px; padding: 5px; flex: none"><canvas class="art" data-seed="17" data-style="field" data-ratio="4/5"></canvas></div><div class="grow"><strong>Riso Sunrise Series ×1, Chai Stall, Riso ×1</strong><br><span class="small muted">From Tanvi Rao, Bengaluru · <span class="muted">Received 12 Oct</span></span></div><a class="btn btn-secondary btn-sm" href="order-detail.html#received">View Order</a><a class="btn btn-primary btn-sm" href="review.html">Write a Review</a></div>
+      </article>
+      <article class="panel flush">
+        <div class="panel-head"><div class="row"><strong class="mono">CM-20290</strong><span class="badge dot" style="background: var(--ok-soft); color: var(--ok)">Received</span><span class="small muted">Placed 2 Oct 2026</span></div><span class="price sm">₹3,800</span></div>
+        <div class="row" style="padding: 16px 20px; flex-wrap: nowrap; gap: 16px"><div class="mat" style="width: 64px; padding: 5px; flex: none"><canvas class="art" data-seed="8" data-style="bloom" data-ratio="3/2"></canvas></div><div class="grow"><strong>Tide Pools, Gokarna</strong><br><span class="small muted">From Arjun Deshmukh, Pune · <span class="ok-t">Reviewed</span></span></div><a class="btn btn-secondary btn-sm" href="order-detail.html#received">View Order</a></div>
+      </article>
+      <article class="panel flush">
+        <div class="panel-head"><div class="row"><strong class="mono">CM-20211</strong><span class="badge err dot">Refunded</span><span class="small muted">Placed 9 Sep 2026</span></div><span class="price sm"><span class="strike">₹12,500</span></span></div>
+        <div class="row" style="padding: 16px 20px; flex-wrap: nowrap; gap: 16px"><div class="mat" style="width: 64px; padding: 5px; flex: none"><canvas class="art" data-seed="12" data-style="hatch" data-ratio="4/5"></canvas></div><div class="grow"><strong>Banyan, Ink No. 4</strong><br><span class="small muted">From Naina Kapoor, Jaipur · Damage Report upheld, ₹12,500 refunded</span></div><a class="btn btn-secondary btn-sm" href="order-detail.html#refunded">View Order</a></div>
+      </article>
+    </div>
+    <nav class="pagination" aria-label="Pagination"><a href="#" aria-current="page">1</a><a href="#">2</a><a href="#" aria-label="Next"><i data-i="chevron-right" data-size="16"></i></a></nav>
+  </div>
+
+  <div class="empty" data-s="empty" data-c="Empty state"><div class="ic-wrap"><i data-i="package" data-size="26"></i></div><h3>No Orders yet</h3><p>When you buy a piece, it appears here with its tracking and your Review.</p><a class="btn btn-primary" href="browse.html">Browse art</a></div>
+</main>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>

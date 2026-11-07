@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="claude:viewport-fit-sides" content="cover"><title>S16 Profile · CraftMe screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ROND,wght@0..100,100..900&family=Google+Sans+Code:wght@400;500&display=swap"><link rel="stylesheet" href="styles.css"></head>
+<body data-screen="S16" data-layout="public" data-user="buyer">
+<main class="wrap mid page">
+  <div class="page-head"><div><h1>Your profile</h1><p>How you appear on Reviews, and where Orders are sent.</p></div></div>
+  <div class="split">
+    <div class="stack lg">
+      <form class="panel stack lg" data-demo data-ok="Profile saved" novalidate data-c="Profile form">
+        <h3>About you</h3>
+        <div class="row" style="gap: 20px"><span class="avatar xl">AV</span><div class="stack sm"><div class="row"><label class="btn btn-secondary btn-sm" style="cursor: pointer"><i data-i="camera" data-size="16"></i>Change photo<input type="file" accept="image/jpeg,image/png" class="sr"></label><button type="button" class="btn btn-ghost btn-sm" data-toast="Photo removed">Remove</button></div><span class="hint">JPEG or PNG, up to 5 MB. Shown on your Reviews.</span></div></div>
+        <div class="form-grid">
+          <div class="field"><label for="pn">Name</label><input class="input" id="pn" value="Ananya Verma" autocomplete="name"></div>
+          <div class="field"><label for="pe">Email</label><input class="input" id="pe" value="ananya.verma@example.com" readonly><span class="hint">Signed in with Google. Email can't be changed here.</span></div>
+          <div class="field"><label for="pph">Phone <span class="opt">optional</span></label><div class="input-group"><span class="affix">+91</span><input class="input" id="pph" value="98765 43210"></div></div>
+          <div class="field full"><label for="pb">Short bio <span class="opt">optional</span></label><textarea class="textarea" id="pb" maxlength="200" data-counter="pb-c" placeholder="Shown next to your Reviews">Collects small paintings and risograph prints. Based in Mumbai.</textarea><span class="counter" id="pb-c">63 / 200</span></div>
+        </div>
+        <div class="row end"><button class="btn btn-primary" type="submit">Save changes</button></div>
+      </form>
+
+      <section class="panel stack" data-c="Saved address">
+        <div class="row between"><h3>Saved address</h3><button class="btn btn-secondary btn-sm" data-open="addr"><i data-i="edit" data-size="16"></i>Edit</button></div>
+        <p>Ananya Verma<br>Flat 402, Sea Breeze Apartments, Carter Road, Bandra West<br>Mumbai 400050, Maharashtra · +91 98765 43210</p>
+        <p class="small muted">Used to fill Checkout. Each Order stores its own copy, so editing this never changes Orders already placed.</p>
+      </section>
+
+      <form class="panel stack" data-demo data-ok="Password changed" novalidate data-c="Change password">
+        <h3>Password</h3><p class="small muted">You signed in with Google, so there is no CraftMe password. Accounts made with email show these fields.</p>
+        <div class="form-grid"><div class="field"><label for="cp">Current password</label><input class="input" id="cp" type="password" disabled></div><div class="field"><label for="np">New password</label><input class="input" id="np" type="password" disabled></div></div>
+      </section>
+
+      <section class="panel stack" style="border-color: color-mix(in srgb, var(--err) 40%, var(--line))" data-c="Delete account">
+        <h3>Delete your data</h3><p class="small muted">Removes your profile, saved address and notifications. Orders and Reviews you've already made are kept without your name, because Artists and CraftMe need the record.</p>
+        <div><button class="btn btn-secondary" data-open="del" style="color: var(--err)"><i data-i="trash" data-size="16"></i>Delete my Account</button></div>
+      </section>
+    </div>
+    <aside class="stack sticky">
+      <section class="panel stack" data-c="Roles"><h4>Your roles</h4><div class="row"><span class="badge ok">Buyer</span><span class="badge" style="opacity: .55">Artist: not yet</span></div>
+        <p class="small muted">Sell your own work on CraftMe. Set up your shop in a few minutes.</p><a class="btn btn-primary btn-block" href="become-artist.html">Become an Artist</a></section>
+      <section class="panel stack" data-c="Shortcuts"><h4>Shortcuts</h4><a href="orders.html" class="tag-link"><i data-i="package" data-size="16"></i>My orders</a><a href="notifications.html" class="tag-link"><i data-i="bell" data-size="16"></i>Notifications</a><a href="legal.html#privacy" class="tag-link"><i data-i="shield" data-size="16"></i>Privacy policy</a></section>
+    </aside>
+  </div>
+</main>
+<div class="modal-backdrop" id="addr" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="ad-t"><div class="modal-head"><h3 id="ad-t">Edit saved address</h3><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+  <div class="modal-body"><div class="form-grid"><div class="field full"><label for="x1">Address line 1</label><input class="input" id="x1" value="Flat 402, Sea Breeze Apartments"></div><div class="field full"><label for="x2">Address line 2</label><input class="input" id="x2" value="Carter Road, Bandra West"></div><div class="field"><label for="x3">PIN code</label><input class="input" id="x3" value="400050" maxlength="6"></div><div class="field"><label for="x4">City</label><input class="input" id="x4" value="Mumbai"></div></div></div>
+  <div class="modal-foot"><button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-close data-toast="Address saved">Save address</button></div></div></div>
+<div class="modal-backdrop" id="del" hidden><div class="modal sm" role="alertdialog" aria-modal="true" aria-labelledby="dl-t"><div class="modal-head"><h3 id="dl-t">Delete your Account?</h3><button class="iconbtn" data-close aria-label="Close"><i data-i="x"></i></button></div>
+  <div class="modal-body"><div class="alert err"><i data-i="alert"></i><div><strong>This can't be undone.</strong>You'll be logged out and your data deleted within 30 days.</div></div><div class="field"><label for="dc">Type DELETE to confirm</label><input class="input mono" id="dc" placeholder="DELETE" autocomplete="off"></div></div>
+  <div class="modal-foot"><button class="btn btn-ghost" data-close>Keep my Account</button><button class="btn btn-danger" data-close data-toast="Deletion requested">Delete Account</button></div></div></div>
+<script src="data.js"></script><script src="art.js"></script><script src="ui.js"></script></body></html>
