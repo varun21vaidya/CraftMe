@@ -66,6 +66,14 @@ export const useArtworks = ({ category } = {}, cursor = null) => {
   return useCollectionDataOnce(query(collection(db, 'artworks'), ...parts, limit(24)), ID);
 };
 export const useArtwork = (id) => useDocumentData(id ? doc(db, 'artworks', id) : null, ID);
+export const useArtist = (id) => useDocumentData(id ? doc(db, 'users', id) : null, ID);
+export const useArtistWorks = (id) => useCollectionData(
+  id
+    ? query(collection(db, 'artworks'), where('artistId', '==', id), where('status', '==', 'published'),
+      where('artistOpen', '==', true), orderBy('createdAt', 'desc'), limit(24))
+    : null,
+  ID,
+);
 /** One live listener on an Artwork's Listings while its page is open. */
 export const useListings = (artworkId) => useCollectionData(
   artworkId
@@ -98,6 +106,10 @@ export const useNotifications = (uid) => useCollectionData(
 );
 
 // ---------- direct writes (field-limited by the Firestore rules) ----------
+export const saveProfile = (uid, fields) => safe(async () => {
+  await updateDoc(doc(db, 'users', uid), pick(fields, ['displayName', 'bio', 'instagramHandle']));
+  return {};
+});
 export const markRead = (notificationId) => safe(async () => {
   await updateDoc(doc(db, 'notifications', notificationId), { read: true });
   return {};

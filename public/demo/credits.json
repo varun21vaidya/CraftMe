@@ -88,19 +88,35 @@
     "source": "https://commons.wikimedia.org/wiki/File:A_wood_carving_work_1.JPG"
   },
   {
-    "file": "orchha.jpg",
-    "title": "Jahangir Mahal Orchha 01.jpg",
-    "author": "Suyash Dwivedi",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Jahangir_Mahal_Orchha_01.jpg"
+    "file": "origami.jpg",
+    "title": "Alberich - Flickr - origami joel.jpg",
+    "author": "Joel Cooper from Lawrence, Ks., U.S.A.",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Alberich_-_Flickr_-_origami_joel.jpg"
   },
   {
-    "file": "morena.jpg",
-    "title": "Chausath Yogini Temple, Mitaoli, Morena 006.jpg",
-    "author": "Suyash Dwivedi",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Chausath_Yogini_Temple,_Mitaoli,_Morena_006.jpg"
+    "file": "candles.jpg",
+    "title": "Soy tealight candles.jpg",
+    "author": "lindsay.dee.bunny",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Soy_tealight_candles.jpg"
+  },
+  {
+    "file": "quilling.jpg",
+    "title": "Daisy 002.jpg",
+    "author": "AntonellaD at English Wikipedia",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "source": "https://commons.wikimedia.org/wiki/File:Daisy_002.jpg"
+  },
+  {
+    "file": "crochet.jpg",
+    "title": "Crochet blanket in progress.jpg",
+    "author": "Cary Bass",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Crochet_blanket_in_progress.jpg"
   }
 ]

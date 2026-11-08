@@ -17,6 +17,8 @@ const OrdersPage = lazy(() => import('./pages/OrdersPage'));
 const OrderPage = lazy(() => import('./pages/OrderPage'));
 const ArtistInbox = lazy(() => import('./pages/ArtistInbox'));
 const NewArtwork = lazy(() => import('./pages/NewArtwork'));
+const ArtistPage = lazy(() => import('./pages/ArtistPage'));
+const ProfileEdit = lazy(() => import('./pages/ProfileEdit'));
 
 const NotFound = () => (
   <main className="wrap page"><div className="empty"><h3>We couldn’t find that page</h3><Link className="btn btn-primary" to="/">Go home</Link></div></main>
@@ -44,12 +46,14 @@ export default function App() {
                 <Route path="/" element={screen(<Browse />)} />
                 <Route path="/browse" element={screen(<Browse />)} />
                 <Route path="/artwork/:id" element={screen(<ArtworkPage />)} />
+                <Route path="/artist/:id" element={screen(<ArtistPage />)} />
                 <Route path="/login" element={screen(<Login />)} />
                 <Route path="/cart" element={screen(<CartPage />, signedIn)} />
                 <Route path="/checkout" element={screen(<CheckoutPage />, signedIn)} />
                 <Route path="/orders" element={screen(<OrdersPage />, signedIn)} />
                 <Route path="/orders/:id" element={screen(<OrderPage />, signedIn)} />
                 <Route path="/dashboard/orders" element={screen(<ArtistInbox />, artistOnly)} />
+                <Route path="/dashboard/profile" element={screen(<ProfileEdit />, artistOnly)} />
                 <Route path="/dashboard/new" element={screen(<NewArtwork />, artistOnly)} />
                 <Route path="*" element={screen(<NotFound />)} />
               </Route>

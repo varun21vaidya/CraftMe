@@ -27,6 +27,7 @@ export function Layout() {
           <nav className="nav" aria-label="Main">
             <Link to="/browse">Browse</Link>
             {isArtist && <Link to="/dashboard/new">Add artwork</Link>}
+            {isArtist && <Link to="/dashboard/profile">My profile</Link>}
           </nav>
           <div className="hactions">
             {currentUser ? (

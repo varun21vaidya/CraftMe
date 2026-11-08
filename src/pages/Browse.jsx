@@ -1,25 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useArtworks } from '../api/gateway';
-import LazyLoadImage from '../components/ui/LazyLoadImage';
-import { CATEGORIES } from '../lib/categories';
-import { errorText, formatINR } from '../lib/format';
 
-function ArtCard({ art }) {
-  return (
-    <Link className="art-card" to={`/artwork/${art.id}`}>
-      <div className="mat">
-        {art.photos?.[0] && <LazyLoadImage src={art.photos[0]} alt={art.title} width="100%" style={{ aspectRatio: '1 / 1', objectFit: 'cover' }} />}
-      </div>
-      <div className="stack sm" style={{ marginTop: 10 }}>
-        <strong>{art.title}</strong>
-        <span className="small muted">
-          {art.available === false ? 'Sold' : art.fromPricePaise != null ? `From ${formatINR(art.fromPricePaise)}` : ''}
-        </span>
-      </div>
-    </Link>
-  );
-}
+import { useArtworks } from '../api/gateway';
+import ArtCard from '../components/ArtCard';
+import { CATEGORIES } from '../lib/categories';
+import { errorText } from '../lib/format';
 
 export default function Browse() {
   const [category, setCategory] = useState('');

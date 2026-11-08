@@ -13,6 +13,7 @@
     {"collectionGroup": "artworks", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "artistOpen", "order": "ASCENDING"}, {"fieldPath": "category", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
     {"collectionGroup": "artworks", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "artistOpen", "order": "ASCENDING"}, {"fieldPath": "titleLower", "order": "ASCENDING"}]},
     {"collectionGroup": "artworks", "queryScope": "COLLECTION", "fields": [{"fieldPath": "artistId", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "artworks", "queryScope": "COLLECTION", "fields": [{"fieldPath": "artistId", "order": "ASCENDING"}, {"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "artistOpen", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
     {"collectionGroup": "listings", "queryScope": "COLLECTION", "fields": [{"fieldPath": "artworkId", "order": "ASCENDING"}, {"fieldPath": "status", "order": "ASCENDING"}]},
     {"collectionGroup": "reviews", "queryScope": "COLLECTION", "fields": [{"fieldPath": "artistId", "order": "ASCENDING"}, {"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]}
   ],

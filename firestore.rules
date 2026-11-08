@@ -17,9 +17,10 @@ service cloud.firestore {
     // ---- users: public profile; the owner edits only display fields ----
     match /users/{uid} {
       allow read: if true;
-      allow update: if signedIn() && me() == uid && only(['displayName', 'photoURL', 'bio'])
+      allow update: if signedIn() && me() == uid && only(['displayName', 'photoURL', 'bio', 'instagramHandle'])
         && request.resource.data.displayName is string && request.resource.data.displayName.size() <= 100
-        && request.resource.data.bio is string && request.resource.data.bio.size() <= 500;
+        && request.resource.data.bio is string && request.resource.data.bio.size() <= 500
+        && request.resource.data.get('instagramHandle', '').matches('^[A-Za-z0-9._]{0,30}$');
     }
 
     // ---- private Artist data and tokens: owner/Admin read, functions write ----
