@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useArtworks } from '../api/gateway';
 import LazyLoadImage from '../components/ui/LazyLoadImage';
+import { CATEGORIES } from '../lib/categories';
 import { errorText, formatINR } from '../lib/format';
-
-const CATEGORIES = ['Painting', 'Drawing', 'Print', 'Photography', 'Sculpture', 'Textile', 'Digital'];
 
 function ArtCard({ art }) {
   return (

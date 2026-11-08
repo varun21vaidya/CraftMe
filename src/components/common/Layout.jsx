@@ -49,7 +49,8 @@ export function Layout() {
       <CartConflictDialog />
       <footer className="site-footer">
         <div className="wrap">
-          <div className="legal"><span>© 2026 CraftMe · Prices in ₹, shipping within India included</span></div>
+          <div className="legal"><span>© 2026 CraftMe · Prices in ₹, shipping within India included</span>
+            <a href="/demo/credits.html">Photo credits</a></div>
         </div>
       </footer>
     </>

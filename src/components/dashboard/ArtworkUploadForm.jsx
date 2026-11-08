@@ -3,6 +3,7 @@ import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { saveDraft, upload } from '../../api/gateway';
 import { useAuth } from '../../contexts/AuthContext';
+import { CATEGORIES } from '../../lib/categories';
 import { errorText } from '../../lib/format';
 
 const MAX_PHOTOS = 5;
@@ -15,8 +16,6 @@ const schema = Yup.object({
   photos: Yup.array().min(1, 'Add at least one photo').max(MAX_PHOTOS, `Up to ${MAX_PHOTOS} photos`)
     .test('ok', 'Photos must be JPEG or PNG, up to 5 MB each', (fs) => (fs || []).every(photoOk)),
 });
-
-const CATEGORIES = ['Painting', 'Drawing', 'Print', 'Photography', 'Sculpture', 'Textile', 'Digital'];
 
 /** Preview thumbnails: each object URL is made once per file and released when the file leaves or the form closes. */
 function Previews({ files }) {
