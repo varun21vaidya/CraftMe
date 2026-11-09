@@ -1,6 +1,6 @@
 const yup = require("yup");
 const {CommandError} = require("../lib/envelope");
-const {buildRun} = require("../lib/payoutRun");
+const {buildRun, runFor} = require("../lib/payoutRun");
 
 const buildPayoutRun = {
   spec: {role: "admin", schema: yup.object({})},
@@ -23,9 +23,12 @@ const recordPayout = {
       const [artist, ...orders] = await Promise.all([tx.get(artistRef), ...payout.orderIds.map((id) => tx.get(db.doc(`orders/${id}`)))]);
       if (!artist.data()?.verifiedByAdminAt) throw new CommandError("conflict", "artist_unverified");
       if (orders.some((o) => !o.exists || o.data().payoutId)) throw new CommandError("conflict", "already_sent");
+      // The draft may be stale (a refund or new debt since it was built): recompute, and refuse if the money changed.
+      const run = runFor(orders.map((o) => o.data()), artist.data().amountOwed || 0);
+      if (run.net !== payout.net) throw new CommandError("conflict", "rebuild");
       orders.forEach((o) => tx.update(o.ref, {payoutId: input.payoutId}));
       tx.update(payoutRef, {status: "sent", reference: input.reference, sentAt: now});
-      tx.update(artistRef, {amountOwed: payout.owedLeft, ...(payout.owedLeft === 0 ? {owedSince: null} : {})});
+      tx.update(artistRef, {amountOwed: run.owedLeft, ...(run.owedLeft === 0 ? {owedSince: null} : {})});
       return {status: "sent"};
     });
   },

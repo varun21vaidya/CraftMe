@@ -6,6 +6,11 @@ const {istDay} = require("./time");
 
 const MAX_ORDERS_PER_RUN = 500; // shortcut: one run handles 500 Orders, run again if more are Payable
 
+// One place for the maths, so a draft and its recording can never disagree.
+const runFor = (orders, owed) => payoutRun(orders.map((o) => ({
+  pricePaise: o.total, refundsPaise: o.refundedTotal || 0, gatewayFeePaise: o.gatewayFee || 0, rateBp: o.commissionBps || 0,
+})), owed);
+
 async function buildRun(db, now) {
   const runDate = istDay(now);
   const snap = await db.collection("orders").where("payable", "==", true).where("payoutId", "==", null)
@@ -27,9 +32,7 @@ async function buildRun(db, now) {
     }
     const ref = db.doc(`payouts/${runDate}_${artistId}`);
     if ((await ref.get()).data()?.status === "sent") continue;
-    const run = payoutRun(orders.map((o) => ({
-      pricePaise: o.total, refundsPaise: o.refundedTotal || 0, gatewayFeePaise: o.gatewayFee || 0, rateBp: o.commissionBps || 0,
-    })), priv.amountOwed || 0);
+    const run = runFor(orders, priv.amountOwed || 0);
     await ref.set({
       artistId, runDate, orderIds: orders.map((o) => o.id), gross: run.gross, refunds: run.refunds,
       commission: run.commission, gatewayFees: run.fees, owedDeducted: run.owedDeducted, net: run.net,
@@ -41,4 +44,4 @@ async function buildRun(db, now) {
   return {created, blocked};
 }
 
-module.exports = {buildRun};
+module.exports = {buildRun, runFor};

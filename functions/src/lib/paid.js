@@ -6,7 +6,8 @@ const {CommandError} = require("./envelope");
 const {advance, patches} = require("../domain/order");
 
 const DEFAULT_COMMISSION_BPS = 1000; // placeholder until the Admin sets settings/business.commissionBps
-const PAID_OR_LATER = ["paid", "shipped", "received"];
+// "refunded" counts as done: a late retry must never refund the same payment twice.
+const PAID_OR_LATER = ["paid", "shipped", "received", "refunded"];
 
 async function markPaid({db, ports, now}, orderId, paymentId) {
   const orderRef = db.doc(`orders/${orderId}`);

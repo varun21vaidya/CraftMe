@@ -70,7 +70,7 @@ const decideDamage = {
 
 /**
  * Reserve the Refund in the Order first (so two Admins cannot refund the same lines), call the provider,
- * then confirm. If the provider fails, the reservation is undone and the caller can retry.
+ * then confirm. If the provider call fails the reservation stays (status "unknown") until the Admin checks the provider.
  */
 const issueRefund = {
   spec: {
@@ -130,28 +130,15 @@ const issueRefund = {
     try {
       provider = await ports.payments.refund(reserved.paymentId, reserved.amount);
     } catch (e) {
-      await undoRefund(db, orderRef, refundRef, reserved, now);
-      throw new CommandError("unavailable", "refund_failed");
+      // A timeout may hide a refund the provider did make, so never undo: keep the reservation (a retry is
+      // refused as exceeds_paid) and let the Admin check the provider dashboard.
+      await refundRef.update({status: "unknown"});
+      throw new CommandError("unavailable", "refund_unknown");
     }
     await refundRef.update({razorpayRefundId: provider.id, status: "issued", undo: FieldValue.delete()});
     return {refundId: refundRef.id, amount: reserved.amount};
   },
 };
-
-async function undoRefund(db, orderRef, refundRef, reserved, now) {
-  await db.runTransaction(async (tx) => {
-    const undo = (await tx.get(refundRef)).data().undo;
-    const artistRef = db.doc(`artistPrivate/${reserved.artistId}`);
-    const artist = reserved.owedDelta ? await tx.get(artistRef) : null;
-    const base = {...reserved.order, lines: undo.lines, refundedTotal: undo.refundedTotal, stage: undo.stage};
-    tx.update(orderRef, touch(base, {lines: undo.lines, refundedTotal: undo.refundedTotal, stage: undo.stage}, now));
-    if (artist) {
-      const left = Math.max((artist.data().amountOwed || 0) - reserved.owedDelta, 0);
-      tx.update(artistRef, {amountOwed: left, ...(left === 0 ? {owedSince: null} : {})});
-    }
-    tx.delete(refundRef);
-  });
-}
 
 const submitReview = {
   spec: {
