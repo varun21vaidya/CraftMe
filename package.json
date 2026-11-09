@@ -17,7 +17,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:schema": "node supabase/schema.test.mjs"
   },
   "browserslist": {
     "production": [
@@ -32,6 +33,7 @@
     ]
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
     "@firebase/rules-unit-testing": "^4.0.1",
     "@vitejs/plugin-react": "^6.2.1",
     "eslint": "^8.57.1",
