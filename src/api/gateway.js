@@ -164,13 +164,13 @@ export const useArtistInbox = (uid) => useQuery(
   [uid], 15000,
 );
 /** Browse: one query on artworks (the card data lives on the Artwork). cursor = last item's createdAt (epoch ms). */
-export const useArtworks = ({ category } = {}, cursor = null) => useQuery(async () => {
+export const useArtworks = ({ categories } = {}, cursor = null) => useQuery(async () => {
   let q = supabase.from('artworks').select('*').eq('status', 'published').eq('artist_open', true);
-  if (category) q = q.eq('category', category);
+  if (categories) q = q.in('category', categories);
   if (cursor) q = q.lt('created_at', new Date(cursor).toISOString());
   return must(await q.order('created_at', { ascending: false }).limit(24)).map(camel);
-}, [category, cursor]);
-export const useArtwork = (id) => useQuery(
+}, [categories?.join('|'), cursor]);
+export const useArtwork =(id) => useQuery(
   id ? async () => camel(must(await supabase.from('artworks').select('*').eq('id', id).maybeSingle()) || null) : null,
   [id],
 );

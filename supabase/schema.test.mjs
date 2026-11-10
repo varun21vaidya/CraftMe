@@ -1,8 +1,8 @@
-import {PGlite} from "@electric-sql/pglite";
+﻿import {PGlite} from "@electric-sql/pglite";
 import fs from "node:fs";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -38,15 +38,15 @@ const O = {sub: other, app_metadata: {}};
 // Artist: draft artwork ok, cannot self-publish on insert, cannot insert for someone else.
 let artId;
 await as("authenticated", A, async () => {
-  artId = (await db.query(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'Warli', 'Painting', 'draft') returning id`)).rows[0].id;
+  artId = (await db.query(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'Warli', 'Paintings', 'draft') returning id`)).rows[0].id;
   ok("artist creates a draft artwork", !!artId);
 });
 await as("authenticated", A, () => rejects("artist cannot insert a published artwork", () =>
-  db.query(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'X', 'Painting', 'published')`)));
+  db.query(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'X', 'Paintings', 'published')`)));
 await as("authenticated", A, () => rejects("artist cannot insert as another artist", () =>
-  db.query(`insert into public.artworks (artist_id, title, category, status) values ('${buyer}', 'X', 'Painting', 'draft')`)));
+  db.query(`insert into public.artworks (artist_id, title, category, status) values ('${buyer}', 'X', 'Paintings', 'draft')`)));
 await as("authenticated", B, () => rejects("non-artist cannot insert an artwork", () =>
-  db.query(`insert into public.artworks (artist_id, title, category, status) values ('${buyer}', 'X', 'Painting', 'draft')`)));
+  db.query(`insert into public.artworks (artist_id, title, category, status) values ('${buyer}', 'X', 'Paintings', 'draft')`)));
 await as("authenticated", A, () => rejects("artist cannot write has_sales", () =>
   db.query(`update public.artworks set has_sales = true where id = '${artId}'`)));
 
@@ -69,7 +69,9 @@ await as("authenticated", A, () => rejects("price below 100 paise rejected", () 
   db.query(`insert into public.listings (artwork_id, artist_id, kind, price, stock, status) values ('${artId}', '${artist}', 'print', 50, 5, 'draft')`)));
 await as("authenticated", A, () => rejects("a new listing needs stock of at least 1", () =>
   db.query(`insert into public.listings (artwork_id, artist_id, kind, price, stock, status) values ('${artId}', '${artist}', 'print', 500000, 0, 'draft')`)));
-const theirArt = (await db.query(`insert into public.artworks (artist_id, title, category, status) values ('${buyer}', 'Not yours', 'Painting', 'published') returning id`)).rows[0].id;
+ok("a 'product' listing accepts stock above 1", !!(await db.query(`insert into public.listings (artwork_id, artist_id, kind, price, stock, status) values ('${artId}', '${artist}', 'product', 50000, 8, 'draft') returning id`)).rows[0].id);
+await rejects("an old category name is refused", () => db.query(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'X', 'Painting', 'draft')`));
+const theirArt = (await db.query(`insert into public.artworks (artist_id, title, category, status) values ('${buyer}', 'Not yours', 'Paintings', 'published') returning id`)).rows[0].id;
 await as("authenticated", A, () => rejects("artist cannot list on another artist's artwork", () =>
   db.query(`insert into public.listings (artwork_id, artist_id, kind, price, stock, status) values ('${theirArt}', '${artist}', 'print', 500000, 5, 'draft')`)));
 await db.exec(`delete from public.artworks where id = '${theirArt}'`); // keep later anon counts unchanged
@@ -120,7 +122,7 @@ const svc = (fn) => as("service_role", {}, fn);
 const one = async (sqlText) => (await db.query(sqlText)).rows[0];
 const admin = {sub: other, app_metadata: {admin: true}};
 const addr = JSON.stringify({name: "B", phone: "9876543210", address: "1 Road", city: "Pune", state: "MH", pin: "411001"});
-const art2 = (await one(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'Flow', 'Painting', 'published') returning id`)).id;
+const art2 = (await one(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'Flow', 'Paintings', 'published') returning id`)).id;
 const lp = (await one(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${art2}','${artist}','Print','print',100000,3,'live') returning id`)).id;
 const lo = (await one(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${art2}','${artist}','Orig','original',500000,1,'live') returning id`)).id;
 ok("listing trigger sets from price on the artwork", Number((await one(`select from_price_paise p from public.artworks where id='${art2}'`)).p) === 100000);

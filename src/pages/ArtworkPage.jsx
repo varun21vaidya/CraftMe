@@ -6,7 +6,7 @@ import { useCart } from '../contexts/CartContext';
 import LazyLoadImage from '../components/ui/LazyLoadImage';
 import { formatINR } from '../lib/format';
 
-const kindLabel = { original: 'Original', print: 'Print' };
+const kindLabel = { original: 'Original', print: 'Print', product: 'Ready-made' };
 
 export default function ArtworkPage() {
   const { id } = useParams();

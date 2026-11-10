@@ -1,0 +1,32 @@
+-- Demo catalogue: 21 items on the 5 demo artists. Run after 0006_catalogue.sql. Remove all demo data with: delete from public.artworks where demo;
+-- Prices are in paise. created_at is staggered so Browse paging has a stable order.
+with src(n, photo, artist, title, category, descr, kind, size, medium, price, stock) as (values
+ (1,'rajasthani-women','5c2bae76-9e30-472c-8006-ace84d917667','Rajasthani Women at the Well','Paintings','Three women in bright red, yellow and orange Rajasthani dress carry brass pots to a stone well in warm desert light. Acrylic on stretched canvas, ready to hang.','original','36 x 24 in','Acrylic on canvas',920000,1),
+ (2,'radha-krishna-flute','5c2bae76-9e30-472c-8006-ace84d917667','Radha Krishna with Flute','Paintings','Pichwai-inspired Krishna playing the flute beside Radha, set in a lotus garden with gold detail on deep blue. Acrylic on stretched canvas.','original','24 x 32 in','Acrylic on canvas',1550000,1),
+ (3,'madhubani-fish','5c2bae76-9e30-472c-8006-ace84d917667','Madhubani Fish Pair','Drawings','Two stylised fish filled with dense line patterns and floral motifs in red, black and ochre ink on cream handmade paper.','original','A3','Ink on handmade paper',340000,1),
+ (4,'banyan-golden-hour','2855034d-2114-45d8-b7f7-9694fb71159f','Banyan at Golden Hour','Photography','An old banyan tree with hanging aerial roots in low golden light. Fine-art paper print with a white border, shipped flat.','print','12 x 18 in','Fine-art paper',120000,30),
+ (5,'peacock-mandala','2855034d-2114-45d8-b7f7-9694fb71159f','Peacock Mandala','Digital Art','A circular peacock-feather mandala in teal, emerald and gold on deep navy, printed on stretched canvas.','print','18 x 18 in','Giclee on canvas',190000,20),
+ (6,'crochet-cushion','2855034d-2114-45d8-b7f7-9694fb71159f','Granny-Square Crochet Cushion Cover','Crochet & Knitting','Cream cotton cushion cover made of crochet flower squares in red, teal, yellow, pink and purple. Insert not included.','product','16 x 16 in','Cotton yarn',145000,8),
+ (7,'crochet-coasters','2855034d-2114-45d8-b7f7-9694fb71159f','Crochet Flower Coasters, Set of 4','Crochet & Knitting','Four round flower coasters in pastel cotton: pink, mint, yellow and lavender. Hand wash.','product','4 in each','Cotton yarn',45000,25),
+ (8,'dokra-elephant','41964c86-1424-4582-aeb7-1b8944168b91','Dokra Brass Elephant','Metal Crafts','A small elephant cast by the lost-wax dokra method, with a fine textured wire pattern all over.','product','6 in tall','Cast brass',280000,5),
+ (9,'blue-pottery-planter','cce1bc1d-fd8e-4fab-a1d4-13ccf21a0e6b','Blue Pottery Planter','Pottery & Ceramics','White-glazed planter with a cobalt blue floral pattern, in the style of Jaipur blue pottery. Comes with a small succulent.','product','5 in','Glazed clay',95000,12),
+ (10,'kantha-runner','41964c86-1424-4582-aeb7-1b8944168b91','Kantha Table Runner','Textiles & Embroidery','Indigo and cream cotton runner with hand running-stitch kantha patterns.','product','14 x 60 in','Cotton',180000,6),
+ (11,'oxidised-jhumkas','cce1bc1d-fd8e-4fab-a1d4-13ccf21a0e6b','Oxidised Silver Jhumkas','Handmade Jewellery','A pair of oxidised silver dome jhumkas with small bells and a floral pattern.','product','Pair, 4 cm','Oxidised silver',65000,15),
+ (12,'pearl-necklace','cce1bc1d-fd8e-4fab-a1d4-13ccf21a0e6b','Hand-strung Pearl Necklace','Handmade Jewellery','Single-strand freshwater pearl necklace, hand strung, with a small silver clasp.','product','18 in','Freshwater pearls',89900,10),
+ (13,'tulip-bag-charm','2855034d-2114-45d8-b7f7-9694fb71159f','Tulip Bouquet Bag Charm','Bag & Phone Charms','Four beaded tulips in red and pink with green leaf beads, a white satin bow and a silver lobster clasp.','product','14 cm','Glass beads',42000,20),
+ (14,'daisy-keychain','2855034d-2114-45d8-b7f7-9694fb71159f','Beaded Daisy Keychain','Keychains','A small beaded daisy with white petals and a yellow centre, on a silver ring with a lobster clasp.','product','9 cm','Glass beads',19900,40),
+ (15,'rangoli-floral','cce1bc1d-fd8e-4fab-a1d4-13ccf21a0e6b','Reusable Floral Rangoli','Ready Rangoli','Round multicolour floral rangoli in pink, orange, yellow and green. Place it on the doorstep, wipe clean and reuse.','product','18 in round','Acrylic',34900,30),
+ (16,'rangoli-peacock','cce1bc1d-fd8e-4fab-a1d4-13ccf21a0e6b','Peacock Ready Rangoli','Ready Rangoli','Large ready-made peacock rangoli with teal, blue and gold feathers and a fanned tail.','product','24 in','Acrylic',59900,20),
+ (17,'macrame-dreamcatcher','2855034d-2114-45d8-b7f7-9694fb71159f','Macrame Dreamcatcher','Wall Hangings','Cream macrame dreamcatcher on a wooden ring with a woven centre, hanging beads and soft feathers.','product','12 in ring','Cotton cord',79900,12),
+ (18,'terracotta-diyas','cce1bc1d-fd8e-4fab-a1d4-13ccf21a0e6b','Hand-painted Terracotta Diyas, Set of 6','Diyas & Candles','Six hand-painted terracotta diyas in red, white and gold. Brass plate not included.','product','3 in each','Clay',29900,40),
+ (19,'kit-tulip-charm','2855034d-2114-45d8-b7f7-9694fb71159f','DIY Tulip Phone Charm Kit','Bead & Charm Kits','Everything for one tulip phone charm: tulip beads, green leaf beads, eye pins, jump rings, thin cord and a white bow. No tools needed beyond your fingers.','product','Makes 1 charm','Glass beads',29900,30),
+ (20,'kit-seed-bead-bracelet','2855034d-2114-45d8-b7f7-9694fb71159f','DIY Seed Bead Bracelet Kit, 5 Colours','Jewellery Making Kits','Five jars of glass seed beads in different colours, thread, a needle and clasps to make your own beaded bracelet.','product','5 colours, 50 g each','Glass seed beads',45000,25),
+ (21,'kit-crochet-flower','2855034d-2114-45d8-b7f7-9694fb71159f','Beginner Crochet Flower Kit','Crochet & Embroidery Kits','Three balls of cotton yarn, a crochet hook and a pattern card to make three flowers, a good first project.','product','3 flowers','Cotton yarn',55000,15)
+), a as (
+  insert into public.artworks (artist_id, title, description, category, photos, status, demo, created_at)
+  select artist::uuid, title, descr, category, array['/demo/' || photo || '.jpg'], 'published', true, now() - n * interval '1 minute'
+  from src returning id, title
+)
+insert into public.listings (artwork_id, artist_id, title, kind, size, medium, price, stock, status, demo, created_at)
+select a.id, s.artist::uuid, s.title, s.kind, s.size, s.medium, s.price, s.stock, 'live', true, now() - s.n * interval '1 minute'
+from src s join a using (title);

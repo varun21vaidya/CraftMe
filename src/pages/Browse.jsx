@@ -2,27 +2,35 @@ import { useState } from 'react';
 
 import { useArtworks } from '../api/gateway';
 import ArtCard from '../components/ArtCard';
-import { CATEGORIES } from '../lib/categories';
+import { GROUPS } from '../lib/categories';
 import { errorText } from '../lib/format';
 
 export default function Browse() {
+  const [group, setGroup] = useState('');
   const [category, setCategory] = useState('');
   const [cursors, setCursors] = useState([null]); // one entry per page already visited
   const cursor = cursors[cursors.length - 1];
-  const [items, loading, error] = useArtworks({ category: category || undefined }, cursor);
+  const categories = category ? [category] : group ? GROUPS[group] : undefined;
+  const [items, loading, error] = useArtworks({ categories }, cursor);
 
-  const pick = (c) => { setCategory(c); setCursors([null]); };
+  const pick = (g, c = '') => { setGroup(g); setCategory(c); setCursors([null]); };
+  const chip = (label, on, onClick) => (
+    <button key={label} className={`chip${on ? ' on' : ''}`} aria-pressed={on} onClick={onClick}>{label}</button>
+  );
 
   return (
     <main className="wrap page">
-      <div className="page-head"><div><h1>Browse art</h1></div></div>
-      <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
-        {['', ...CATEGORIES].map((c) => (
-          <button key={c || 'all'} className={`chip${category === c ? ' on' : ''}`} aria-pressed={category === c} onClick={() => pick(c)}>
-            {c || 'All'}
-          </button>
-        ))}
+      <div className="page-head"><div><h1>Browse</h1></div></div>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: group ? 8 : 20 }}>
+        {chip('All', !group, () => pick(''))}
+        {Object.keys(GROUPS).map((g) => chip(g, group === g, () => pick(g)))}
       </div>
+      {group && (
+        <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+          {chip(`All ${group}`, !category, () => pick(group))}
+          {GROUPS[group].map((c) => chip(c, category === c, () => pick(group, c)))}
+        </div>
+      )}
 
       {error && <p className="alert err" role="alert">{errorText({ code: 'unavailable' })}</p>}
       {loading && (
