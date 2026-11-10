@@ -2,7 +2,7 @@
 import fs from "node:fs";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -226,6 +226,40 @@ await as("authenticated", A, async () => {
 });
 await as("authenticated", A, () => rejects("a 7th highlighted reel is refused", () =>
   db.query(`update public.reels set highlighted = true where artist_id = '${artist}' and not highlighted`)));
+
+// Instagram phase 2: private tables, verified locks, deletion status
+await as("authenticated", A, () => rejects("a client cannot read instagram_accounts", () => db.query(`select * from public.instagram_accounts`)));
+await as("authenticated", A, () => rejects("a client cannot write instagram_states", () =>
+  db.query(`insert into public.instagram_states (state, artist_id, expires_at) values ('s', '${artist}', now())`)));
+await as("anon", {}, () => rejects("anon cannot read instagram_deletions", () => db.query(`select * from public.instagram_deletions`)));
+await as("authenticated", A, () => rejects("a client cannot mark a reel verified", () =>
+  db.query(`update public.reels set verified = true where id = '${reelA}'`)));
+await as("authenticated", A, () => rejects("a client cannot mark a profile verified", () =>
+  db.query(`update public.profiles set instagram_verified = true where id = '${artist}'`)));
+await db.exec(`update public.profiles set instagram_verified = true, instagram_handle = 'meera' where id = '${artist}'`);
+await db.exec(`update public.reels set verified = true, ig_media_id = 'm1' where id = '${reelA}'`);
+await as("authenticated", A, () => rejects("a verified handle cannot be changed by the artist", () =>
+  db.query(`update public.profiles set instagram_handle = 'someone_else' where id = '${artist}'`)));
+await as("authenticated", A, async () => {
+  await db.query(`update public.profiles set bio = 'hello', instagram_handle = 'meera' where id = '${artist}'`);
+  ok("saving the profile with the same verified handle still works", (await one(`select bio from public.profiles where id='${artist}'`)).bio === 'hello');
+});
+await as("authenticated", A, () => rejects("a verified reel link cannot be changed by the artist", () =>
+  db.query(`update public.reels set url = 'https://instagram.com/reel/NEW' where id = '${reelA}'`)));
+await as("authenticated", A, async () => {
+  await db.query(`update public.reels set position = 7 where id = '${reelA}'`);
+  ok("a verified reel can still be reordered", (await one(`select position from public.reels where id='${reelA}'`)).position === 7);
+});
+await db.exec(`update public.profiles set instagram_handle = 'meera_new' where id = '${artist}'`);
+ok("the server can still change a verified handle", (await one(`select instagram_handle h from public.profiles where id='${artist}'`)).h === 'meera_new');
+await rejects("one Instagram media cannot be imported twice", () =>
+  db.query(`insert into public.reels (artist_id, url, owner_confirmed, ig_media_id) values ('${other}', 'https://instagram.com/reel/DUP', true, 'm1')`));
+await db.exec(`insert into public.instagram_deletions (code, ig_user_id, done_at) values ('done1', '9', now()), ('open1', '9', null)`);
+await as("anon", {}, async () => {
+  ok("the deletion page can read a finished request", (await one(`select public.instagram_deletion_status('done1') d`)).d !== null);
+  ok("an unfinished or unknown request shows nothing", (await one(`select public.instagram_deletion_status('open1') d`)).d === null
+    && (await one(`select public.instagram_deletion_status('nope') d`)).d === null);
+});
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

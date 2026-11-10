@@ -118,10 +118,12 @@ export const signOutUser = () => supabase.auth.signOut();
 // ---------- reads ----------
 /**
  * Runs fetcher() on mount and when deps change, and again every pollMs when set. Same tuple as the old live hooks:
- * [data, loading, error]. A null fetcher means "nothing to load yet". Polling replaces live listeners (free-tier friendly).
+ * [data, loading, error, reload]. A null fetcher means "nothing to load yet". Polling replaces live listeners (free-tier friendly).
+ * reload() fetches again now (after the page itself changed the data).
  */
 function useQuery(fetcher, deps, pollMs = 0) {
   const [state, setState] = useState({ data: undefined, loading: Boolean(fetcher), error: undefined });
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!fetcher) {
       setState({ data: undefined, loading: false, error: undefined });
@@ -143,8 +145,8 @@ function useQuery(fetcher, deps, pollMs = 0) {
       if (timer) clearInterval(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetcher is rebuilt every render; deps say when it really changes
-  }, deps);
-  return [state.data, state.loading, state.error];
+  }, [...deps, tick]);
+  return [state.data, state.loading, state.error, () => setTick((n) => n + 1)];
 }
 
 const ORDERS = '*, order_lines(*)';
@@ -231,7 +233,7 @@ const safe = async (fn) => {
   try {
     return { ok: true, ...(await fn()) };
   } catch (e) {
-    return fail(e?.code === '42501' ? 'forbidden' : 'unavailable');
+    return fromDbError(e ?? {}); // keeps the database's reason (e.g. reel_limit) when it gave one
   }
 };
 
@@ -246,24 +248,20 @@ export const markRead = (notificationId) => safe(async () => {
 /** Adds, edits or removes one of the Artist's reels. The database enforces the limits and the link format. */
 export const saveReel = (uid, fields, id) => {
   const data = pick(fields, ['url', 'cover', 'highlighted', 'position']);
-  return safeCommand(async () => {
+  return safe(async () => {
     if (id) return { id, ...must(await supabase.from('reels').update(data).eq('id', id).select('id').single()) };
     const row = must(await supabase.from('reels').insert({ ...data, ...pick(fields, ['ownerConfirmed']), artist_id: uid }).select('id').single());
     return { id: row.id };
   });
 };
-export const deleteReel = (id) => safeCommand(async () => {
+export const deleteReel = (id) => safe(async () => {
   must(await supabase.from('reels').delete().eq('id', id));
   return {};
 });
-/** Like safe(), but keeps the database's reason (e.g. reel_limit) so the form can say what went wrong. */
-const safeCommand = async (fn) => {
-  const requestId = crypto.randomUUID();
-  try {
-    return { ok: true, ...(await fn()), requestId };
-  } catch (e) {
-    return fromDbError(e, requestId);
-  }
+/** When an Instagram data-deletion request finished (epoch ms), or null when unknown or still running. */
+export const getDeletionStatus = async (code) => {
+  const { data, error } = await supabase.rpc('instagram_deletion_status', { p_code: code });
+  return error || !data ? null : Date.parse(data);
 };
 const DRAFT_FIELDS = {
   artworks: ['title', 'description', 'category', 'photos', 'video', 'status', 'reelId'],

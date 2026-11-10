@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { saveProfile, useArtist } from '../api/gateway';
@@ -13,10 +13,30 @@ const schema = Yup.object({
   instagramHandle: Yup.string().trim().matches(/^@?[A-Za-z0-9._]{0,30}$/, 'Letters, numbers, dots and underscores only, up to 30'),
 });
 
+// The server sends the artist back here as ?instagram=connected or ?instagram=error&reason=...
+const IG_MESSAGES = {
+  connected: 'Instagram connected.',
+  expired: 'That took too long. Press Connect Instagram to try again.',
+  denied: 'Instagram access was not approved.',
+  personal_account: 'That is a personal account. Switch it to a creator or business account in Instagram, then try again.',
+  already_linked: 'That Instagram account is already connected to another CraftMe artist.',
+  failed: 'Something went wrong connecting Instagram. Please try again.',
+};
+
 export default function ProfileEdit() {
   const { currentUser } = useAuth();
   const [artist, loading] = useArtist(currentUser.uid);
   const [saved, setSaved] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const [igMsg] = useState(() => {
+    const result = params.get('instagram');
+    if (!result) return null;
+    return result === 'connected' ? IG_MESSAGES.connected : IG_MESSAGES[params.get('reason')] || IG_MESSAGES.failed;
+  });
+  useEffect(() => {
+    if (params.get('instagram')) setParams({}, { replace: true }); // keep the message, drop the query from the address
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, []);
 
   if (loading) return <main className="wrap page"><div className="skeleton" style={{ height: 200 }} aria-busy="true" /></main>;
 
@@ -33,6 +53,7 @@ export default function ProfileEdit() {
   return (
     <main className="wrap page" style={{ maxWidth: 560 }}>
       <div className="page-head"><div><h1>Your public profile</h1></div></div>
+      {igMsg && <p className="alert info" role="status">{igMsg}</p>}
       <Formik
         initialValues={{ displayName: artist?.displayName || '', bio: artist?.bio || '', instagramHandle: artist?.instagramHandle || '' }}
         validationSchema={schema} onSubmit={submit}>
@@ -45,8 +66,13 @@ export default function ProfileEdit() {
               <textarea id="bio" name="bio" className="input" rows={4} value={values.bio} onChange={handleChange} onBlur={handleBlur} />
               {touched.bio && errors.bio && <span className="error-msg">{errors.bio}</span>}</div>
             <div className="field"><label htmlFor="instagramHandle">Instagram handle <span className="opt">optional</span></label>
-              <input id="instagramHandle" name="instagramHandle" className="input" placeholder="yourname" value={values.instagramHandle} onChange={handleChange} onBlur={handleBlur} />
-              <span className="hint">Shown on your page as a link. We don’t check that it’s yours yet.</span>
+              <input id="instagramHandle" name="instagramHandle" className="input" placeholder="yourname" value={values.instagramHandle}
+                onChange={handleChange} onBlur={handleBlur} disabled={artist?.instagramVerified} />
+              <span className="hint">
+                {artist?.instagramVerified
+                  ? 'Verified on Instagram. It updates when you reconnect.'
+                  : 'Shown on your page as a link. We don’t check that it’s yours until you connect Instagram below.'}
+              </span>
               {touched.instagramHandle && errors.instagramHandle && <span className="error-msg">{errors.instagramHandle}</span>}</div>
             {saved && <p className="alert info" role="status">Saved. <Link to={`/artist/${currentUser.uid}`}>View your page</Link></p>}
             {status && <p className="error-msg" role="alert">{status}</p>}

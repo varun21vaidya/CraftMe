@@ -9,6 +9,9 @@ Project `iftjiddrgigqmvsdiasw` (Mumbai, `ap-south-1`).
 | Storage | `migrations/0004_storage.sql` | Buckets `artworks`, `videos` (public) and `damage` (private) with per-user folders |
 | Schedules | `migrations/0005_cron.sql` | `sweep()` every 5 minutes; payout drafts on the 1st and 15th, 09:00 IST |
 | Razorpay and role commands | `functions/api` | Edge Function: `placeOrder`, `confirmPayment`, `issueRefund`, `payOnboardingFee`, `becomeArtist`, `setRole`, and the webhook at `/functions/v1/api/webhook` |
+| Catalogue | `migrations/0006_catalogue.sql` | 21 categories in 5 groups, listing kind `product` |
+| Reels | `migrations/0008_reels.sql` | Artists' reel links, limits (12 reels, 6 highlighted), product link |
+| Instagram connection | `migrations/0009_instagram.sql`, `0010_instagram_cron.sql`, `functions/api/instagram*.ts/js` | Private account/state/deletion tables, verified locks, daily token refresh, and the Instagram commands and `/instagram/*` routes |
 
 `npm run test:schema` runs all of the SQL in memory (PGlite) with 68 checks. Run it before applying a migration.
 
@@ -19,6 +22,17 @@ npx supabase secrets set RAZORPAY_KEY_ID=rzp_test_xxxxxxxx --project-ref iftjidd
 npx supabase secrets set RAZORPAY_WEBHOOK_SECRET=<the secret you type in the Razorpay webhook form> --project-ref iftjiddrgigqmvsdiasw
 # RAZORPAY_KEY_SECRET is already set
 ```
+
+## Instagram secrets (off until all are set; never in git or `VITE_*`)
+
+```bash
+npx supabase secrets set INSTAGRAM_APP_ID=... INSTAGRAM_APP_SECRET=... \
+  INSTAGRAM_REDIRECT_URI=https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/callback \
+  INSTAGRAM_TOKEN_KEY=$(openssl rand -base64 32) INSTAGRAM_CRON_SECRET=$(openssl rand -hex 32) \
+  SITE_URL=https://craftme-india.vercel.app --project-ref iftjiddrgigqmvsdiasw
+```
+
+Keep a private copy of `INSTAGRAM_TOKEN_KEY` (losing it means every artist must reconnect). Put the same `INSTAGRAM_CRON_SECRET` into Supabase Vault under the name `instagram_cron_secret` (SQL editor: `select vault.create_secret('<the value>', 'instagram_cron_secret');`), so the daily refresh job can call the function. Then enter the redirect, deauthorize (`.../instagram/deauthorize`) and data-deletion (`.../instagram/data-deletion`) URLs in the Meta app. See `docs/INSTAGRAM_PLAN.md`.
 
 ## One-time setup in dashboards
 

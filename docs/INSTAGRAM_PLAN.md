@@ -1,6 +1,11 @@
 # Instagram for artists: full plan
 
-Status on 11 Nov 2026: Phase 1 is live on `main` (`3cee7a0`) with two known bugs. Phase 2 is planned, not built. The Meta app exists; the business portfolio is blocked until the Facebook account is older.
+Status on 11 Nov 2026 (updated): **Everything that can be built without Meta access is built and live.**
+- Phase 1 fixes (1.1 to 1.4): done.
+- Phase 2 code: done and deployed (migrations `0009`, `0010`; Edge Function version 4; front end on `main`). It stays **off** until the secrets in section 3.8 exist: the Connect card is hidden and the Instagram commands answer "unavailable".
+- Not yet exercised against real Instagram: the OAuth flow, token exchange, media list, import, and Meta's callbacks. These need the Meta app set up (steps 2.1 to 2.4) and the secrets, then testing with tester accounts (section 3.7, manual list).
+- The Meta app exists; the business portfolio is blocked until the Facebook account is older.
+- Still unchecked in a real browser: all the Phase 1 and Phase 2 screens (the browser tool can't reach localhost; check on the live site once deployed).
 
 Items marked **CODE** are code changes. Use a stronger model for them.
 

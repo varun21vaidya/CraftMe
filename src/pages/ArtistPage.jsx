@@ -28,7 +28,7 @@ export default function ArtistPage() {
               <a href={instagramUrl(artist.instagramHandle)} target="_blank" rel="noopener noreferrer nofollow">
                 Instagram @{artist.instagramHandle}
               </a>
-              <span className="faint"> · added by the Artist</span>
+              <span className="faint"> · {artist.instagramVerified ? 'verified on Instagram' : 'added by the Artist'}</span>
             </p>
           )}
         </div>

@@ -2,8 +2,10 @@
 // functions (supabase/migrations/0003_logic.sql); this file only talks to Razorpay and hands the result to them.
 //   POST /api            {name, requestId, ...input}  -> envelope {ok, data|error, requestId}   (needs a signed-in user)
 //   POST /api/webhook    Razorpay webhook (signature checked, events de-duplicated)
+//   /api/instagram/*     Instagram connection: browser callback, Meta deauthorize and data-deletion, daily token refresh (instagram.ts)
 // Deployed with verify_jwt off: commands verify the user below, the webhook verifies Razorpay's signature.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { makeInstagram } from "./instagram.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
@@ -219,6 +221,10 @@ const commands: Record<string, (c: Ctx) => Promise<unknown>> = {
   },
 };
 
+// Instagram: its commands join the table above; its /instagram/* routes (browser callback, Meta callbacks, cron) are handled in serve().
+const ig = makeInstagram({ admin, CommandError, safeEqual });
+Object.assign(commands, ig.commands);
+
 /** Roles live in app_metadata (only the server can write it) and are mirrored on the public profile. */
 async function setRoleFlag(uid: string, meta: Record<string, unknown>, role: string, value: boolean) {
   const next = { ...meta };
@@ -314,6 +320,8 @@ async function webhook(req: Request) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+  const instagram = await ig.route(req); // GET /instagram/callback is the only non-POST route
+  if (instagram) return instagram;
   if (req.method !== "POST") return json({ ok: false, error: { code: "invalid" } }, 405);
   if (new URL(req.url).pathname.endsWith("/webhook")) return await webhook(req);
   return json(await runCommand(req));

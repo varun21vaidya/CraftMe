@@ -15,7 +15,7 @@ export default function ReelCard({ reel }) {
             allow="encrypted-media; autoplay" style={{ border: 0, maxWidth: '100%' }} />
         : <button type="button" className="btn btn-secondary btn-block" onClick={() => setOpen(true)}>Watch this reel on Instagram</button>}
       <figcaption className="small faint">
-        Added by the Artist · <a href={reel.url} target="_blank" rel="noopener noreferrer nofollow">Open on Instagram</a>
+        {reel.verified ? 'Verified on Instagram' : 'Added by the Artist'} · <a href={reel.url} target="_blank" rel="noopener noreferrer nofollow">Open on Instagram</a>
       </figcaption>
     </figure>
   );

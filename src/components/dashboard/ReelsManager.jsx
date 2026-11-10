@@ -3,6 +3,7 @@ import { deleteReel, saveReel, upload, useReels } from '../../api/gateway';
 import { useAuth } from '../../contexts/AuthContext';
 import { errorText } from '../../lib/format';
 import { reelCode } from '../../lib/reels';
+import { InstagramConnect } from './InstagramConnect';
 
 // Limits match the database (migrations/0008_reels.sql); the messages below explain the database's refusal.
 const MAX_REELS = 12;
@@ -15,7 +16,7 @@ const REASONS = {
 export function ReelsManager() {
   const { currentUser } = useAuth();
   const uid = currentUser.uid;
-  const [reels, loading] = useReels(uid, { mine: true });
+  const [reels, loading, , reload] = useReels(uid, { mine: true });
   const [url, setUrl] = useState('');
   const [owned, setOwned] = useState(false);
   const [cover, setCover] = useState(null);
@@ -38,16 +39,25 @@ export function ReelsManager() {
       if (!up.ok) { setBusy(false); return explain(up); }
       coverUrl = up.url;
     }
-    const res = await saveReel(uid, { url: url.trim(), ownerConfirmed: true, cover: coverUrl, position: list.length });
+    // highest position + 1, so positions stay unique even after a delete (the arrows swap positions)
+    const position = list.reduce((m, r) => Math.max(m, r.position + 1), 0);
+    const res = await saveReel(uid, { url: url.trim(), ownerConfirmed: true, cover: coverUrl, position });
     setBusy(false);
     if (!res.ok) return explain(res);
     setUrl(''); setOwned(false); setCover(null); setMsg('Reel added.');
+    return reload();
   };
 
   const update = async (reel, fields) => {
     setMsg(null);
     const res = await saveReel(uid, fields, reel.id);
     if (!res.ok) explain(res);
+    return res.ok;
+  };
+
+  const toggleHighlight = async (reel) => {
+    await update(reel, { highlighted: !reel.highlighted });
+    reload();
   };
 
   // Swap positions with the neighbour, so the order on the artist page follows the arrows.
@@ -55,17 +65,20 @@ export function ReelsManager() {
     const a = list[index];
     const b = list[index + dir];
     if (!b) return;
-    await update(a, { position: b.position });
-    await update(b, { position: a.position });
+    if (await update(a, { position: b.position })) await update(b, { position: a.position });
+    reload();
   };
 
   const remove = async (reel) => {
     if (!window.confirm('Remove this reel? It will also be unlinked from any product.')) return;
     const res = await deleteReel(reel.id);
     if (!res.ok) setMsg(errorText(res.error));
+    reload();
   };
 
   return (
+    <div className="stack">
+      <InstagramConnect onChanged={reload} />
     <section className="panel stack" aria-labelledby="reels-title">
       <div>
         <h2 id="reels-title">Your reels</h2>
@@ -79,8 +92,9 @@ export function ReelsManager() {
       {list.map((r, i) => (
         <div key={r.id} className="row" style={{ flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <a className="small" href={r.url} target="_blank" rel="noopener noreferrer nofollow" style={{ flex: '1 1 200px', minWidth: 0, overflowWrap: 'anywhere' }}>{r.url}</a>
+          {r.verified && <span className="small faint">Verified</span>}
           <button className={`btn btn-sm ${r.highlighted ? 'btn-primary' : 'btn-secondary'}`} aria-pressed={r.highlighted}
-            onClick={() => update(r, { highlighted: !r.highlighted })}>
+            onClick={() => toggleHighlight(r)}>
             {r.highlighted ? 'Highlighted' : 'Highlight'}
           </button>
           <button className="btn btn-secondary btn-sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">↑</button>
@@ -107,5 +121,6 @@ export function ReelsManager() {
         <button className="btn btn-primary" type="submit" disabled={busy || list.length >= MAX_REELS}>{busy ? 'Adding…' : 'Add reel'}</button>
       </form>
     </section>
+    </div>
   );
 }
