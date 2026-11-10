@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
-import { saveDraft, upload } from '../../api/gateway';
+import { saveDraft, upload, useReels } from '../../api/gateway';
 import { useAuth } from '../../contexts/AuthContext';
 import { CATEGORIES } from '../../lib/categories';
 import { errorText } from '../../lib/format';
@@ -31,6 +31,7 @@ function Previews({ files }) {
 export function ArtworkUploadForm({ onSaved }) {
   const { currentUser } = useAuth();
   const [done, setDone] = useState(false);
+  const [reels] = useReels(currentUser.uid, { mine: true });
 
   const submit = async (values, { setSubmitting, setStatus, resetForm }) => {
     setStatus(null);
@@ -39,7 +40,7 @@ export function ArtworkUploadForm({ onSaved }) {
     if (failed) { setStatus(errorText(failed.error)); setSubmitting(false); return; }
     const saved = await saveDraft('artworks', null, {
       title: values.title.trim(), description: values.description.trim(), category: values.category,
-      photos: uploads.map((u) => u.url),
+      photos: uploads.map((u) => u.url), reelId: values.reelId || null,
     }, currentUser.uid);
     setSubmitting(false);
     if (!saved.ok) { setStatus(errorText(saved.error)); return; }
@@ -49,7 +50,7 @@ export function ArtworkUploadForm({ onSaved }) {
   };
 
   return (
-    <Formik initialValues={{ title: '', description: '', category: '', photos: [] }} validationSchema={schema} onSubmit={submit}>
+    <Formik initialValues={{ title: '', description: '', category: '', photos: [], reelId: '' }} validationSchema={schema} onSubmit={submit}>
       {({ values, errors, touched, handleChange, handleBlur, setFieldValue, isSubmitting, status }) => (
         <Form className="stack" noValidate>
           {done && <p className="alert info" role="status">Saved as a draft. Add a Listing to put it on sale.</p>}
@@ -69,6 +70,14 @@ export function ArtworkUploadForm({ onSaved }) {
               {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
             </select>
             {touched.category && errors.category && <span className="error-msg">{errors.category}</span>}
+          </div>
+          <div className="field">
+            <label htmlFor="reelId">Reel <span className="opt">optional, shown on this product</span></label>
+            <select id="reelId" name="reelId" className="select" value={values.reelId} onChange={handleChange} onBlur={handleBlur}>
+              <option value="">No reel</option>
+              {(reels || []).map((r) => <option key={r.id} value={r.id}>{r.url.replace(/^https?:\/\/(www\.)?instagram\.com\//, '')}</option>)}
+            </select>
+            {reels?.length === 0 && <span className="hint">Add reels on your profile page first.</span>}
           </div>
           <div className="field">
             <label htmlFor="photos">Photos <span className="opt">up to {MAX_PHOTOS}, first is the cover</span></label>

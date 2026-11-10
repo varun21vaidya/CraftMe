@@ -2,7 +2,7 @@
 import fs from "node:fs";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -196,6 +196,36 @@ const stale = await svc(async () => (await one(place(other, artist, lines(1)))).
 await db.exec(`update public.orders set hold_until = now() - interval '1 minute' where id = '${stale.orderId}'`);
 const swept = await svc(async () => (await one(`select public.sweep() r`)).r);
 ok("sweep expires a stale hold and frees the stock", swept.expireHolds === 1 && (await one(`select held from public.listings where id='${lp}'`)).held === 0);
+
+// Reels (Instagram phase 1)
+let reelA;
+await as("authenticated", A, async () => {
+  reelA = (await db.query(`insert into public.reels (artist_id, url, owner_confirmed) values ('${artist}', 'https://www.instagram.com/reel/ABC123/', true) returning id`)).rows[0].id;
+  ok("artist adds a reel link", !!reelA);
+});
+await as("authenticated", A, () => rejects("a non-Instagram link is refused", () =>
+  db.query(`insert into public.reels (artist_id, url, owner_confirmed) values ('${artist}', 'https://evil.example/reel/ABC', true)`)));
+await as("authenticated", A, () => rejects("a reel needs the ownership tick", () =>
+  db.query(`insert into public.reels (artist_id, url, owner_confirmed) values ('${artist}', 'https://instagram.com/reel/XYZ', false)`)));
+await as("authenticated", O, () => rejects("another user cannot add a reel for an artist", () =>
+  db.query(`insert into public.reels (artist_id, url, owner_confirmed) values ('${artist}', 'https://instagram.com/reel/XYZ2', true)`)));
+const reelO = (await as("authenticated", {sub: other, app_metadata: {artist: true}}, async () => (await db.query(`insert into public.reels (artist_id, url, owner_confirmed) values ('${other}', 'https://instagram.com/reel/OTHER1', true) returning id`)).rows[0].id));
+await as("authenticated", A, () => rejects("a product cannot use another artist's reel", () =>
+  db.query(`update public.artworks set reel_id = '${reelO}' where id = '${artId}'`)));
+await as("authenticated", A, async () => {
+  await db.query(`update public.artworks set reel_id = '${reelA}' where id = '${artId}'`);
+  ok("artist links their own reel to a product", (await one(`select reel_id from public.artworks where id='${artId}'`)).reel_id === reelA);
+});
+await as("authenticated", A, async () => {
+  for (let i = 0; i < 11; i++) await db.query(`insert into public.reels (artist_id, url, owner_confirmed) values ('${artist}', 'https://instagram.com/reel/L${i}', true)`);
+});
+await as("authenticated", A, () => rejects("a 13th reel is refused", () =>
+  db.query(`insert into public.reels (artist_id, url, owner_confirmed) values ('${artist}', 'https://instagram.com/reel/L99', true)`)));
+await as("authenticated", A, async () => {
+  await db.query(`update public.reels set highlighted = true where artist_id = '${artist}' and id in (select id from public.reels where artist_id = '${artist}' order by created_at limit 6)`);
+});
+await as("authenticated", A, () => rejects("a 7th highlighted reel is refused", () =>
+  db.query(`update public.reels set highlighted = true where artist_id = '${artist}' and not highlighted`)));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

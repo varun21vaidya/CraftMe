@@ -15,6 +15,9 @@ export default function Privacy() {
       <h3>Payments</h3>
       <p>Payments are handled by Razorpay. We never see or store your card, UPI or bank details. We keep only the order amount and a payment reference.</p>
 
+      <h3>Instagram</h3>
+      <p>Artists can add links to their Instagram reels and an optional Instagram handle. A reel plays only when you tap it, and then it loads from Instagram, which sets its own cookies and policy. We store only the link and the artist's own choices. Later, artists may connect their Instagram account; that will be described here before it starts.</p>
+
       <h3>How we use it</h3>
       <p>To sign you in, take and ship orders, show a seller the delivery details of their own orders, send order updates, and prevent fraud. We do not sell your data or use it for advertising.</p>
 

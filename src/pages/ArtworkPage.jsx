@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useArtist, useArtwork, useListings } from '../api/gateway';
+import { useArtist, useArtwork, useListings, useReel } from '../api/gateway';
+import ReelCard from '../components/ReelCard';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import LazyLoadImage from '../components/ui/LazyLoadImage';
@@ -16,6 +17,7 @@ export default function ArtworkPage() {
   const [art, loadingArt] = useArtwork(id);
   const [listings, loadingListings] = useListings(id);
   const [artist] = useArtist(art?.artistId);
+  const [reel] = useReel(art?.reelId);
   const [pickedId, setPicked] = useState(null);
 
   if (loadingArt || loadingListings) return <main className="wrap page"><div className="skeleton" style={{ height: 320 }} aria-busy="true" /></main>;
@@ -40,6 +42,7 @@ export default function ArtworkPage() {
           {art.photos?.map((src, i) => (
             <div className="mat" key={src}><LazyLoadImage src={src} alt={`${art.title}, photo ${i + 1}`} width="100%" /></div>
           ))}
+          {reel && <ReelCard reel={reel} />}
         </section>
         <aside className="panel stack sticky">
           <h1>{art.title}</h1>

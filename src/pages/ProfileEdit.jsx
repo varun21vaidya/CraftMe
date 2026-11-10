@@ -5,6 +5,7 @@ import * as Yup from 'yup';
 import { saveProfile, useArtist } from '../api/gateway';
 import { useAuth } from '../contexts/AuthContext';
 import { errorText } from '../lib/format';
+import { ReelsManager } from '../components/dashboard/ReelsManager';
 
 const schema = Yup.object({
   displayName: Yup.string().trim().required('Add your name').max(100, 'Keep it under 100 characters'),
@@ -53,6 +54,7 @@ export default function ProfileEdit() {
           </Form>
         )}
       </Formik>
+      <div style={{ marginTop: 24 }}><ReelsManager /></div>
     </main>
   );
 }

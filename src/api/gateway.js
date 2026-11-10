@@ -211,6 +211,19 @@ export const useNotifications = (uid) => useQuery(
   uid ? async () => must(await supabase.from('notifications').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(20)).map(camel) : null,
   [uid], 20000,
 );
+/** An Artist's reels. mine = all of them (dashboard); otherwise only the highlighted ones (public page). */
+export const useReels = (artistId, { mine = false } = {}) => useQuery(
+  artistId ? async () => {
+    let q = supabase.from('reels').select('*').eq('artist_id', artistId);
+    if (!mine) q = q.eq('highlighted', true);
+    return must(await q.order('position').order('created_at')).map(camel);
+  } : null,
+  [artistId, mine], 30000,
+);
+export const useReel = (id) => useQuery(
+  id ? async () => camel(must(await supabase.from('reels').select('*').eq('id', id).maybeSingle()) || null) : null,
+  [id],
+);
 
 // ---------- direct writes (column-limited by database grants and Row Level Security) ----------
 /** Direct writes: a rejected grant or policy maps to the same codes the commands use. */
@@ -230,8 +243,30 @@ export const markRead = (notificationId) => safe(async () => {
   must(await supabase.from('notifications').update({ read: true }).eq('id', notificationId));
   return {};
 });
+/** Adds, edits or removes one of the Artist's reels. The database enforces the limits and the link format. */
+export const saveReel = (uid, fields, id) => {
+  const data = pick(fields, ['url', 'cover', 'highlighted', 'position']);
+  return safeCommand(async () => {
+    if (id) return { id, ...must(await supabase.from('reels').update(data).eq('id', id).select('id').single()) };
+    const row = must(await supabase.from('reels').insert({ ...data, ...pick(fields, ['ownerConfirmed']), artist_id: uid }).select('id').single());
+    return { id: row.id };
+  });
+};
+export const deleteReel = (id) => safeCommand(async () => {
+  must(await supabase.from('reels').delete().eq('id', id));
+  return {};
+});
+/** Like safe(), but keeps the database's reason (e.g. reel_limit) so the form can say what went wrong. */
+const safeCommand = async (fn) => {
+  const requestId = crypto.randomUUID();
+  try {
+    return { ok: true, ...(await fn()), requestId };
+  } catch (e) {
+    return fromDbError(e, requestId);
+  }
+};
 const DRAFT_FIELDS = {
-  artworks: ['title', 'description', 'category', 'photos', 'video', 'status'],
+  artworks: ['title', 'description', 'category', 'photos', 'video', 'status', 'reelId'],
   listings: ['price', 'size', 'medium', 'title', 'status'],
 };
 const CREATE_EXTRA = { listings: ['artworkId', 'kind', 'stock'] };
