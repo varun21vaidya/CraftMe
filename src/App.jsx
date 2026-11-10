@@ -19,6 +19,7 @@ const ArtistInbox = lazy(() => import('./pages/ArtistInbox'));
 const NewArtwork = lazy(() => import('./pages/NewArtwork'));
 const ArtistPage = lazy(() => import('./pages/ArtistPage'));
 const ProfileEdit = lazy(() => import('./pages/ProfileEdit'));
+const Privacy = lazy(() => import('./pages/Privacy'));
 
 const NotFound = () => (
   <main className="wrap page"><div className="empty"><h3>We couldn’t find that page</h3><Link className="btn btn-primary" to="/">Go home</Link></div></main>
@@ -48,6 +49,7 @@ export default function App() {
                 <Route path="/artwork/:id" element={screen(<ArtworkPage />)} />
                 <Route path="/artist/:id" element={screen(<ArtistPage />)} />
                 <Route path="/login" element={screen(<Login />)} />
+                <Route path="/privacy" element={screen(<Privacy />)} />
                 <Route path="/cart" element={screen(<CartPage />, signedIn)} />
                 <Route path="/checkout" element={screen(<CheckoutPage />, signedIn)} />
                 <Route path="/orders" element={screen(<OrdersPage />, signedIn)} />
