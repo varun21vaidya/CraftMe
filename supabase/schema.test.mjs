@@ -2,7 +2,7 @@ import {PGlite} from "@electric-sql/pglite";
 import fs from "node:fs";
 
 const db = new PGlite();
-const sql = fs.readFileSync(new URL("./migrations/0001_init.sql", import.meta.url), "utf8");
+const migrations = ["0001_init", "0002_hardening", "0003_logic"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -14,8 +14,8 @@ await db.exec(`
   grant usage on schema auth to anon, authenticated, service_role;
   grant execute on all functions in schema auth to anon, authenticated, service_role;
 `);
-await db.exec(sql);
-console.log("migration applied");
+for (const sql of migrations) await db.exec(sql);
+console.log("migrations applied");
 
 let pass = 0, fail = 0;
 const as = async (role, claims, fn) => {
@@ -111,6 +111,89 @@ await as("anon", {}, () => rejects("anon cannot read the commission", () => db.q
 await as("anon", {}, async () => ok("anon can read public switches", (await db.query("select switches from public.settings")).rows.length === 1));
 await as("authenticated", B, () => rejects("client cannot touch requests table", () => db.query("select * from public.requests")));
 await as("service_role", {}, async () => ok("service role reads orders", (await db.query("select count(*)::int n from public.orders")).rows[0].n === 1));
+
+// ---------- business logic (0003) ----------
+const failsWith = async (name, text, fn) => {
+  try { await fn(); ok(name, false); } catch (e) { ok(name + "  [" + e.message.slice(0, 60) + "]", e.message.includes(text)); }
+};
+const svc = (fn) => as("service_role", {}, fn);
+const one = async (sqlText) => (await db.query(sqlText)).rows[0];
+const admin = {sub: other, app_metadata: {admin: true}};
+const addr = JSON.stringify({name: "B", phone: "9876543210", address: "1 Road", city: "Pune", state: "MH", pin: "411001"});
+const art2 = (await one(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'Flow', 'Painting', 'published') returning id`)).id;
+const lp = (await one(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${art2}','${artist}','Print','print',100000,3,'live') returning id`)).id;
+const lo = (await one(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${art2}','${artist}','Orig','original',500000,1,'live') returning id`)).id;
+ok("listing trigger sets from price on the artwork", Number((await one(`select from_price_paise p from public.artworks where id='${art2}'`)).p) === 100000);
+const lines = (qty, seen) => JSON.stringify([{listingId: lp, quantity: qty, ...(seen ? {seenUnitPaise: seen} : {})}]);
+const place = (b, a, l) => `select public.place_order('${b}','${a}','${l}','${addr}') r`;
+
+await as("authenticated", B, () => rejects("a buyer cannot call place_order directly", () => db.query(place(buyer, artist, lines(1)))));
+const placed = await svc(async () => (await one(place(buyer, artist, lines(2)))).r);
+ok("place_order holds stock and totals the order", Number(placed.amount) === 200000 && (await one(`select held from public.listings where id='${lp}'`)).held === 2);
+await svc(() => failsWith("cannot hold more than the free stock", "sold", () => db.query(place(other, artist, lines(2)))));
+await svc(() => failsWith("a changed price is reported", "price_changed", () => db.query(place(other, artist, lines(1, 90000)))));
+ok("a refused order leaves no hold behind", (await one(`select held from public.listings where id='${lp}'`)).held === 2);
+await svc(() => failsWith("cannot buy your own work", "own_listing", () => db.query(place(artist, artist, lines(1)))));
+
+const paid1 = await svc(async () => (await one(`select public.mark_paid('${placed.orderId}', 'pay_1', 2360) r`)).r);
+ok("mark_paid moves the stock from held to sold", paid1.stage === "paid" && (await one(`select stock, held from public.listings where id='${lp}'`)).stock === 1);
+const paid2 = await svc(async () => (await one(`select public.mark_paid('${placed.orderId}', 'pay_1', 2360) r`)).r);
+ok("mark_paid twice changes nothing", paid2.stage === "paid" && (await one(`select stock from public.listings where id='${lp}'`)).stock === 1);
+ok("paying notified the buyer and the artist", (await one(`select count(*)::int n from public.notifications where type in ('order_paid','order_new')`)).n === 2);
+
+await as("authenticated", O, () => failsWith("a stranger cannot ship", "forbidden", () => db.query(`select public.mark_shipped('${placed.orderId}', 'DTDC')`)));
+await as("authenticated", A, () => failsWith("an artist must name a courier", "invalid", () => db.query(`select public.mark_shipped('${placed.orderId}', '  ')`)));
+await as("authenticated", A, async () => { await db.query(`select public.mark_shipped('${placed.orderId}', 'DTDC', 'T1')`); ok("artist ships a paid order", true); });
+await as("authenticated", B, () => failsWith("cannot report damage before receiving", "wrong_stage", () => db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'broken', '{}')`)));
+await as("authenticated", B, async () => { await db.query(`select public.confirm_received('${placed.orderId}')`); ok("buyer confirms receipt", true); });
+await as("authenticated", B, () => failsWith("damage photos must be in the buyer's own folder", "photoPaths", () => db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'cracked', '{damage/${other}/x.jpg}')`)));
+await as("authenticated", B, async () => { await db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'cracked', '{damage/${buyer}/x.jpg}')`); ok("buyer reports damage in the window", true); });
+await as("authenticated", B, () => failsWith("a second damage report is refused", "already_exists", () => db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'again', '{}')`)));
+await as("authenticated", B, async () => { await db.query(`select public.submit_review('${placed.orderId}', 5, 'lovely')`); ok("buyer reviews a received order", true); });
+await as("authenticated", B, () => failsWith("a second review is refused", "already_exists", () => db.query(`select public.submit_review('${placed.orderId}', 4, 'again')`)));
+await as("authenticated", B, () => failsWith("a buyer cannot decide a review", "forbidden", () => db.query(`select public.decide_review('${placed.orderId}', 'approved')`)));
+await as("authenticated", admin, async () => {
+  await db.query(`select public.decide_review('${placed.orderId}', 'approved')`);
+  ok("admin approves the review and the artist average moves", Number((await one(`select rating_avg a from public.profiles where id='${artist}'`)).a) === 5);
+  await db.query(`select public.decide_damage('${placed.orderId}', 'rejected', 'looks fine')`);
+});
+
+// a late payment on a refunded order must not refund again
+const lateOrder = await svc(async () => (await one(place(buyer, artist, JSON.stringify([{listingId: lo, quantity: 1}])))).r);
+await svc(() => db.query(`select public.expire_hold('${lateOrder.orderId}', true)`));
+await db.exec(`update public.listings set stock = 0, status = 'sold' where id = '${lo}'`);
+const over = await svc(async () => (await one(`select public.mark_paid('${lateOrder.orderId}', 'pay_late', 0) r`)).r);
+ok("a late payment for sold stock is reported oversold", over.oversold === true);
+await svc(() => db.query(`select public.refund_oversold('${lateOrder.orderId}', 'pay_late', 'rfnd_1')`));
+const again = await svc(async () => (await one(`select public.mark_paid('${lateOrder.orderId}', 'pay_late', 0) r`)).r);
+ok("mark_paid on a refunded order returns refunded (no second refund)", again.stage === "refunded" && !again.oversold);
+
+// refunds and payouts on the paid order
+await db.exec(`update public.artist_private set verified_at = now(), amount_owed = 0 where profile_id = '${artist}'`);
+await svc(() => failsWith("a refund cannot exceed what was paid", "exceeds_paid", () => db.query(`select public.reserve_refund('${placed.orderId}', '[{"lineId":"${lp}","quantity":3}]', 'x')`)));
+await db.exec(`update public.orders set payable = true where id = '${placed.orderId}'`);
+const built = await svc(async () => (await one(`select public._build_payout_run() r`)).r);
+ok("a payout draft is built for the verified artist", built.created.length === 1);
+const draft = await one(`select id from public.payouts where artist_id='${artist}'`);
+const rf = await svc(async () => (await one(`select public.reserve_refund('${placed.orderId}', '[{"lineId":"${lp}","quantity":1}]', 'damaged') r`)).r);
+ok("a refund reserve returns the amount and payment", Number(rf.amount) === 100000 && rf.paymentId === "pay_1");
+await svc(() => db.query(`select public.mark_refund_unknown('${rf.refundId}')`));
+ok("a failed provider call keeps the refund as unknown", (await one(`select status from public.refunds where id='${rf.refundId}'`)).status === "unknown");
+await svc(() => failsWith("a retry that would refund the same unit twice is refused", "exceeds_paid", () => db.query(`select public.reserve_refund('${placed.orderId}', '[{"lineId":"${lp}","quantity":2}]', 'again')`)));
+await as("authenticated", admin, () => failsWith("a stale payout draft is refused", "rebuild", () => db.query(`select public.record_payout('${draft.id}', 'UTR1')`)));
+await svc(() => db.query(`select public._build_payout_run()`));
+const fresh = await one(`select id from public.payouts where artist_id='${artist}'`);
+await as("authenticated", admin, async () => {
+  await db.query(`select public.record_payout('${fresh.id}', 'UTR1')`);
+  ok("a rebuilt draft is recorded and marks the orders paid out", (await one(`select payout_id from public.orders where id='${placed.orderId}'`)).payout_id === fresh.id);
+});
+await as("authenticated", B, () => failsWith("a buyer cannot record a payout", "forbidden", () => db.query(`select public.record_payout('${fresh.id}', 'x')`)));
+
+// the sweep expires old holds
+const stale = await svc(async () => (await one(place(other, artist, lines(1)))).r);
+await db.exec(`update public.orders set hold_until = now() - interval '1 minute' where id = '${stale.orderId}'`);
+const swept = await svc(async () => (await one(`select public.sweep() r`)).r);
+ok("sweep expires a stale hold and frees the stock", swept.expireHolds === 1 && (await one(`select held from public.listings where id='${lp}'`)).held === 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
