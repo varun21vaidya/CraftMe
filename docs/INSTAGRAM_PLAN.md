@@ -16,6 +16,19 @@ Artists keep signing in with Google. They can then link Instagram, show chosen r
 - Privacy page has an Instagram section.
 - Pending: a browser check of the pages (the browser tool couldn't reach localhost).
 
+### Phase 1 fixes (from the review of `3cee7a0`)
+
+**Coding changes: yes.** Small, do these before Phase 2.
+
+1. **Must fix: the reel list doesn't update after a change.** `useQuery` in `src/api/gateway.js` only refreshes every 30 seconds, so Add, Highlight, arrows and Remove look broken. Fix: have `useQuery` return a 4th item `reload` (a counter in its effect's dependencies). Call it after every successful save or delete in `ReelsManager.jsx`.
+2. **Must fix: the arrows stop working after a delete.** New reels get `position = list.length`, so positions can repeat, and swapping equal positions does nothing. Fix: give a new reel `position = highest position + 1`.
+3. **Nice to have: merge `safe` and `safeCommand`** in `src/api/gateway.js`. Make `safe` use `fromDbError` and delete `safeCommand` (about 9 lines less).
+4. **Nice to have: privacy wording.** In `src/pages/Privacy.jsx`, say we store the link, an optional cover picture, and the artist's choices.
+
+Still to check after the fixes:
+- The pages in a real browser.
+- Whether a pasted `/p/` post link plays through the `/reel/` embed address.
+
 ## Phase 2: Connect Instagram (needs Meta approval)
 
 **Coding changes: yes.** Build with a stronger model.
@@ -80,7 +93,8 @@ In the Meta app, set:
 - **Deleted or private reels.** Show "reel unavailable" and never break the page.
 
 ## Order
-1. Meta: business portfolio, verification, app setup (you).
+0. Phase 1 fixes 1 and 2 (coding), then a browser check.
+1. Meta: business portfolio (retry, the Facebook account was too new), verification, app setup (you).
 2. Give me the four placeholder values through the Supabase secrets command above, not in chat.
 3. Build Phase 2 (stronger model).
 4. Test with testers, then submit App Review.
