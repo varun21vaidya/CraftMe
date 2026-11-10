@@ -12,7 +12,7 @@ module.exports = {
       files: ['src/**'],
       excludedFiles: ['src/api/**'],
       rules: {
-        'no-restricted-imports': ['error', { patterns: ['firebase', 'firebase/*', 'razorpay'] }],
+        'no-restricted-imports': ['error', { patterns: ['@supabase/*', 'razorpay'] }],
       },
     },
     { files: ['**/*.test.{js,jsx}'], env: { node: true } },
