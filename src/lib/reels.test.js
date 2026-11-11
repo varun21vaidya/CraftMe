@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { reelCode } from './reels';
+import { reelCode, reelLabel } from './reels';
 
 describe('reelCode', () => {
   it('reads the code from reel links', () => {
     expect(reelCode('https://www.instagram.com/reel/ABC_123-x/')).toBe('ABC_123-x');
     expect(reelCode(' https://instagram.com/reels/XYZ?igsh=abc ')).toBe('XYZ');
+  });
+
+  it('labels a reel by its name, else by a short tag', () => {
+    expect(reelLabel({ title: 'Blue vase', url: 'https://www.instagram.com/reel/ABCDEFG/' })).toBe('Blue vase');
+    expect(reelLabel({ url: 'https://www.instagram.com/reel/ABCDEFG/' })).toBe('Untitled reel · DEFG');
   });
 
   it('refuses anything that is not an Instagram reel', () => {

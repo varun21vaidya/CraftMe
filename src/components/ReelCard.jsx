@@ -9,6 +9,7 @@ export default function ReelCard({ reel }) {
 
   return (
     <figure className="panel stack sm" style={{ margin: 0 }}>
+      {reel.title && <strong>{reel.title}</strong>}
       {reel.cover && !open && <img src={reel.cover} alt="" loading="lazy" style={{ maxWidth: '100%', borderRadius: 8 }} />}
       {open
         ? <iframe src={reelEmbedUrl(code)} title="Instagram reel" width="100%" height="520" loading="lazy"

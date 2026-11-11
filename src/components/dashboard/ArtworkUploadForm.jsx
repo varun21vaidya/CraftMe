@@ -4,6 +4,7 @@ import * as Yup from 'yup';
 import { saveDraft, upload, useReels } from '../../api/gateway';
 import { useAuth } from '../../contexts/AuthContext';
 import { CATEGORIES } from '../../lib/categories';
+import { reelLabel } from '../../lib/reels';
 import { errorText } from '../../lib/format';
 
 const MAX_PHOTOS = 5;
@@ -71,14 +72,27 @@ export function ArtworkUploadForm({ onSaved }) {
             </select>
             {touched.category && errors.category && <span className="error-msg">{errors.category}</span>}
           </div>
-          <div className="field">
-            <label htmlFor="reelId">Reel <span className="opt">optional, shown on this product</span></label>
-            <select id="reelId" name="reelId" className="select" value={values.reelId} onChange={handleChange} onBlur={handleBlur}>
-              <option value="">No reel</option>
-              {(reels || []).map((r) => <option key={r.id} value={r.id}>{r.url.replace(/^https?:\/\/(www\.)?instagram\.com\//, '')}</option>)}
-            </select>
+          <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend>Reel <span className="opt">optional, shown on this product</span></legend>
+            <div className="stack sm" role="radiogroup" aria-label="Reel for this product">
+              {[{ id: '' }, ...(reels || [])].map((r) => (
+                <label key={r.id || 'none'} className="row" style={{
+                  gap: 12, alignItems: 'center', padding: 8, borderRadius: 8, cursor: 'pointer',
+                  border: `1px solid ${values.reelId === r.id ? 'var(--accent)' : 'var(--line-2, #ddd)'}`,
+                }}>
+                  <input type="radio" name="reelId" value={r.id} checked={values.reelId === r.id} onChange={() => setFieldValue('reelId', r.id)} />
+                  {r.id && (r.cover
+                    ? <img src={r.cover} alt="" width="48" height="64" loading="lazy" style={{ objectFit: 'cover', borderRadius: 6 }} />
+                    : <span className="skeleton" style={{ width: 48, height: 64, borderRadius: 6, display: 'inline-block' }} aria-hidden="true" />)}
+                  <span style={{ minWidth: 0 }}>
+                    {r.id ? reelLabel(r) : 'No reel'}
+                    {r.verified && <span className="small faint"> · from Instagram</span>}
+                  </span>
+                </label>
+              ))}
+            </div>
             {reels?.length === 0 && <span className="hint">Add reels on your profile page first.</span>}
-          </div>
+          </fieldset>
           <div className="field">
             <label htmlFor="photos">Photos <span className="opt">up to {MAX_PHOTOS}, first is the cover</span></label>
             <input id="photos" type="file" multiple accept="image/jpeg,image/png"

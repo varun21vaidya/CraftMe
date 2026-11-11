@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { deleteReel, saveReel, upload, useReels } from '../../api/gateway';
 import { useAuth } from '../../contexts/AuthContext';
 import { errorText } from '../../lib/format';
-import { reelCode } from '../../lib/reels';
+import { reelCode, reelLabel } from '../../lib/reels';
 import { InstagramConnect } from './InstagramConnect';
 
 // Limits match the database (migrations/0008_reels.sql); the messages below explain the database's refusal.
@@ -20,6 +20,7 @@ export function ReelsManager() {
   const [url, setUrl] = useState('');
   const [owned, setOwned] = useState(false);
   const [cover, setCover] = useState(null);
+  const [title, setTitle] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
 
@@ -41,10 +42,10 @@ export function ReelsManager() {
     }
     // highest position + 1, so positions stay unique even after a delete (the arrows swap positions)
     const position = list.reduce((m, r) => Math.max(m, r.position + 1), 0);
-    const res = await saveReel(uid, { url: url.trim(), ownerConfirmed: true, cover: coverUrl, position });
+    const res = await saveReel(uid, { url: url.trim(), ownerConfirmed: true, cover: coverUrl, position, title: title.trim() || null });
     setBusy(false);
     if (!res.ok) return explain(res);
-    setUrl(''); setOwned(false); setCover(null); setMsg('Reel added.');
+    setUrl(''); setTitle(''); setOwned(false); setCover(null); setMsg('Reel added.');
     return reload();
   };
 
@@ -53,6 +54,13 @@ export function ReelsManager() {
     const res = await saveReel(uid, fields, reel.id);
     if (!res.ok) explain(res);
     return res.ok;
+  };
+
+  const rename = async (reel, value) => {
+    const next = value.trim() || null;
+    if (next === (reel.title || null)) return;
+    await update(reel, { title: next });
+    reload();
   };
 
   const toggleHighlight = async (reel) => {
@@ -91,8 +99,16 @@ export function ReelsManager() {
       {!loading && list.length === 0 && <p className="small muted">No reels yet. Paste a link from Instagram below.</p>}
       {list.map((r, i) => (
         <div key={r.id} className="row" style={{ flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-          <a className="small" href={r.url} target="_blank" rel="noopener noreferrer nofollow" style={{ flex: '1 1 200px', minWidth: 0, overflowWrap: 'anywhere' }}>{r.url}</a>
-          {r.verified && <span className="small faint">Verified</span>}
+          {r.cover
+            ? <img src={r.cover} alt="" width="48" height="64" loading="lazy" style={{ objectFit: 'cover', borderRadius: 6 }} />
+            : <span className="skeleton" style={{ width: 48, height: 64, borderRadius: 6, display: 'inline-block' }} aria-hidden="true" />}
+          <div className="stack sm" style={{ flex: '1 1 200px', minWidth: 0 }}>
+            <input className="input" aria-label="Reel name" placeholder={reelLabel(r)} defaultValue={r.title || ''}
+              maxLength={80} onBlur={(e) => rename(r, e.target.value)} />
+            <a className="small" href={r.url} target="_blank" rel="noopener noreferrer nofollow" style={{ overflowWrap: 'anywhere' }}>
+              Open on Instagram{r.verified ? ' · verified' : ''}
+            </a>
+          </div>
           <button className={`btn btn-sm ${r.highlighted ? 'btn-primary' : 'btn-secondary'}`} aria-pressed={r.highlighted}
             onClick={() => toggleHighlight(r)}>
             {r.highlighted ? 'Highlighted' : 'Highlight'}
@@ -107,6 +123,10 @@ export function ReelsManager() {
         <div className="field">
           <label htmlFor="reel-url">Reel link</label>
           <input id="reel-url" className="input" placeholder="https://www.instagram.com/reel/…" value={url} onChange={(e) => setUrl(e.target.value)} />
+        </div>
+        <div className="field">
+          <label htmlFor="reel-title">Name <span className="opt">optional, helps you tell reels apart</span></label>
+          <input id="reel-title" className="input" maxLength={80} placeholder="e.g. Making of the blue vase" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
         <div className="field">
           <label htmlFor="reel-cover">Cover picture <span className="opt">optional, JPEG or PNG</span></label>

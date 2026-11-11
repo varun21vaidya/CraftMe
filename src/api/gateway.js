@@ -247,7 +247,7 @@ export const markRead = (notificationId) => safe(async () => {
 });
 /** Adds, edits or removes one of the Artist's reels. The database enforces the limits and the link format. */
 export const saveReel = (uid, fields, id) => {
-  const data = pick(fields, ['url', 'cover', 'highlighted', 'position']);
+  const data = pick(fields, ['url', 'cover', 'highlighted', 'position', 'title']);
   return safe(async () => {
     if (id) return { id, ...must(await supabase.from('reels').update(data).eq('id', id).select('id').single()) };
     const row = must(await supabase.from('reels').insert({ ...data, ...pick(fields, ['ownerConfirmed']), artist_id: uid }).select('id').single());

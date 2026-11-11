@@ -2,7 +2,7 @@
 import fs from "node:fs";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -262,6 +262,14 @@ await as("anon", {}, async () => {
   ok("an unfinished or unknown request shows nothing", (await one(`select public.instagram_deletion_status('open1') d`)).d === null
     && (await one(`select public.instagram_deletion_status('nope') d`)).d === null);
 });
+
+// Reel names (0014)
+await as("authenticated", A, async () => {
+  await db.query(`update public.reels set title = 'Making of the blue vase' where id = '${reelA}'`);
+  ok("an artist can name their reel", (await one(`select title from public.reels where id='${reelA}'`)).title === 'Making of the blue vase');
+});
+await as("authenticated", A, () => rejects("a reel name over 80 characters is refused", () =>
+  db.query(`update public.reels set title = '${"x".repeat(81)}' where id = '${reelA}'`)));
 
 // The api function runs as service_role: it must reach the tables the Instagram code uses
 await as("service_role", {}, async () => {
