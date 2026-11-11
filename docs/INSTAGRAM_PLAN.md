@@ -1,5 +1,68 @@
 # Instagram for artists: full plan
 
+## PLAN v3 (recommended, 11 Nov 2026): import reels by @handle, no artist login
+
+**Why a new plan.** The Unified Login built in Phase 2 works only if each artist has a Meta *business portfolio* (Meta's docs: "Business portfolio: Required"). Your own test stopped on an Instagram page and never returned, because you have no portfolio yet. Most small artists won't have one either. That is too much friction.
+
+**The idea.** CraftMe connects **its own** Instagram account to Meta **once**. With that, Meta's **Business Discovery** API can read the public reels of **any public creator or business account by username**. An artist only types their @handle, picks reels from a grid, and they're imported. No artist login, no business portfolio, no per-artist App Review. Ownership is proven by a short code the artist puts in their Instagram bio for a minute.
+
+Facts checked in Meta's docs on 11 Nov 2026 (re-check when building):
+- Business Discovery: `GET /<OUR_IG_ID>?fields=business_discovery.username(<handle>){...,media{...}}` returns another **professional** account's public data and media. Available with Unified Login and with Facebook Login. Needs `instagram_basic` + `instagram_manage_insights` on **our** token. Not available for age-gated accounts. `media_url` is left out for reels with licensed audio or downloads turned off (we never use it).
+- oEmbed (`/instagram_oembed`): returns embed HTML only. Meta **forbids storing or reusing** its metadata beyond showing the post, so it can't be our data source. Not needed anyway: reels already show through Instagram's own embed.
+- Personal (non-professional) and private accounts can't be read by any API. They keep the Phase 1 paste-a-link flow. Switching to a creator account is free in Instagram settings.
+
+### v3.0 Switch off the dead-end button now (you, 1 minute, no code)
+The "Connect Instagram" card is live, but every artist without a portfolio hits the same dead end. Turn it off:
+`npx supabase secrets unset INSTAGRAM_CONFIG_ID --project-ref iftjiddrgigqmvsdiasw`
+The card hides itself. The Unified Login code stays, parked, for artists who have a portfolio later.
+
+### v3.1 What the artist sees
+1. **Your reels** section: "Import from Instagram" with one field: `@handle`.
+2. If the handle isn't verified yet: "Add this code to your Instagram bio: `CM-7K2Q`, then press Check." We read the bio through Business Discovery; when the code is there, the handle is marked **verified** and saved on the profile. The artist can remove the code afterwards.
+3. A grid of their recent public reels (thumbnail, date, caption start). They tick the ones to import (the 12-reel limit applies).
+4. Imported reels show **Verified on Instagram**. Highlight, reorder, link to products: exactly as today.
+5. Personal or private account: "We can't see reels for this account. Switch it to a creator account in Instagram (free), or paste reel links below." Paste-a-link stays.
+
+### v3.2 What you do once (no code)
+1. CraftMe's own Instagram account must be a creator or business account (yours already is, so it works for testing).
+2. Get a token for that one account with `instagram_basic` and `instagram_manage_insights`. Two routes; use whichever Meta allows first:
+   - **A. Unified login page, step 2 "Generate access tokens"**: add `instagram_manage_insights` to the configuration's permissions, add your Instagram account, press **Generate token**. (May still need the business portfolio; try it.)
+   - **B. Facebook login route**: create a Facebook Page for CraftMe, link your Instagram account to it (Instagram settings, Accounts Center), then in the same use case open **API setup with Facebook login** and generate a token for that Page and account (permissions `instagram_basic`, `instagram_manage_insights`, `pages_show_list`, `pages_read_engagement`). No business portfolio needed.
+3. Put the token in a Supabase secret, never in chat: `npx supabase secrets set INSTAGRAM_DISCOVERY_TOKEN=<token> --project-ref iftjiddrgigqmvsdiasw`.
+4. App Review: the token belongs to an account with a role on our app, so **Standard Access should be enough** and no review may be needed. Confirm on first use. If Meta does ask, it is one review for CraftMe, not one per artist.
+
+### v3.3 Code changes **CODE** (about 1 to 2 days)
+- **Server** (`supabase/functions/api/`, a new small module beside the parked Unified code):
+  - On start: read `INSTAGRAM_DISCOVERY_TOKEN` and look up our own Instagram account ID once (`/me/assigned_instagram_accounts` for route A, the Page's `instagram_business_account` for route B); keep it in memory.
+  - Command `instagramLookup {handle}`: validate the handle (`^[A-Za-z0-9._]{1,30}$`); call Business Discovery for `username,biography,media{id,media_type,media_product_type,permalink,thumbnail_url,timestamp,caption}`; keep reels and videos (existing `filterMedia`); return them plus whether this handle is verified for this artist. Never returns the token.
+  - Command `instagramVerify {handle}`: create or reuse a short code for the artist (stored server-side, expires after 24 hours), check the bio contains it, then set `profiles.instagram_handle` and `instagram_verified`.
+  - Command `instagramImport {handle, mediaIds}`: only for the artist's **verified** handle; re-read the media list and import only IDs in it (same rules and limit as today). Store the permalink and media ID only.
+  - Rate limiting: one lookup per artist every 10 seconds, plus a 5-minute server-side cache per handle, so one artist can't use up our Meta quota.
+  - Thumbnails: Instagram's thumbnail links expire. Store `thumb_url` with its expiry and refresh it when a page shows the reel and the link is older than a day. If refresh fails, show the artist's own cover or the plain "Watch" card. No copies in our storage, to stay inside Meta's terms.
+- **Database** (`0014`): `reels.thumb_url`, `reels.thumb_expires_at`; private table `instagram_verify_codes (artist_id, handle, code, expires_at)`; reuse `verified`, `ig_media_id` and the existing locks; include service-role grants (lesson from `0013`).
+- **Front end**: replace the Connect card with the "@handle" import card (lookup, bio-code step, picker). Reuse `ReelsManager`, `ReelCard`, the labels and the profile handle lock. Show the thumbnail on reel cards when we have one.
+- **Tests**: handle validation; verify-code matching (case, spaces, emoji in the bio); import only from the verified handle; rate limit; thumbnail-expiry parsing; schema tests for the new table and grants.
+
+### v3.4 Limits and risks
+| Limit or risk | Handling |
+|---|---|
+| Personal or private Instagram accounts | Paste-a-link stays; the message suggests switching to creator (free). |
+| Age-gated accounts | Not returned by Meta; same message. |
+| Our one token stops working (expired or revoked) | Every lookup fails at once: log it, show artists "Instagram import is down, paste links meanwhile", alert the admin, re-generate the token (v3.2). |
+| Meta quota on our account | 5-minute cache per handle and a per-artist rate limit; fine at CraftMe's size. |
+| Someone imports another person's reels | Import only from a handle verified by the bio code. |
+| Meta changes or restricts Business Discovery | Paste-a-link keeps working; all calls in one module. |
+
+### v3.5 Order
+0. You: unset `INSTAGRAM_CONFIG_ID` (v3.0).
+1. You: get the discovery token (v3.2, route A or B) and set the secret.
+2. **CODE**: build v3.3, test with your own handle, then with a second creator account.
+3. Later (optional): reels on Browse cards; re-enable Unified Login for artists who have portfolios.
+
+---
+
+## Earlier plans (kept for history)
+
 Status on 11 Nov 2026 (updated again): **Phase 2 was rewritten for Unified Login and is deployed.** It stays **off** until the secrets below exist.
 
 Why the rewrite: Meta says "API setup with Instagram login is not available for newer apps"; this app must use **Unified login** (Facebook Login for Business). That flow has a different dialog, token exchange, token type and API host. See section 3.
