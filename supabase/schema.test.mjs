@@ -2,7 +2,7 @@
 import fs from "node:fs";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -261,6 +261,16 @@ await as("anon", {}, async () => {
   ok("the deletion page can read a finished request", (await one(`select public.instagram_deletion_status('done1') d`)).d !== null);
   ok("an unfinished or unknown request shows nothing", (await one(`select public.instagram_deletion_status('open1') d`)).d === null
     && (await one(`select public.instagram_deletion_status('nope') d`)).d === null);
+});
+
+// The api function runs as service_role: it must reach the tables the Instagram code uses
+await as("service_role", {}, async () => {
+  await db.query(`insert into public.instagram_states (state, artist_id, expires_at) values ('svc', '${artist}', now() + interval '10 minutes')`);
+  const gone = await db.query(`delete from public.instagram_states where state = 'svc' returning artist_id`);
+  ok("the server role can use instagram_states", gone.rows.length === 1);
+  await db.query(`update public.reels set verified = true where id = '${reelA}'`);
+  await db.query(`select * from public.instagram_accounts`);
+  ok("the server role can reach reels and instagram_accounts", true);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);
