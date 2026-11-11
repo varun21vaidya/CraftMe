@@ -168,7 +168,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (max-width: 900px) {
   .nav, .hsearch { display: none; } .burger { display: grid; } .mobile-search { display: block; } .site-header .bar { gap: 8px; } .logo small { display: none; }
   .menu.notif { width: min(360px, calc(100vw - 32px)); position: fixed; right: 16px; top: 120px; }
+  .mobile-menu .nav { display: flex; }
+  .hactions .btn-ghost { display: none; } /* "My orders" lives in the menu on phones */
 }
+@media (min-width: 901px) { .mobile-menu { display: none; } }
 
 /* ---------- chrome: shell (artist / admin) ---------- */
 .shell { display: grid; grid-template-columns: 252px minmax(0, 1fr); align-items: start; min-height: calc(100dvh - 110px); }

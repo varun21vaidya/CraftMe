@@ -1,4 +1,5 @@
-import { Link, Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { signOutUser } from '../../api/gateway';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
@@ -18,19 +19,26 @@ const Logo = () => (
 export function Layout() {
   const { currentUser, isArtist } = useAuth();
   const { count } = useCart();
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => setOpen(false), [pathname]); // close after picking a link
+
+  const links = (
+    <>
+      <Link to="/browse">Browse</Link>
+      {isArtist && <Link to="/dashboard/new">Add artwork</Link>}
+      {isArtist && <Link to="/dashboard/works">My works</Link>}
+      {isArtist && <Link to="/dashboard/orders">Orders to ship</Link>}
+      {isArtist && <Link to="/dashboard/profile">My profile</Link>}
+    </>
+  );
 
   return (
     <>
       <header className="site-header">
         <div className="wrap bar">
           <Logo />
-          <nav className="nav" aria-label="Main">
-            <Link to="/browse">Browse</Link>
-            {isArtist && <Link to="/dashboard/new">Add artwork</Link>}
-            {isArtist && <Link to="/dashboard/works">My works</Link>}
-            {isArtist && <Link to="/dashboard/orders">Orders to ship</Link>}
-            {isArtist && <Link to="/dashboard/profile">My profile</Link>}
-          </nav>
+          <nav className="nav" aria-label="Main">{links}</nav>
           <div className="hactions">
             {currentUser ? (
               <>
@@ -45,8 +53,21 @@ export function Layout() {
             ) : (
               <Link className="btn btn-primary btn-sm" to="/login">Log in</Link>
             )}
+            <button className="iconbtn burger" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+              <Icon name={open ? 'x' : 'menu'} size={22} />
+            </button>
           </div>
         </div>
+        {open && (
+          <div className="mobile-menu">
+            <div className="wrap">
+              <nav className="nav" aria-label="Menu">
+                {links}
+                {currentUser && <Link to="/orders">My orders</Link>}
+              </nav>
+            </div>
+          </div>
+        )}
       </header>
       <Outlet />
       <CartConflictDialog />
