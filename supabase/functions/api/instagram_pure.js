@@ -50,15 +50,11 @@ export async function decryptToken(cipher, keyB64) {
   return dec.decode(plain);
 }
 
-/** Instagram sometimes appends "#_" to the code it returns. */
-export const cleanCode = (code) => String(code ?? '').replace(/#_$/, '');
-
-/** Only creator and business accounts can use the API. */
-export const isProfessional = (accountType) => ['BUSINESS', 'MEDIA_CREATOR'].includes(String(accountType ?? '').toUpperCase());
-
-export const authorizeUrl = ({ appId, redirectUri, state }) =>
-  'https://www.instagram.com/oauth/authorize?' + new URLSearchParams({
-    client_id: appId, redirect_uri: redirectUri, response_type: 'code', scope: 'instagram_business_basic', state,
+/** The Facebook Login for Business dialog of the Instagram API with Unified Login. config_id picks the permissions and assets asked for. */
+export const authorizeUrl = ({ appId, configId, redirectUri, state }) =>
+  'https://www.facebook.com/dialog/oauth?' + new URLSearchParams({
+    client_id: appId, config_id: configId, redirect_uri: redirectUri, response_type: 'code',
+    override_default_response_type: 'true', state, prompt: 'login',
   });
 
 /** Keeps reels and videos; drops photos and carousels. media_url is never used (it can be missing). */

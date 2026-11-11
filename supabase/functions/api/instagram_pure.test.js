@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { authorizeUrl, cleanCode, decryptToken, encryptToken, filterMedia, isProfessional, parseSignedRequest } from './instagram_pure.js';
+import { authorizeUrl, decryptToken, encryptToken, filterMedia, parseSignedRequest } from './instagram_pure.js';
 
 const b64url = (bytes) => Buffer.from(bytes).toString('base64url');
 async function sign(payload, secret) {
@@ -41,20 +41,13 @@ describe('token encryption', () => {
 });
 
 describe('small helpers', () => {
-  it('cleans the code', () => {
-    expect(cleanCode('abc#_')).toBe('abc');
-    expect(cleanCode('abc')).toBe('abc');
-  });
-  it('accepts only professional accounts', () => {
-    expect(isProfessional('MEDIA_CREATOR')).toBe(true);
-    expect(isProfessional('business')).toBe(true);
-    expect(isProfessional('PERSONAL')).toBe(false);
-    expect(isProfessional(undefined)).toBe(false);
-  });
-  it('builds the authorize URL', () => {
-    const u = new URL(authorizeUrl({ appId: '1', redirectUri: 'https://x.test/cb', state: 'st' }));
-    expect(u.origin + u.pathname).toBe('https://www.instagram.com/oauth/authorize');
-    expect(u.searchParams.get('scope')).toBe('instagram_business_basic');
+  it('builds the Unified Login dialog URL', () => {
+    const u = new URL(authorizeUrl({ appId: '1', configId: '99', redirectUri: 'https://x.test/cb', state: 'st' }));
+    expect(u.origin + u.pathname).toBe('https://www.facebook.com/dialog/oauth');
+    expect(u.searchParams.get('client_id')).toBe('1');
+    expect(u.searchParams.get('config_id')).toBe('99');
+    expect(u.searchParams.get('redirect_uri')).toBe('https://x.test/cb');
+    expect(u.searchParams.get('response_type')).toBe('code');
     expect(u.searchParams.get('state')).toBe('st');
   });
   it('keeps reels and videos only', () => {

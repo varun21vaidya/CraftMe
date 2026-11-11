@@ -11,7 +11,7 @@ Project `iftjiddrgigqmvsdiasw` (Mumbai, `ap-south-1`).
 | Razorpay and role commands | `functions/api` | Edge Function: `placeOrder`, `confirmPayment`, `issueRefund`, `payOnboardingFee`, `becomeArtist`, `setRole`, and the webhook at `/functions/v1/api/webhook` |
 | Catalogue | `migrations/0006_catalogue.sql` | 21 categories in 5 groups, listing kind `product` |
 | Reels | `migrations/0008_reels.sql` | Artists' reel links, limits (12 reels, 6 highlighted), product link |
-| Instagram connection | `migrations/0009_instagram.sql`, `0010_instagram_cron.sql`, `functions/api/instagram*.ts/js` | Private account/state/deletion tables, verified locks, daily token refresh, and the Instagram commands and `/instagram/*` routes |
+| Instagram connection | `migrations/0009_instagram.sql`, `0011_instagram_unified.sql`, `functions/api/instagram*.ts/js` | Private account/state/deletion tables, verified locks, and the Instagram commands and `/instagram/*` routes (`0010`/`0012` added and removed a refresh job) |
 
 `npm run test:schema` runs all of the SQL in memory (PGlite) with 68 checks. Run it before applying a migration.
 
@@ -25,14 +25,14 @@ npx supabase secrets set RAZORPAY_WEBHOOK_SECRET=<the secret you type in the Raz
 
 ## Instagram secrets (off until all are set; never in git or `VITE_*`)
 
+Instagram uses the Instagram API with Unified Login (Facebook Login for Business). The token it returns never expires, so there is no refresh job. Use the **Meta app ID and secret** (App settings, Basic), not an Instagram app ID.
+
 ```bash
-npx supabase secrets set INSTAGRAM_APP_ID=... INSTAGRAM_APP_SECRET=... \
-  INSTAGRAM_REDIRECT_URI=https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/callback \
-  INSTAGRAM_TOKEN_KEY=$(openssl rand -base64 32) INSTAGRAM_CRON_SECRET=$(openssl rand -hex 32) \
-  SITE_URL=https://craftme-india.vercel.app --project-ref iftjiddrgigqmvsdiasw
+npx supabase secrets set META_APP_ID=... META_APP_SECRET=... INSTAGRAM_CONFIG_ID=1687288436092442   INSTAGRAM_REDIRECT_URI=https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/callback   SITE_URL=https://craftme-india.vercel.app --project-ref iftjiddrgigqmvsdiasw
+npx supabase secrets set INSTAGRAM_TOKEN_KEY=$(openssl rand -base64 32) --project-ref iftjiddrgigqmvsdiasw
 ```
 
-Keep a private copy of `INSTAGRAM_TOKEN_KEY` (losing it means every artist must reconnect). Put the same `INSTAGRAM_CRON_SECRET` into Supabase Vault under the name `instagram_cron_secret` (SQL editor: `select vault.create_secret('<the value>', 'instagram_cron_secret');`), so the daily refresh job can call the function. Then enter the redirect, deauthorize (`.../instagram/deauthorize`) and data-deletion (`.../instagram/data-deletion`) URLs in the Meta app. See `docs/INSTAGRAM_PLAN.md`.
+Keep a private copy of `INSTAGRAM_TOKEN_KEY` (losing it means every artist must reconnect). In the Meta app: the redirect URL is saved in the Unified login configuration; the deauthorize callback (`.../instagram/deauthorize`) and data-deletion URL (`.../instagram/data-deletion`) go in the app settings. See `docs/INSTAGRAM_PLAN.md`.
 
 ## One-time setup in dashboards
 

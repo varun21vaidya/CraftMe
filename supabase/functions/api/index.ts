@@ -2,7 +2,7 @@
 // functions (supabase/migrations/0003_logic.sql); this file only talks to Razorpay and hands the result to them.
 //   POST /api            {name, requestId, ...input}  -> envelope {ok, data|error, requestId}   (needs a signed-in user)
 //   POST /api/webhook    Razorpay webhook (signature checked, events de-duplicated)
-//   /api/instagram/*     Instagram connection: browser callback, Meta deauthorize and data-deletion, daily token refresh (instagram.ts)
+//   /api/instagram/*     Instagram connection (Unified Login): browser callback, Meta deauthorize and data-deletion (instagram.ts)
 // Deployed with verify_jwt off: commands verify the user below, the webhook verifies Razorpay's signature.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { makeInstagram } from "./instagram.ts";
@@ -222,7 +222,7 @@ const commands: Record<string, (c: Ctx) => Promise<unknown>> = {
 };
 
 // Instagram: its commands join the table above; its /instagram/* routes (browser callback, Meta callbacks, cron) are handled in serve().
-const ig = makeInstagram({ admin, CommandError, safeEqual });
+const ig = makeInstagram({ admin, CommandError });
 Object.assign(commands, ig.commands);
 
 /** Roles live in app_metadata (only the server can write it) and are mirrored on the public profile. */

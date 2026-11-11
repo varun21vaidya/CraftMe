@@ -2,7 +2,7 @@
 import fs from "node:fs";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -254,6 +254,8 @@ await db.exec(`update public.profiles set instagram_handle = 'meera_new' where i
 ok("the server can still change a verified handle", (await one(`select instagram_handle h from public.profiles where id='${artist}'`)).h === 'meera_new');
 await rejects("one Instagram media cannot be imported twice", () =>
   db.query(`insert into public.reels (artist_id, url, owner_confirmed, ig_media_id) values ('${other}', 'https://instagram.com/reel/DUP', true, 'm1')`));
+await db.exec(`insert into public.instagram_accounts (artist_id, ig_user_id, username, token_cipher, app_user_id, client_business_id) values ('${artist}', '1784', 'meera', 'x', '77', '55')`);
+ok("an account with a never-expiring token (no expiry) can be stored", (await one(`select token_expires_at t from public.instagram_accounts where artist_id='${artist}'`)).t === null);
 await db.exec(`insert into public.instagram_deletions (code, ig_user_id, done_at) values ('done1', '9', now()), ('open1', '9', null)`);
 await as("anon", {}, async () => {
   ok("the deletion page can read a finished request", (await one(`select public.instagram_deletion_status('done1') d`)).d !== null);

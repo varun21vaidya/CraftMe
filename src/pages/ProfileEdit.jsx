@@ -18,7 +18,7 @@ const IG_MESSAGES = {
   connected: 'Instagram connected.',
   expired: 'That took too long. Press Connect Instagram to try again.',
   denied: 'Instagram access was not approved.',
-  personal_account: 'That is a personal account. Switch it to a creator or business account in Instagram, then try again.',
+  no_account: 'No Instagram account was shared. Choose a creator or business account in the login window (a personal account can be switched in Instagram settings).',
   already_linked: 'That Instagram account is already connected to another CraftMe artist.',
   failed: 'Something went wrong connecting Instagram. Please try again.',
 };

@@ -1,11 +1,13 @@
 # Instagram for artists: full plan
 
-Status on 11 Nov 2026 (updated): **Everything that can be built without Meta access is built and live.**
-- Phase 1 fixes (1.1 to 1.4): done.
-- Phase 2 code: done and deployed (migrations `0009`, `0010`; Edge Function version 4; front end on `main`). It stays **off** until the secrets in section 3.8 exist: the Connect card is hidden and the Instagram commands answer "unavailable".
-- Not yet exercised against real Instagram: the OAuth flow, token exchange, media list, import, and Meta's callbacks. These need the Meta app set up (steps 2.1 to 2.4) and the secrets, then testing with tester accounts (section 3.7, manual list).
-- The Meta app exists; the business portfolio is blocked until the Facebook account is older.
-- Still unchecked in a real browser: all the Phase 1 and Phase 2 screens (the browser tool can't reach localhost; check on the live site once deployed).
+Status on 11 Nov 2026 (updated again): **Phase 2 was rewritten for Unified Login and is deployed.** It stays **off** until the secrets below exist.
+
+Why the rewrite: Meta says "API setup with Instagram login is not available for newer apps"; this app must use **Unified login** (Facebook Login for Business). That flow has a different dialog, token exchange, token type and API host. See section 3.
+- Phase 1 and its fixes: done, live.
+- Phase 2 code for Unified Login: done and deployed (migrations `0009`, `0011`; `0010`/`0012` added then removed a refresh job; Edge Function version 5).
+- Meta app: created (ID `1115039771351587`), Instagram use case added, Unified login configuration created (config ID `1687288436092442`) with the redirect URL saved. The config should request only `instagram_basic`.
+- Not yet exercised against real Meta: the login, the token exchange, the account list, the media list, import, and the two Meta callbacks. They need the secrets (3.8), the callback URLs in the app settings (3.9) and a tester account.
+- Still unchecked in a real browser: all Phase 1 and Phase 2 screens.
 
 Items marked **CODE** are code changes. Use a stronger model for them.
 
@@ -25,7 +27,7 @@ Items marked **CODE** are code changes. Use a stronger model for them.
 
 1. When an artist disconnects Instagram, what happens to reels they imported? **Keep them, mark them unverified.**
 2. Show a verified badge next to the Instagram handle on the artist page? **Yes, a small "Verified on Instagram" label.**
-3. When a connected artist's token can't be refreshed, hide their imported reels? **No. Keep showing them; show the artist a "Reconnect Instagram" banner.**
+3. When a connected artist's token stops working, hide their imported reels? **No. Keep showing them; show the artist a "Reconnect Instagram" banner (done).**
 4. Import only reels, or also video posts? **Reels and videos (`media_product_type` REELS, or `media_type` VIDEO). No photos.**
 
 ---
@@ -94,164 +96,76 @@ Items marked **CODE** are code changes. Use a stronger model for them.
 5. business.facebook.com/settings → **Security Center → Start verification**. CraftMe's legal name and address as on its documents.
 6. If Meta asks for a registered business and you don't have one, stop and tell me.
 
-### 2.3 Instagram settings in the app (after Phase 2 is deployed, see 3.9)
-7. **Instagram → API setup with Instagram login → Set up Instagram business login**: add the redirect URI, deauthorize URL and data-deletion URL from 3.9.
-8. Copy the **Instagram app ID** and **Instagram app secret** shown there. These are not the same as the Meta app ID. Set them as secrets (3.8). Never paste them in chat.
+### 2.3 Unified login configuration (done by you on 11 Nov 2026; check it)
+7. **Use cases → Manage messaging & content on Instagram → Customize → API setup with Unified login.** The configuration `1687288436092442` exists with the redirect URL saved. Make sure its permissions are only `instagram_basic` (remove ads, messages, comments and publish) and the asset is the Instagram account only.
+8. Copy the **Meta app ID and app secret** from **App settings → Basic** (not an "Instagram app ID", which this app doesn't have). Set them as secrets (3.8). Never paste them in chat.
+9. Enter the deauthorize and data-deletion URLs from 3.9 in the app settings.
 
 ### 2.4 Testers and accounts
-9. **App roles → Roles → Add people → Instagram tester**: add your own creator account and each test artist's Instagram username.
-10. Each tester accepts in the Instagram app: **Settings and activity → Apps and websites → Tester invites**.
-11. Each tester's account must be **Creator** or **Business**: **Settings and activity → Account type and tools → Switch account type**.
+10. **App roles → Roles → Add people → Instagram tester**: add your own creator account and each test artist's Instagram username.
+11. Each tester accepts on Instagram **on the web**: Settings → Website permissions → Apps and websites → Tester invites. (Test users aren't supported: testers need a real Instagram professional account.)
+12. Each tester's account must be **Creator** or **Business**: **Settings and activity → Account type and tools → Switch account type**.
 
 ---
 
-## 3. Phase 2: Connect Instagram **CODE** (about 1 week, after 2.1–2.4)
+## 3. Phase 2: Connect Instagram (Unified Login) **CODE: done**
 
 ### 3.1 What the artist sees
-1. On **Your public profile** (dashboard), a "Connect Instagram" card with the hint "Use a creator or business account".
-2. Click → Instagram's approval screen → back to the dashboard with "Connected as @handle".
-3. "Import from Instagram" opens a picker: their recent reels as thumbnails, with checkboxes, showing how many slots are left (12 minus current reels).
-4. Imported reels appear in the list with a "From Instagram" mark and their real thumbnail; they can be highlighted and linked to products like any other reel.
-5. The handle field becomes read-only with "Verified on Instagram"; it updates from Instagram.
-6. "Disconnect" removes the connection (reels stay, marked unverified).
-7. If the token can't be refreshed: a "Reconnect Instagram" banner.
+1. On **Your public profile**, an Instagram card: "Connect Instagram" with the hint "Use a creator or business account".
+2. Click: the Meta login window (Instagram or Facebook login, then pick the Instagram account to share). Back to the dashboard with "Instagram connected."
+3. "Import from Instagram": a picker of recent reels with thumbnails and the free-slot count.
+4. Imported reels carry "Verified on Instagram". The handle becomes read-only and verified.
+5. "Disconnect" unlinks (reels stay, unverified). If the token stops working: a "Reconnect Instagram" banner.
 
-### 3.2 Endpoints we call (checked against Meta's docs on 11 Nov 2026; re-check when building)
-| Step | Request |
+### 3.2 Flow (checked against Meta's docs on 11 Nov 2026; confirm when testing)
+| Step | Call |
 |---|---|
-| Ask for permission | Browser → `https://www.instagram.com/oauth/authorize?client_id=…&redirect_uri=…&response_type=code&scope=instagram_business_basic&state=…` |
-| Code → short-lived token (1 hour) | `POST https://api.instagram.com/oauth/access_token` form: `client_id`, `client_secret`, `grant_type=authorization_code`, `redirect_uri`, `code` → `access_token`, `user_id` |
-| Short → long-lived token (60 days) | `GET https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=…&access_token=…` → `access_token`, `expires_in` |
-| Refresh (token ≥ 24 h old, not expired) | `GET https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=…` → new 60-day token |
-| Who is this | `GET https://graph.instagram.com/me?fields=user_id,username,account_type&access_token=…` |
-| Their media | `GET https://graph.instagram.com/me/media?fields=id,media_type,media_product_type,permalink,thumbnail_url,caption,timestamp&limit=25&access_token=…` |
+| Dialog | Browser to `https://www.facebook.com/dialog/oauth?client_id=<META_APP_ID>&config_id=<CONFIG_ID>&redirect_uri=<our callback>&response_type=code&override_default_response_type=true&state=<one-time state>&prompt=login` |
+| Code to token | `GET https://graph.facebook.com/v26.0/oauth/access_token?client_id&client_secret&code` (Meta app ID and secret, not an "Instagram app ID") |
+| Business id | `GET /v26.0/me?fields=client_business_id` |
+| Accounts shared | `GET /v26.0/me/assigned_instagram_accounts?fields=id,username` (needs `instagram_basic`) |
+| Media | `GET /v26.0/<instagram account id>/media?fields=id,media_type,media_product_type,permalink,thumbnail_url,caption,timestamp&limit=50` |
 
-Notes from the docs:
-- `media_url` can be missing; use `thumbnail_url` or `permalink` instead. We never use `media_url`.
-- The app secret must never reach the browser.
-- Strip a trailing `#_` from the returned `code` if present (verify when building).
+Notes:
+- The token is a business-level "system user" token. **It never expires** with the default configuration, so there is no refresh job. It stops working if the client removes the app or moves the account (error code 190); we then mark the artist "needs reconnect".
+- If the artist shares several accounts, only the first is used (documented shortcut).
+- The token exchange follows Meta's guide (no `redirect_uri`); on a 400 the code retries once with it (documented shortcut; drop one after testing).
+- Meta also lists a webhook endpoint as a requirement of the Unified Login setup. We request no messages or comments permissions, so it should not be needed. Confirm during App Review.
 
-### 3.3 Database: migration `0009_instagram.sql` **CODE**
-```sql
--- private: service role only, no client grants, RLS on with no policies
-create table public.instagram_accounts (
-  artist_id uuid primary key references public.profiles(id) on delete cascade,
-  ig_user_id text not null unique,
-  username text not null,
-  token_cipher text not null,          -- AES-GCM ciphertext, base64 (iv + data)
-  token_expires_at timestamptz not null,
-  refreshed_at timestamptz not null default now(),
-  needs_reconnect boolean not null default false,
-  connected_at timestamptz not null default now()
-);
-alter table public.instagram_accounts enable row level security;
+### 3.3 Database (done)
+- `0009_instagram.sql`: private `instagram_accounts`, `instagram_states`, `instagram_deletions` (no client access); `reels.ig_media_id`, `reels.verified`; `profiles.instagram_verified`, `profiles.instagram_needs_reconnect`; locks so a client can't change a verified handle or reel link; `instagram_deletion_status(code)` for the public status page.
+- `0011_instagram_unified.sql`: `token_expires_at` is now optional; adds `client_business_id` and `app_user_id`.
+- `0010` added a daily refresh job; `0012` removed it (tokens don't expire).
 
--- one-time OAuth states (stops forged callbacks), 10-minute life
-create table public.instagram_states (
-  state text primary key,
-  artist_id uuid not null references public.profiles(id) on delete cascade,
-  expires_at timestamptz not null
-);
-alter table public.instagram_states enable row level security;
+### 3.4 Server (done): `supabase/functions/api/instagram.ts` (+ `instagram_pure.js`)
+- Commands: `instagramStatus`, `instagramStart`, `instagramMedia`, `instagramImport`, `instagramDisconnect`.
+- Routes: `GET /instagram/callback` (browser), `POST /instagram/deauthorize` and `POST /instagram/data-deletion` (Meta, `signed_request` checked with the Meta app secret; matched by the account id or the app-scoped id, confirm which Meta sends).
+- Tokens encrypted with AES-256-GCM (`INSTAGRAM_TOKEN_KEY`), never logged, never sent to the browser. One-time `state` (10 minutes) against forged callbacks. Import accepts only media the artist's own account returned, and copies thumbnails into our storage.
 
--- Meta data-deletion requests (status page reads by code)
-create table public.instagram_deletions (
-  code text primary key,
-  ig_user_id text not null,
-  created_at timestamptz not null default now(),
-  done_at timestamptz
-);
-alter table public.instagram_deletions enable row level security;
+### 3.5 Front end (done)
+`InstagramConnect.jsx` (connect card, picker, disconnect, reconnect banner), verified labels on `ReelCard` and the artist page, read-only verified handle, result message on the profile page, `/instagram-deletion` status page, privacy text.
 
-alter table public.reels add column ig_media_id text unique, add column verified boolean not null default false;
-alter table public.profiles add column instagram_verified boolean not null default false,
-                            add column instagram_needs_reconnect boolean not null default false;
-```
-Guards (triggers, so no client can fake them):
-- **Handle lock:** when `profiles.instagram_verified` is true, a change to `instagram_handle` by a client role is refused (`{"code":"invalid","reason":"handle_verified"}`). The service role can still change it.
-- **Verified reel lock:** when `reels.verified` is true, a client can't change `url`. Highlight, position and cover stay editable.
-- No client grants on `verified`, `ig_media_id`, `instagram_verified`, `instagram_needs_reconnect`, or the three new tables. Existing reads (`select` on `reels` and `profiles`) expose the new columns, which is fine: they hold no secrets.
-- Cleanup: the sweep also deletes expired `instagram_states`.
+### 3.6 Tests (done)
+14 unit tests (signed request, token encryption, dialog URL, media filter) and 92 database checks.
 
-### 3.4 Edge Function changes **CODE**
-Keep Instagram code in a new module `supabase/functions/api/instagram.ts`, imported by `index.ts`. Pure helpers (no network) go in a file the tests can import.
+### 3.7 Manual test with a tester account (after 3.8 and 3.9)
+Connect, list reels, import 2, highlight one, link one to a product, disconnect, reconnect, and remove CraftMe in Instagram's Apps and websites (the deauthorize callback should clear it).
 
-**Routing change (important):** `Deno.serve` today refuses anything but POST. The OAuth callback is a browser **GET**. Route `GET …/instagram/callback` before the POST check.
-
-New routes and commands:
-
-| Route / command | Who calls it | What it does |
-|---|---|---|
-| command `instagramStart` | signed-in artist, `POST /api` | Creates a random `state` (32 bytes) in `instagram_states` (10 min), returns the authorize URL. |
-| `GET /api/instagram/callback?code&state` | Instagram, via the browser | Looks up and deletes the state (refuse if missing or expired). Exchanges code → short token → long token. Reads `/me`. Refuses `account_type` other than creator/business with a clear reason. Encrypts the token, upserts `instagram_accounts`, sets `profiles.instagram_handle` and `instagram_verified = true`. Redirects 302 to `SITE_URL/dashboard/profile?instagram=connected`, or `?instagram=error&reason=…`. Never puts tokens in the URL. |
-| command `instagramMedia` | signed-in artist | Decrypts the token, reads `/me/media`, keeps reels and videos, returns `{id, permalink, thumbnail, caption, timestamp, imported}`. No token in the response. |
-| command `instagramImport {mediaIds[]}` | signed-in artist | Re-reads the artist's own media list and accepts only IDs in it (proves ownership). Copies each thumbnail into the `artworks` bucket under the artist's folder (Instagram thumbnail links expire). Inserts `reels` rows with `ig_media_id`, `verified = true`, `url = permalink`, `cover = stored copy`, `owner_confirmed = true`. The 12-reel limit still applies; return how many were added and which were refused. |
-| command `instagramDisconnect` | signed-in artist | Deletes `instagram_accounts`, sets `instagram_verified = false`, `reels.verified = false` for that artist. Keeps the reels. |
-| `POST /api/instagram/deauthorize` | Meta | Verifies `signed_request` (HMAC-SHA256 with the app secret, base64url), finds the account by `user_id`, does the same as disconnect. Answers 200. |
-| `POST /api/instagram/data-deletion` | Meta | Verifies `signed_request`, deletes `instagram_accounts`, deletes reels with an `ig_media_id` for that user and their stored thumbnails, writes `instagram_deletions`, answers `{ "url": "SITE_URL/instagram-deletion?code=…", "confirmation_code": "…" }`. |
-| `POST /api/instagram/refresh` | pg_cron (3.5) | Requires header `x-cron-secret` = `INSTAGRAM_CRON_SECRET`. Refreshes tokens that expire within 14 days and are ≥ 24 h old, at most 50 per run. On failure, sets `needs_reconnect` on the account and `instagram_needs_reconnect` on the profile, and adds a notification `instagram_reconnect`. |
-
-Security rules for all of it:
-- Token encryption: AES-256-GCM with `INSTAGRAM_TOKEN_KEY` (WebCrypto), new random IV per write.
-- Never log tokens, codes, or `signed_request` bodies.
-- Compare signatures with the existing constant-time `safeEqual`.
-- Commands check the caller is an artist (`meta.artist`), like the other artist commands.
-- Rate: `instagramMedia` reads at most one page (25 items); the picker has a "Load more" only if needed later.
-
-### 3.5 Token refresh schedule **CODE**
-- Enable `pg_net` (Supabase extension) and store `INSTAGRAM_CRON_SECRET` in Supabase Vault.
-- Add to a migration: `cron.schedule('craftme-instagram-refresh', '15 2 * * *', …)` calling `net.http_post` to `https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/refresh` with the secret header, read from Vault.
-- Once a day is enough: tokens last 60 days and we refresh 14 days early.
-
-### 3.6 Front end **CODE**
-- `src/api/gateway.js`: thin wrappers using the existing `call()` for `instagramStart` (then `window.location.assign(url)`), `instagramMedia`, `instagramImport`, `instagramDisconnect`. No new hook needed: connection status comes from the profile (`instagramVerified`, `instagramNeedsReconnect`, `instagramHandle`).
-- `ReelsManager.jsx` (or a small new `InstagramConnect.jsx` beside it): the connect card, picker, disconnect, and reconnect banner from 3.1. The picker disables checkboxes when no slots are left.
-- `ProfileEdit.jsx`: read `?instagram=connected|error&reason=` once, show a message, then remove the query with `history.replaceState`. Make the handle field read-only when verified.
-- `ReelCard.jsx`: verified reels say "From @handle on Instagram"; others keep "Added by the Artist".
-- `ArtistPage.jsx`: "Verified on Instagram" next to the handle when `instagramVerified`.
-- New public page `src/pages/InstagramDeletion.jsx` at `/instagram-deletion`: shows "Your Instagram data was deleted on <date>" for a valid code (read through a small `security definer` function that returns only the date), or "We couldn't find that request".
-- `Privacy.jsx`: describe the connection: what we store (Instagram user ID, username, an encrypted access token, IDs and thumbnails of reels you import), what we don't (passwords, messages, followers), how to remove it (Disconnect, or remove CraftMe in Instagram's Apps and websites), and the deletion status page.
-
-### 3.7 Tests **CODE**
-- `supabase/schema.test.mjs` (add `0009_instagram`):
-  - clients can't read or write `instagram_accounts`, `instagram_states`, `instagram_deletions`;
-  - a client can't set `reels.verified`, `ig_media_id`, or `profiles.instagram_verified`;
-  - the handle lock and the verified-reel URL lock refuse client changes; the service role can still make them;
-  - the 12-reel limit still applies to imports.
-- Unit tests (vitest) for the pure helpers in the Instagram module: `signed_request` check (good, bad signature, wrong algorithm), AES-GCM encrypt/decrypt round trip, the `#_` code clean-up, media filtering (keeps REELS and VIDEO, drops IMAGE and CAROUSEL).
-- Manual with tester accounts: connect, import 3, highlight one, link one to a product, disconnect, reconnect, a personal account (clear refusal), a forged or expired `state` (refused), and a forced refresh failure (banner appears).
-
-### 3.8 Secrets (set by you, never in chat)
+### 3.8 Secrets (you; never in chat or git)
 ```bash
-npx supabase secrets set \
-  INSTAGRAM_APP_ID=... \
-  INSTAGRAM_APP_SECRET=... \
-  INSTAGRAM_REDIRECT_URI=https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/callback \
-  INSTAGRAM_TOKEN_KEY=$(openssl rand -base64 32) \
-  INSTAGRAM_CRON_SECRET=$(openssl rand -hex 32) \
-  SITE_URL=https://craftme-india.vercel.app \
-  --project-ref iftjiddrgigqmvsdiasw
+npx supabase secrets set META_APP_ID=... META_APP_SECRET=... INSTAGRAM_CONFIG_ID=1687288436092442   INSTAGRAM_REDIRECT_URI=https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/callback   SITE_URL=https://craftme-india.vercel.app --project-ref iftjiddrgigqmvsdiasw
+npx supabase secrets set INSTAGRAM_TOKEN_KEY=$(openssl rand -base64 32) --project-ref iftjiddrgigqmvsdiasw
 ```
-- The two `openssl` values are generated on your machine; keep a private copy of `INSTAGRAM_TOKEN_KEY`. Losing it means every artist must reconnect.
-- `INSTAGRAM_CRON_SECRET` also goes into Supabase Vault for the cron job (3.5).
-- Until these exist, the Instagram commands answer `unavailable` and the Connect card is hidden (feature off by default).
+`META_APP_ID` and `META_APP_SECRET` are on **App settings, Basic**. Keep a private copy of `INSTAGRAM_TOKEN_KEY`: losing it means every artist must reconnect. The earlier `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` and `INSTAGRAM_CRON_SECRET` are no longer used, and there is no Vault entry to create.
 
-### 3.9 URLs to enter in the Meta app (step 2.3)
-| Field | Value |
+### 3.9 Settings in the Meta app (you)
+| Where | Value |
 |---|---|
-| Redirect URI | `https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/callback` |
-| Deauthorize callback URL | `https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/deauthorize` |
-| Data deletion request URL | `https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/data-deletion` |
-| Privacy policy URL | `https://craftme-india.vercel.app/privacy` |
-
-If CraftMe moves to its own domain, only `SITE_URL` and the privacy URL change.
-
-### 3.10 Deploy order
-1. Migration `0009` (and the cron migration) applied with the Supabase tool, after `npm run test:schema` passes.
-2. Edge Function deployed with the Supabase tool (`verify_jwt` stays off, as today).
-3. Front end merged to `main` (Vercel deploys it). The Connect card stays hidden until the secrets exist.
-4. You set the secrets (3.8) and the Meta URLs (3.9).
-5. Test with testers (3.7, manual list).
+| Unified login configuration: Redirect URL | `https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/callback` (saved) |
+| Configuration permissions | only `instagram_basic`; Instagram account as the asset; no ad account |
+| App settings, Basic: Privacy policy URL | `https://craftme-india.vercel.app/privacy` |
+| App settings, Basic: User data deletion URL | `https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/data-deletion` |
+| Deauthorize callback URL (app settings) | `https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/instagram/deauthorize` |
 
 ---
 

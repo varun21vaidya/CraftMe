@@ -1,44 +1,48 @@
-// Instagram connection (phase 2). Needs the INSTAGRAM_* secrets; without them every command answers "unavailable" and the app hides the card.
-// Tokens stay on the server: encrypted in instagram_accounts, never logged, never returned to the browser.
-import { authorizeUrl, cleanCode, decryptToken, encryptToken, filterMedia, isProfessional, parseSignedRequest } from "./instagram_pure.js";
+// Instagram connection (phase 2) through the Instagram API with Unified Login (Facebook Login for Business).
+// Needs the META_* / INSTAGRAM_* secrets; without them every command answers "unavailable" and the app hides the card.
+// The token is a business-level token that never expires. It stays on the server: encrypted in instagram_accounts,
+// never logged, never returned to the browser.
+import { authorizeUrl, decryptToken, encryptToken, filterMedia, parseSignedRequest } from "./instagram_pure.js";
 
 type Ctx = { uid: string; meta: Record<string, unknown>; input: Record<string, unknown> };
 type Deps = {
   // deno-lint-ignore no-explicit-any
   admin: any;
   CommandError: new (code: string, reason?: string, extra?: Record<string, unknown>) => Error;
-  safeEqual: (a: string, b: string) => boolean;
 };
 
-const GRAPH = "https://graph.instagram.com";
+const GRAPH = "https://graph.facebook.com/v26.0";
 const MAX_REELS = 12;
-const DAY = 86_400_000;
 const env = (k: string) => Deno.env.get(k) ?? "";
 const cfg = () => ({
-  appId: env("INSTAGRAM_APP_ID"), appSecret: env("INSTAGRAM_APP_SECRET"), redirect: env("INSTAGRAM_REDIRECT_URI"),
-  key: env("INSTAGRAM_TOKEN_KEY"), cron: env("INSTAGRAM_CRON_SECRET"), site: env("SITE_URL").replace(/\/$/, ""),
+  appId: env("META_APP_ID"), appSecret: env("META_APP_SECRET"), configId: env("INSTAGRAM_CONFIG_ID"),
+  redirect: env("INSTAGRAM_REDIRECT_URI"), key: env("INSTAGRAM_TOKEN_KEY"), site: env("SITE_URL").replace(/\/$/, ""),
 });
-const enabled = () => {
-  const c = cfg();
-  return Boolean(c.appId && c.appSecret && c.redirect && c.key && c.site);
-};
+const enabled = () => Object.values(cfg()).every(Boolean);
 const randomHex = (bytes: number) => [...crypto.getRandomValues(new Uint8Array(bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
+class GraphError extends Error {
+  constructor(public status: number, public code: number | undefined, message: string) {
+    super(message);
+  }
+}
 /** One HTTP call with a timeout. The error text never includes the URL, so tokens can't leak into logs. */
-async function http(url: string, init?: RequestInit) {
-  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });
+async function http(url: string) {
+  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`instagram ${res.status}: ${body?.error_message ?? body?.error?.message ?? "error"}`);
+  if (!res.ok) throw new GraphError(res.status, body?.error?.code, `graph ${res.status}: ${body?.error?.message ?? "error"}`);
   return body;
 }
-const mediaOf = async (token: string) => {
-  const q = new URLSearchParams({
-    fields: "id,media_type,media_product_type,permalink,thumbnail_url,caption,timestamp", limit: "50", access_token: token,
-  });
-  return filterMedia((await http(`${GRAPH}/me/media?${q}`)).data);
-};
+const graph = (path: string, params: Record<string, string>) => http(`${GRAPH}${path}?${new URLSearchParams(params)}`);
+/** Code 190 (or 401) means the token no longer works: the client removed the app or moved the account. Stop retrying; reconnect. */
+const tokenDead = (e: unknown) => e instanceof GraphError && (e.code === 190 || e.status === 401);
 
-export function makeInstagram({ admin, CommandError, safeEqual }: Deps) {
+const mediaOf = async (igId: string, token: string) =>
+  filterMedia((await graph(`/${igId}/media`, {
+    fields: "id,media_type,media_product_type,permalink,thumbnail_url,caption,timestamp", limit: "50", access_token: token,
+  })).data);
+
+export function makeInstagram({ admin, CommandError }: Deps) {
   const need = () => {
     if (!enabled()) throw new CommandError("unavailable", "instagram_not_configured");
   };
@@ -46,11 +50,26 @@ export function makeInstagram({ admin, CommandError, safeEqual }: Deps) {
     if (meta.artist !== true) throw new CommandError("forbidden");
   };
 
-  async function tokenOf(uid: string) {
-    const { data } = await admin.from("instagram_accounts").select("token_cipher,needs_reconnect,token_expires_at").eq("artist_id", uid).maybeSingle();
+  const markReconnect = async (uid: string) => {
+    await admin.from("instagram_accounts").update({ needs_reconnect: true }).eq("artist_id", uid);
+    await admin.from("profiles").update({ instagram_needs_reconnect: true }).eq("id", uid);
+  };
+
+  /** The artist's reels and videos from Instagram. */
+  async function fetchMedia(uid: string) {
+    const { data } = await admin.from("instagram_accounts").select("ig_user_id,token_cipher,needs_reconnect").eq("artist_id", uid).maybeSingle();
     if (!data) throw new CommandError("conflict", "not_connected");
-    if (data.needs_reconnect || Date.parse(data.token_expires_at) < Date.now()) throw new CommandError("conflict", "reconnect");
-    return await decryptToken(data.token_cipher, cfg().key);
+    if (data.needs_reconnect) throw new CommandError("conflict", "reconnect");
+    try {
+      return await mediaOf(data.ig_user_id, await decryptToken(data.token_cipher, cfg().key));
+    } catch (e) {
+      if (tokenDead(e)) {
+        await markReconnect(uid);
+        throw new CommandError("conflict", "reconnect");
+      }
+      console.error("instagram media failed", String(e));
+      throw new CommandError("unavailable", "instagram_down");
+    }
   }
 
   /** Instagram's thumbnail links expire, so a copy goes into our own storage. A failure just means no cover. */
@@ -58,12 +77,12 @@ export function makeInstagram({ admin, CommandError, safeEqual }: Deps) {
     try {
       if (new URL(url).protocol !== "https:") return null;
       const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-      const type = res.headers.get("content-type") ?? "";
-      if (!res.ok || !["image/jpeg", "image/png"].includes(type.split(";")[0])) return null;
+      const type = (res.headers.get("content-type") ?? "").split(";")[0];
+      if (!res.ok || !["image/jpeg", "image/png"].includes(type)) return null;
       const bytes = new Uint8Array(await res.arrayBuffer());
       if (bytes.length > 2 * 1024 * 1024) return null;
-      const path = `${uid}/${crypto.randomUUID()}.${type.includes("png") ? "png" : "jpg"}`;
-      const { error } = await admin.storage.from("artworks").upload(path, bytes, { contentType: type.split(";")[0] });
+      const path = `${uid}/${crypto.randomUUID()}.${type === "image/png" ? "png" : "jpg"}`;
+      const { error } = await admin.storage.from("artworks").upload(path, bytes, { contentType: type });
       return error ? null : admin.storage.from("artworks").getPublicUrl(path).data.publicUrl;
     } catch {
       return null;
@@ -98,20 +117,13 @@ export function makeInstagram({ admin, CommandError, safeEqual }: Deps) {
       const { error } = await admin.from("instagram_states").insert({ state, artist_id: ctx.uid, expires_at: new Date(Date.now() + 10 * 60_000).toISOString() });
       if (error) throw new Error(`state: ${error.message}`);
       const c = cfg();
-      return { url: authorizeUrl({ appId: c.appId, redirectUri: c.redirect, state }) };
+      return { url: authorizeUrl({ appId: c.appId, configId: c.configId, redirectUri: c.redirect, state }) };
     },
 
     async instagramMedia(ctx) {
       artistOnly(ctx);
       need();
-      const token = await tokenOf(ctx.uid);
-      let items;
-      try {
-        items = await mediaOf(token);
-      } catch (e) {
-        console.error("instagram media failed", String(e));
-        throw new CommandError("unavailable", "instagram_down");
-      }
+      const items = await fetchMedia(ctx.uid);
       const { data: mine } = await admin.from("reels").select("ig_media_id").eq("artist_id", ctx.uid);
       const have = new Set((mine ?? []).map((r: { ig_media_id: string | null }) => r.ig_media_id).filter(Boolean));
       return { items: items.map((m) => ({ ...m, imported: have.has(m.id) })), slotsLeft: Math.max(0, MAX_REELS - (mine ?? []).length) };
@@ -124,15 +136,7 @@ export function makeInstagram({ admin, CommandError, safeEqual }: Deps) {
       if (!Array.isArray(ids) || ids.length < 1 || ids.length > MAX_REELS || !ids.every((i) => typeof i === "string")) {
         throw new CommandError("invalid", undefined, { fields: ["mediaIds"] });
       }
-      const token = await tokenOf(ctx.uid);
-      let items;
-      try {
-        items = await mediaOf(token);
-      } catch (e) {
-        console.error("instagram media failed", String(e));
-        throw new CommandError("unavailable", "instagram_down");
-      }
-      const byId = new Map(items.map((m) => [m.id, m]));
+      const byId = new Map((await fetchMedia(ctx.uid)).map((m) => [m.id, m]));
       const { data: have } = await admin.from("reels").select("position").eq("artist_id", ctx.uid);
       let next = Math.max(-1, ...(have ?? []).map((r: { position: number }) => r.position)) + 1;
       const added: string[] = [];
@@ -164,7 +168,7 @@ export function makeInstagram({ admin, CommandError, safeEqual }: Deps) {
     },
   };
 
-  // ---------- the browser comes back from Instagram here (GET) ----------
+  // ---------- the browser comes back from Meta here (GET) ----------
   async function callback(url: URL) {
     const { site, appId, appSecret, redirect, key } = cfg();
     const back = (q: string) => Response.redirect(`${site}/dashboard/profile?instagram=${q}`, 302);
@@ -174,27 +178,30 @@ export function makeInstagram({ admin, CommandError, safeEqual }: Deps) {
     const { data: row } = await admin.from("instagram_states").delete().eq("state", state).select("artist_id,expires_at").maybeSingle();
     if (!row || Date.parse(row.expires_at) < Date.now()) return back("error&reason=expired");
     if (url.searchParams.get("error")) return back("error&reason=denied");
-    const code = cleanCode(url.searchParams.get("code"));
+    const code = url.searchParams.get("code") ?? "";
     if (!code) return back("error&reason=failed");
     try {
-      const short = await http("https://api.instagram.com/oauth/access_token", {
-        method: "POST",
-        body: new URLSearchParams({ client_id: appId, client_secret: appSecret, grant_type: "authorization_code", redirect_uri: redirect, code }),
-      });
-      const shortToken = (short.data?.[0] ?? short).access_token;
-      const long = await http(`${GRAPH}/access_token?` + new URLSearchParams({ grant_type: "ig_exchange_token", client_secret: appSecret, access_token: shortToken }));
-      const who = await http(`${GRAPH}/me?` + new URLSearchParams({ fields: "user_id,username,account_type", access_token: long.access_token }));
-      if (!isProfessional(who.account_type)) return back("error&reason=personal_account");
-      const igId = String(who.user_id ?? who.id ?? "");
-      if (!igId || !who.username) return back("error&reason=failed");
-      const now = new Date();
+      const exchange = (extra: Record<string, string> = {}) => graph("/oauth/access_token", { client_id: appId, client_secret: appSecret, code, ...extra });
+      let tok;
+      try {
+        tok = await exchange(); // as Meta's Unified Login guide shows it
+      } catch (e) {
+        if (!(e instanceof GraphError) || e.status !== 400) throw e;
+        tok = await exchange({ redirect_uri: redirect }); // shortcut: some login dialogs want the redirect repeated; confirm in testing and drop one
+      }
+      const token: string = tok.access_token;
+      const me = await graph("/me", { fields: "client_business_id", access_token: token });
+      const accounts = await graph("/me/assigned_instagram_accounts", { fields: "id,username", access_token: token });
+      const account = accounts.data?.[0]; // shortcut: if the artist shares several accounts only the first is used; upgrade if artists ask
+      if (!account?.id || !account.username) return back("error&reason=no_account");
+      const now = new Date().toISOString();
       const { error } = await admin.from("instagram_accounts").upsert({
-        artist_id: row.artist_id, ig_user_id: igId, username: who.username, token_cipher: await encryptToken(long.access_token, key),
-        token_expires_at: new Date(now.getTime() + Number(long.expires_in) * 1000).toISOString(),
-        refreshed_at: now.toISOString(), connected_at: now.toISOString(), needs_reconnect: false,
+        artist_id: row.artist_id, ig_user_id: String(account.id), username: account.username, token_cipher: await encryptToken(token, key),
+        token_expires_at: null, refreshed_at: now, connected_at: now, needs_reconnect: false,
+        client_business_id: me.client_business_id ?? null, app_user_id: me.id ? String(me.id) : null,
       }, { onConflict: "artist_id" });
       if (error) return back(error.code === "23505" ? "error&reason=already_linked" : "error&reason=failed");
-      const handle = /^[A-Za-z0-9._]{1,30}$/.test(who.username) ? { instagram_handle: who.username } : {};
+      const handle = /^[A-Za-z0-9._]{1,30}$/.test(account.username) ? { instagram_handle: account.username } : {};
       await admin.from("profiles").update({ ...handle, instagram_verified: true, instagram_needs_reconnect: false }).eq("id", row.artist_id);
       return back("connected");
     } catch (e) {
@@ -204,28 +211,30 @@ export function makeInstagram({ admin, CommandError, safeEqual }: Deps) {
   }
 
   // ---------- Meta tells us a person removed the app, or asks us to delete their data ----------
+  // The signed_request's user_id may be the person's app-scoped id or the Instagram account id: match either.
   const signedUser = async (req: Request) => {
     const form = await req.formData().catch(() => null);
     const payload = await parseSignedRequest(String(form?.get("signed_request") ?? ""), cfg().appSecret);
-    return payload?.user_id ? String(payload.user_id) : null;
+    const id = payload?.user_id ? String(payload.user_id) : "";
+    return /^\d+$/.test(id) ? id : null;
   };
-  const artistOfIgUser = async (igUserId: string): Promise<string | null> =>
-    (await admin.from("instagram_accounts").select("artist_id").eq("ig_user_id", igUserId).maybeSingle()).data?.artist_id ?? null;
+  const artistOfMetaUser = async (id: string): Promise<string | null> =>
+    (await admin.from("instagram_accounts").select("artist_id").or(`ig_user_id.eq.${id},app_user_id.eq.${id}`).limit(1).maybeSingle()).data?.artist_id ?? null;
 
   async function deauthorize(req: Request) {
-    const igUser = await signedUser(req);
-    if (!igUser) return new Response(null, { status: 400 });
-    const artist = await artistOfIgUser(igUser);
+    const id = await signedUser(req);
+    if (!id) return new Response(null, { status: 400 });
+    const artist = await artistOfMetaUser(id);
     if (artist) await disconnect(artist);
     return new Response(null, { status: 200 });
   }
 
   async function dataDeletion(req: Request) {
-    const igUser = await signedUser(req);
-    if (!igUser) return new Response(null, { status: 400 });
+    const id = await signedUser(req);
+    if (!id) return new Response(null, { status: 400 });
     const code = randomHex(16);
-    await admin.from("instagram_deletions").insert({ code, ig_user_id: igUser });
-    const artist = await artistOfIgUser(igUser);
+    await admin.from("instagram_deletions").insert({ code, ig_user_id: id });
+    const artist = await artistOfMetaUser(id);
     if (artist) {
       const { data: imported } = await admin.from("reels").select("id,cover").eq("artist_id", artist).not("ig_media_id", "is", null);
       for (const r of imported ?? []) await dropCover(r.cover);
@@ -238,34 +247,6 @@ export function makeInstagram({ admin, CommandError, safeEqual }: Deps) {
     });
   }
 
-  // ---------- daily: refresh tokens that expire within 14 days (called by pg_cron, see migration 0010) ----------
-  async function refresh(req: Request) {
-    const secret = cfg().cron;
-    if (!secret || !safeEqual(req.headers.get("x-cron-secret") ?? "", secret)) return new Response(null, { status: 401 });
-    const { data: rows } = await admin.from("instagram_accounts").select("artist_id,token_cipher")
-      .eq("needs_reconnect", false).lt("token_expires_at", new Date(Date.now() + 14 * DAY).toISOString())
-      .lt("refreshed_at", new Date(Date.now() - DAY).toISOString()).limit(50);
-    let refreshed = 0;
-    let failed = 0;
-    for (const r of rows ?? []) {
-      try {
-        const token = await decryptToken(r.token_cipher, cfg().key);
-        const out = await http(`${GRAPH}/refresh_access_token?` + new URLSearchParams({ grant_type: "ig_refresh_token", access_token: token }));
-        await admin.from("instagram_accounts").update({
-          token_cipher: await encryptToken(out.access_token, cfg().key),
-          token_expires_at: new Date(Date.now() + Number(out.expires_in) * 1000).toISOString(), refreshed_at: new Date().toISOString(),
-        }).eq("artist_id", r.artist_id);
-        refreshed++;
-      } catch (e) {
-        console.error("instagram refresh failed", r.artist_id, String(e)); // the artist sees a "Reconnect" banner
-        await admin.from("instagram_accounts").update({ needs_reconnect: true }).eq("artist_id", r.artist_id);
-        await admin.from("profiles").update({ instagram_needs_reconnect: true }).eq("id", r.artist_id);
-        failed++;
-      }
-    }
-    return new Response(JSON.stringify({ refreshed, failed }), { status: 200, headers: { "Content-Type": "application/json" } });
-  }
-
   /** Returns a Response for /instagram/* routes, or null for everything else. */
   async function route(req: Request): Promise<Response | null> {
     const url = new URL(req.url);
@@ -275,7 +256,6 @@ export function makeInstagram({ admin, CommandError, safeEqual }: Deps) {
     if (req.method === "GET" && leaf === "callback") return await callback(url);
     if (req.method === "POST" && leaf === "deauthorize") return await deauthorize(req);
     if (req.method === "POST" && leaf === "data-deletion") return await dataDeletion(req);
-    if (req.method === "POST" && leaf === "refresh") return await refresh(req);
     return new Response(null, { status: 404 });
   }
 
