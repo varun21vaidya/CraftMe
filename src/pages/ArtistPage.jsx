@@ -97,7 +97,7 @@ export default function ArtistPage() {
       {reels?.length > 0 && (
         <>
           <h2 style={{ marginBottom: 16 }}>Reels</h2>
-          <div className="grid g3" style={{ marginBottom: 32 }}>{reels.map((r) => <ReelCard key={r.id} reel={r} />)}</div>
+          <div className="reels" style={{ marginBottom: 32 }}>{reels.map((r) => <ReelCard key={r.id} reel={r} />)}</div>
         </>
       )}
       <h2 style={{ marginBottom: 16 }}>Work by {name}</h2>

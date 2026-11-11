@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useArtist, useArtwork, useListings, useReel } from '../api/gateway';
-import ReelCard from '../components/ReelCard';
+import Gallery from '../components/Gallery';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
-import LazyLoadImage from '../components/ui/LazyLoadImage';
 import { formatINR } from '../lib/format';
 
 const kindLabel = { original: 'Original', print: 'Print', product: 'Ready-made' };
@@ -38,11 +37,8 @@ export default function ArtworkPage() {
   return (
     <main className="wrap page">
       <div className="split">
-        <section className="stack">
-          {art.photos?.map((src, i) => (
-            <div className="mat" key={src}><LazyLoadImage src={src} alt={`${art.title}, photo ${i + 1}`} width="100%" /></div>
-          ))}
-          {reel && <ReelCard reel={reel} />}
+        <section>
+          <Gallery key={art.id} photos={art.photos || []} title={art.title} reel={reel} />
         </section>
         <aside className="panel stack sticky">
           <h1>{art.title}</h1>

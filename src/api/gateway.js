@@ -253,6 +253,10 @@ export const markRead = (notificationId) => safe(async () => {
   must(await supabase.from('notifications').update({ read: true }).eq('id', notificationId));
   return {};
 });
+export const markAllRead = (uid) => safe(async () => {
+  must(await supabase.from('notifications').update({ read: true }).eq('user_id', uid).eq('read', false));
+  return {};
+});
 /** Adds, edits or removes one of the Artist's reels. The database enforces the limits and the link format. */
 export const saveReel = (uid, fields, id) => {
   const data = pick(fields, ['url', 'cover', 'highlighted', 'position', 'title']);

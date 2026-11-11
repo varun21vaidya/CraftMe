@@ -311,6 +311,14 @@ await db.exec(`select public._set_standing('${artist}', false, '')`);
 await as("anon", {}, async () => ok("lifting the restriction brings the works back", (await one(`select count(*)::int n from public.artworks where artist_id = '${artist}'`)).n >= 1));
 await as("anon", {}, async () => ok("a bad id is a database error the page treats as not found", await db.query(`select id from public.profiles where id = 'abc'`).then(() => false, (e) => e.code === '22P02')));
 
+// Mark all as read: only your own notifications change
+await db.exec(`insert into public.notifications (user_id, type, data) values ('${buyer}', 'order_shipped', '{}'), ('${buyer}', 'order_paid', '{}'), ('${other}', 'order_paid', '{}')`);
+await as("authenticated", B, async () => {
+  await db.query(`update public.notifications set read = true where user_id = '${buyer}' and read = false`);
+  ok("mark all as read clears my own notifications", (await one(`select count(*)::int n from public.notifications where user_id = '${buyer}' and read = false`)).n === 0);
+});
+ok("mark all as read leaves other people's notifications alone", (await one(`select count(*)::int n from public.notifications where user_id = '${other}' and read = false`)).n === 1);
+
 // Reel names (0014)
 await as("authenticated", A, async () => {
   await db.query(`update public.reels set title = 'Making of the blue vase' where id = '${reelA}'`);
