@@ -166,8 +166,9 @@ export const useArtistInbox = (uid) => useQuery(
   [uid], 15000,
 );
 /** Browse: one query on artworks (the card data lives on the Artwork). cursor = last item's createdAt (epoch ms). */
+const ARTIST_NAME = 'artist:profiles!artist_id(display_name)'; // the card's "by <name>" link, in the same request
 export const useArtworks = ({ categories } = {}, cursor = null) => useQuery(async () => {
-  let q = supabase.from('artworks').select('*').eq('status', 'published').eq('artist_open', true);
+  let q = supabase.from('artworks').select(`*, ${ARTIST_NAME}`).eq('status', 'published').eq('artist_open', true);
   if (categories) q = q.in('category', categories);
   if (cursor) q = q.lt('created_at', new Date(cursor).toISOString());
   return must(await q.order('created_at', { ascending: false }).limit(24)).map(camel);
@@ -189,10 +190,11 @@ export const useMyWorks = (uid) => useQuery(
     .order('created_at', { ascending: false }).limit(100)).map(camel) : null,
   [uid],
 );
-export const useArtistWorks = (id) => useQuery(
+/** An Artist's public works, on-sale ones first then sold ones. `limit` grows by 24 each "Show more". */
+export const useArtistWorks = (id, limit = 24) => useQuery(
   id ? async () => must(await supabase.from('artworks').select('*').eq('artist_id', id).eq('status', 'published')
-    .eq('artist_open', true).order('created_at', { ascending: false }).limit(24)).map(camel) : null,
-  [id], 30000,
+    .eq('artist_open', true).order('available', { ascending: false }).order('created_at', { ascending: false }).limit(limit)).map(camel) : null,
+  [id, limit], 30000,
 );
 /** An Artwork's Listings while its page is open (refreshed so stock and price stay current). */
 export const useListings = (artworkId) => useQuery(

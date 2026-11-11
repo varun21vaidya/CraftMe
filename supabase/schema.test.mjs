@@ -295,6 +295,22 @@ await as("authenticated", O, () => rejects("someone else cannot change that pric
   if (!r.rows.length) throw new Error("no rows: refused by row security");
 }));
 
+// The public Artist page, seen signed out
+await as("anon", {}, async () => {
+  const p = await one(`select display_name, restricted, rating_count from public.profiles where id = '${artist}'`);
+  ok("a signed-out visitor can read an Artist's public profile", p.restricted === false && Number(p.rating_count) >= 1);
+  await rejects("a signed-out visitor cannot read private artist details", () => db.query(`select pan from public.artist_private`));
+});
+await db.exec(`select public._set_standing('${artist}', true, 'test')`);
+await as("anon", {}, async () => {
+  ok("a restricted Artist's page still shows who they are", (await one(`select restricted r from public.profiles where id = '${artist}'`)).r === true);
+  ok("a restricted Artist's works are hidden", (await one(`select count(*)::int n from public.artworks where artist_id = '${artist}'`)).n === 0);
+  ok("a restricted Artist's reels are hidden", (await one(`select count(*)::int n from public.reels where artist_id = '${artist}'`)).n === 0);
+});
+await db.exec(`select public._set_standing('${artist}', false, '')`);
+await as("anon", {}, async () => ok("lifting the restriction brings the works back", (await one(`select count(*)::int n from public.artworks where artist_id = '${artist}'`)).n >= 1));
+await as("anon", {}, async () => ok("a bad id is a database error the page treats as not found", await db.query(`select id from public.profiles where id = 'abc'`).then(() => false, (e) => e.code === '22P02')));
+
 // Reel names (0014)
 await as("authenticated", A, async () => {
   await db.query(`update public.reels set title = 'Making of the blue vase' where id = '${reelA}'`);

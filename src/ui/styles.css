@@ -363,6 +363,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .art { display: block; width: 100%; height: auto; aspect-ratio: var(--ratio, 4 / 5); box-shadow: 0 1px 4px rgba(0, 0, 0, .35); background: var(--surface-2); }
 .sold-tag { position: absolute; top: 10px; left: 10px; z-index: 2; }
 .art-card { display: block; color: inherit; text-decoration: none; min-width: 0; }
+.art-link { display: block; color: inherit; text-decoration: none; }
+.art-by { display: inline-block; margin-top: 2px; overflow-wrap: anywhere; } .art-by:hover { color: var(--accent); }
 .art-card .mat { display: grid; place-items: center; aspect-ratio: 1 / 1.1; }
 .art-card .art { margin: auto; }
 .art-card .mat { transition: box-shadow .15s, transform .15s; } .art-card:hover .mat { box-shadow: var(--shadow-1); transform: translateY(-2px); }
