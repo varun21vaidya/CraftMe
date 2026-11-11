@@ -49,6 +49,7 @@ describe('small helpers', () => {
     expect(u.searchParams.get('redirect_uri')).toBe('https://x.test/cb');
     expect(u.searchParams.get('response_type')).toBe('code');
     expect(u.searchParams.get('state')).toBe('st');
+    expect(u.searchParams.get('display')).toBe('popup');
   });
   it('keeps reels and videos only', () => {
     const out = filterMedia([

@@ -54,7 +54,7 @@ export async function decryptToken(cipher, keyB64) {
 export const authorizeUrl = ({ appId, configId, redirectUri, state }) =>
   'https://www.facebook.com/dialog/oauth?' + new URLSearchParams({
     client_id: appId, config_id: configId, redirect_uri: redirectUri, response_type: 'code',
-    override_default_response_type: 'true', state, prompt: 'login',
+    override_default_response_type: 'true', state, prompt: 'login', display: 'popup', // as Meta's own login URL: the flow runs in a popup
   });
 
 /** Keeps reels and videos; drops photos and carousels. media_url is never used (it can be missing). */

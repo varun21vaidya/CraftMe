@@ -171,7 +171,7 @@ export function makeInstagram({ admin, CommandError }: Deps) {
   // ---------- the browser comes back from Meta here (GET) ----------
   async function callback(url: URL) {
     const { site, appId, appSecret, redirect, key } = cfg();
-    const back = (q: string) => Response.redirect(`${site}/dashboard/profile?instagram=${q}`, 302);
+    const back = (q: string) => Response.redirect(`${site}/instagram/return?instagram=${q}`, 302); // the login popup's last page
     if (!enabled()) return new Response("Instagram is not set up", { status: 503 });
     const state = url.searchParams.get("state") ?? "";
     // A state works once and only for ten minutes: this stops forged and replayed callbacks.

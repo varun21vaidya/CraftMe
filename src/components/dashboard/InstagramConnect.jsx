@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { call } from '../../api/gateway';
 import { errorText } from '../../lib/format';
+import { INSTAGRAM_CHANNEL, POPUP_NAME, instagramMessage } from '../../lib/instagram';
 
 const REASONS = {
   not_connected: 'Connect your Instagram account first.',
@@ -25,16 +26,39 @@ export function InstagramConnect({ onChanged }) {
     setStatus(res.ok ? res.data : { enabled: false });
   };
   useEffect(() => { loadStatus(); }, []);
+  // The login popup reports back here when Meta returns (see pages/InstagramReturn.jsx).
+  useEffect(() => {
+    let ch;
+    try { ch = new BroadcastChannel(INSTAGRAM_CHANNEL); } catch { return undefined; }
+    ch.onmessage = (e) => {
+      setBusy(false);
+      setMsg(instagramMessage(e.data?.result, e.data?.reason));
+      loadStatus();
+      onChanged?.();
+    };
+    return () => ch.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one listener for the card's lifetime
+  }, []);
 
   if (!status?.enabled) return null;
 
+  // Meta's login runs in a popup (that is how its Instagram step finds its way back). The window is opened
+  // during the click, because browsers block popups opened after an await, then pointed at Meta's login.
   const connect = async () => {
     setMsg(null);
     setBusy(true);
+    const popup = window.open('', POPUP_NAME, 'width=600,height=760');
     const res = await call('instagramStart');
-    if (res.ok) return window.location.assign(res.data.url);
     setBusy(false);
-    return setMsg(explain(res));
+    if (!res.ok) {
+      popup?.close();
+      return setMsg(explain(res));
+    }
+    if (popup) {
+      popup.location.href = res.data.url;
+      return setMsg('Finish connecting in the Instagram window. This page updates when you are done.');
+    }
+    return window.location.assign(res.data.url); // popup blocked: same tab; the return page brings the artist back
   };
 
   const openPicker = async () => {
