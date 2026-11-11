@@ -494,6 +494,7 @@ body::before { background: var(--bg); }
 .gal-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: center; scroll-snap-stop: always; display: grid; place-items: center; padding: 12px; box-sizing: border-box; }
 .gal-slide > img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .gal-slide .reel { width: 100%; height: 100%; }
+.gal-slide.reel-slide { padding: 4px; } /* keeps the reel frame above Instagram's 326px minimum on a 375px phone */
 .gal-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--ink); display: grid; place-items: center; cursor: pointer; box-shadow: var(--shadow-1); }
 .gal-nav.prev { left: 10px; } .gal-nav.next { right: 10px; }
 .gal-nav:disabled { opacity: .35; cursor: default; }
@@ -506,7 +507,7 @@ body::before { background: var(--bg); }
 .gal-thumb[aria-current="true"] { border-color: var(--accent); }
 @media (max-width: 640px) {
   .gal-nav, .gal-thumbs { display: none; } .gal-dots { display: flex; }
-  .gal-slide { padding: 8px; }
+  .gal-slide { padding: 8px; } .gal-slide.reel-slide { padding: 4px; }
 }
 
 /* ---------- reel player ---------- */

@@ -55,7 +55,7 @@ export default function Gallery({ photos = [], title, reel }) {
       <div className="gal-frame">
         <div className="gal-track" ref={track} onScroll={onScroll}>
           {slides.map((s, i) => (
-            <div className="gal-slide" key={s.type === 'photo' ? `${s.src}-${i}` : 'reel'} role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${count}`}>
+            <div className={`gal-slide${s.type === 'reel' ? ' reel-slide' : ''}`} key={s.type === 'photo' ? `${s.src}-${i}` : 'reel'} role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${count}`}>
               {s.type === 'reel'
                 ? <ReelCard reel={s.reel} fill active={index === i} />
                 : bad[i]
