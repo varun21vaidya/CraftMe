@@ -72,7 +72,7 @@ export default function Gallery({ photos = [], title, reel }) {
             <button type="button" className="gal-nav next" aria-label="Next photo" disabled={index === count - 1} onClick={() => goTo(step(index, 1, count))}>
               <Icon name="chevron-right" size={22} />
             </button>
-            <span className="gal-count" aria-hidden="true">{index + 1} / {count}</span>
+            {slides[index]?.type !== 'reel' && <span className="gal-count" aria-hidden="true">{index + 1} / {count}</span>}
           </>
         )}
       </div>

@@ -50,7 +50,7 @@ export default function ReelCard({ reel, fill = false, active = true }) {
         )}
       </div>
       <figcaption className="reel-bar small faint">
-        <span>{slow ? 'Not loading? Open it on Instagram.' : reel.verified ? 'Verified on Instagram' : 'Added by the Artist'}</span>
+        <span>{slow ? 'Trouble playing? Open it on Instagram.' : reel.verified ? 'Verified on Instagram' : 'Added by the Artist'}</span>
         <a className="btn btn-secondary btn-sm" href={reel.url} target="_blank" rel="noopener noreferrer nofollow">Open on Instagram</a>
       </figcaption>
     </figure>
