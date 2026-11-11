@@ -183,6 +183,12 @@ export const useArtist = (id) => useQuery(
   } : null,
   [id],
 );
+/** The Artist's own works for their dashboard: drafts and taken-down works included, each with its Listings. */
+export const useMyWorks = (uid) => useQuery(
+  uid ? async () => must(await supabase.from('artworks').select('*, listings(*)').eq('artist_id', uid).neq('status', 'removed')
+    .order('created_at', { ascending: false }).limit(100)).map(camel) : null,
+  [uid],
+);
 export const useArtistWorks = (id) => useQuery(
   id ? async () => must(await supabase.from('artworks').select('*').eq('artist_id', id).eq('status', 'published')
     .eq('artist_open', true).order('created_at', { ascending: false }).limit(24)).map(camel) : null,
@@ -280,21 +286,42 @@ export const saveDraft = (kind, id, fields, uid) => safe(async () => {
 });
 
 /**
- * Puts a new work on sale: a draft Artwork and a draft Listing (kind, size, medium, price in paise, stock), then both published.
- * On a failure after the Artwork exists the result carries artworkId, so the page can say a draft was kept.
+ * Puts one of the Artist's Artworks on sale: adds a Listing (kind, size, medium, price in paise, stock), then publishes both.
+ * On a failure the result carries artworkId, so the page can say the Artwork was kept as a draft.
  */
-export const publishWork = async (uid, art, sale) => {
-  const a = await saveDraft('artworks', null, art, uid);
-  if (!a.ok) return a;
-  const l = await saveDraft('listings', null, { ...sale, title: art.title, artworkId: a.id }, uid);
-  if (!l.ok) return { ...l, artworkId: a.id };
+export const sellArtwork = async (uid, artworkId, title, sale) => {
+  const l = await saveDraft('listings', null, { ...sale, title, artworkId }, uid);
+  if (!l.ok) return { ...l, artworkId };
   const live = await safe(async () => {
-    must(await supabase.from('artworks').update({ status: 'published' }).eq('id', a.id));
-    must(await supabase.from('listings').update({ status: 'live' }).eq('id', l.id));
+    must(await supabase.from('artworks').update({ status: 'published' }).eq('id', artworkId).select('id').single());
+    must(await supabase.from('listings').update({ status: 'live' }).eq('id', l.id).select('id').single());
     return {};
   });
-  return live.ok ? { ok: true, id: a.id } : { ...live, artworkId: a.id };
+  return live.ok ? { ok: true, id: artworkId } : { ...live, artworkId };
 };
+/** A new work on sale in one step: a draft Artwork, then sellArtwork. */
+export const publishWork = async (uid, art, sale) => {
+  const a = await saveDraft('artworks', null, art, uid);
+  return a.ok ? sellArtwork(uid, a.id, art.title, sale) : a;
+};
+/**
+ * Takes a work down (hidden from Browse, its Listings can't be bought) or puts it back on sale.
+ * Sold Listings are left alone. The `.select` makes a refused update an error instead of a silent no-op.
+ */
+export const setWorkOnSale = (artworkId, onSale) => safe(async () => {
+  if (onSale) {
+    must(await supabase.from('artworks').update({ status: 'published' }).eq('id', artworkId).select('id').single());
+    must(await supabase.from('listings').update({ status: 'live' }).eq('artwork_id', artworkId).eq('status', 'draft').select('id'));
+  } else {
+    must(await supabase.from('listings').update({ status: 'draft' }).eq('artwork_id', artworkId).eq('status', 'live').select('id'));
+    must(await supabase.from('artworks').update({ status: 'draft' }).eq('id', artworkId).select('id').single());
+  }
+  return {};
+});
+export const setListingPrice = (listingId, paise) => safe(async () => {
+  must(await supabase.from('listings').update({ price: paise }).eq('id', listingId).select('id').single());
+  return {};
+});
 
 // ---------- files ----------
 /** kind: 'artworks' | 'videos' | 'damage' (a storage bucket each). Stored under the caller's own folder; type and size are enforced by the bucket. */

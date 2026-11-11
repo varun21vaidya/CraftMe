@@ -17,6 +17,7 @@ const OrdersPage = lazy(() => import('./pages/OrdersPage'));
 const OrderPage = lazy(() => import('./pages/OrderPage'));
 const ArtistInbox = lazy(() => import('./pages/ArtistInbox'));
 const NewArtwork = lazy(() => import('./pages/NewArtwork'));
+const MyWorks = lazy(() => import('./pages/MyWorks'));
 const ArtistPage = lazy(() => import('./pages/ArtistPage'));
 const ProfileEdit = lazy(() => import('./pages/ProfileEdit'));
 const Privacy = lazy(() => import('./pages/Privacy'));
@@ -61,6 +62,7 @@ export default function App() {
                 <Route path="/dashboard/orders" element={screen(<ArtistInbox />, artistOnly)} />
                 <Route path="/dashboard/profile" element={screen(<ProfileEdit />, artistOnly)} />
                 <Route path="/dashboard/new" element={screen(<NewArtwork />, artistOnly)} />
+                <Route path="/dashboard/works" element={screen(<MyWorks />, artistOnly)} />
                 <Route path="*" element={screen(<NotFound />)} />
               </Route>
             </Routes>

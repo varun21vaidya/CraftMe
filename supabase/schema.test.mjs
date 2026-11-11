@@ -276,6 +276,25 @@ ok("an artist can publish their own new work with a price", onSale.art === 'publ
 await as("authenticated", A, () => rejects("an artist cannot list an original with stock above 1", () =>
   db.query(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${saleArt}', '${artist}', 'x', 'original', 50000, 3, 'draft')`)));
 
+// My works: take down, put back, change price (what setWorkOnSale / setListingPrice do)
+await as("authenticated", A, async () => {
+  await db.query(`update public.listings set status = 'draft' where artwork_id = '${saleArt}' and status = 'live'`);
+  await db.query(`update public.artworks set status = 'draft' where id = '${saleArt}'`);
+});
+const down = await one(`select a.available, l.status from public.artworks a join public.listings l on l.artwork_id = a.id where a.id = '${saleArt}'`);
+ok("an artist can take a work down (not buyable)", down.status === 'draft' && down.available === false);
+await as("authenticated", A, async () => {
+  await db.query(`update public.artworks set status = 'published' where id = '${saleArt}'`);
+  await db.query(`update public.listings set status = 'live' where artwork_id = '${saleArt}' and status = 'draft'`);
+  await db.query(`update public.listings set price = 24900 where id = '${saleList}'`);
+});
+const back = await one(`select a.available, a.from_price_paise as p from public.artworks a where a.id = '${saleArt}'`);
+ok("an artist can put it back and change its price", back.available === true && Number(back.p) === 24900);
+await as("authenticated", O, () => rejects("someone else cannot change that price", async () => {
+  const r = await db.query(`update public.listings set price = 100 where id = '${saleList}' returning id`);
+  if (!r.rows.length) throw new Error("no rows: refused by row security");
+}));
+
 // Reel names (0014)
 await as("authenticated", A, async () => {
   await db.query(`update public.reels set title = 'Making of the blue vase' where id = '${reelA}'`);

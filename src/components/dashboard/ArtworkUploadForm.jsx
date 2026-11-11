@@ -14,7 +14,7 @@ const photoOk = (f) => ['image/jpeg', 'image/png'].includes(f.type) && f.size <=
 const whole = () => Yup.number().typeError('Enter a number').transform((v, orig) => (orig === '' ? undefined : v));
 
 // What is being sold. An original is one of a kind (stock 1); the other two are stocked.
-const KINDS = [
+export const KINDS = [
   { value: 'original', label: 'One-of-a-kind original' },
   { value: 'print', label: 'Print (many copies)' },
   { value: 'product', label: 'Ready-made item in stock' },
