@@ -263,6 +263,19 @@ await as("anon", {}, async () => {
     && (await one(`select public.instagram_deletion_status('nope') d`)).d === null);
 });
 
+// An artist puts a new work on sale themselves: draft artwork, draft listing, then both published (what publishWork does)
+let saleArt, saleList;
+await as("authenticated", A, async () => {
+  saleArt = (await db.query(`insert into public.artworks (artist_id, title, description, category, photos, status) values ('${artist}', 'Cute Keychain', 'd', 'Keychains', '{}', 'draft') returning id`)).rows[0].id;
+  saleList = (await db.query(`insert into public.listings (artwork_id, artist_id, title, kind, size, medium, price, stock, status) values ('${saleArt}', '${artist}', 'Cute Keychain', 'product', '', '', 19900, 5, 'draft') returning id`)).rows[0].id;
+  await db.query(`update public.artworks set status = 'published' where id = '${saleArt}'`);
+  await db.query(`update public.listings set status = 'live' where id = '${saleList}'`);
+});
+const onSale = await one(`select a.status as art, l.status as lst, a.from_price_paise as from_price, a.available from public.artworks a join public.listings l on l.artwork_id = a.id where a.id = '${saleArt}'`);
+ok("an artist can publish their own new work with a price", onSale.art === 'published' && onSale.lst === 'live' && Number(onSale.from_price) === 19900 && onSale.available === true);
+await as("authenticated", A, () => rejects("an artist cannot list an original with stock above 1", () =>
+  db.query(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${saleArt}', '${artist}', 'x', 'original', 50000, 3, 'draft')`)));
+
 // Reel names (0014)
 await as("authenticated", A, async () => {
   await db.query(`update public.reels set title = 'Making of the blue vase' where id = '${reelA}'`);

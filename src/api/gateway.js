@@ -279,6 +279,23 @@ export const saveDraft = (kind, id, fields, uid) => safe(async () => {
   return { id: row.id };
 });
 
+/**
+ * Puts a new work on sale: a draft Artwork and a draft Listing (kind, size, medium, price in paise, stock), then both published.
+ * On a failure after the Artwork exists the result carries artworkId, so the page can say a draft was kept.
+ */
+export const publishWork = async (uid, art, sale) => {
+  const a = await saveDraft('artworks', null, art, uid);
+  if (!a.ok) return a;
+  const l = await saveDraft('listings', null, { ...sale, title: art.title, artworkId: a.id }, uid);
+  if (!l.ok) return { ...l, artworkId: a.id };
+  const live = await safe(async () => {
+    must(await supabase.from('artworks').update({ status: 'published' }).eq('id', a.id));
+    must(await supabase.from('listings').update({ status: 'live' }).eq('id', l.id));
+    return {};
+  });
+  return live.ok ? { ok: true, id: a.id } : { ...live, artworkId: a.id };
+};
+
 // ---------- files ----------
 /** kind: 'artworks' | 'videos' | 'damage' (a storage bucket each). Stored under the caller's own folder; type and size are enforced by the bucket. */
 export const upload = (kind, file, uid) => safe(async () => {

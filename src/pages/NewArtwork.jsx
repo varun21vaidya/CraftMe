@@ -6,7 +6,7 @@ export default function NewArtwork() {
   return (
     <main className="wrap page" style={{ maxWidth: 640 }}>
       <div className="page-head"><div><h1>Add an artwork</h1></div></div>
-      <div className="panel"><ArtworkUploadForm onSaved={() => navigate('/dashboard/orders')} /></div>
+      <div className="panel"><ArtworkUploadForm onSaved={(id) => navigate('/artwork/' + id)} /></div>
     </main>
   );
 }
