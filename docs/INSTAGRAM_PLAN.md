@@ -1,6 +1,42 @@
 # Instagram for artists: full plan
 
-## PLAN v3 (recommended, 11 Nov 2026): import reels by @handle, no artist login
+## PLAN v4 (chosen, 11 Nov 2026): proper Meta login (Unified Login), made to work
+
+**Decision.** Artists connect with a real Meta login, not a bio code. Most artists already have creator or business accounts, which is what this login needs. The Unified Login code is already built and deployed (Edge Function v5, migrations `0009`, `0011`, `0013`); what's missing is Meta-side setup, then testing.
+
+**Why your test stopped on the Instagram page** (Meta's "Eligibility and troubleshooting" doc, 11 Nov 2026):
+- **Our app must be owned by a business portfolio.** CraftMe's Meta app isn't (the portfolio couldn't be created: "account too new"). This is the most likely cause.
+- **Each artist needs access to the business portfolio that owns their Instagram account**, and picks it during login. If the Instagram account sits in no portfolio, the account doesn't appear and the flow can't finish. Many creators already have one through Meta Business Suite; others can create one in a few minutes (free).
+- The configuration must carry the **"Instagram Login Compatible"** label, otherwise the Instagram option doesn't appear.
+
+### v4.1 You (no code)
+1. **Create the CraftMe business portfolio** at business.facebook.com once Meta allows it (retry; the block was "account too new"). Use CraftMe's details only.
+2. **Tell me the portfolio name.** I'll link the Meta app to it with the Meta tool (`devtools_app_business_manage`), or link it yourself in App settings, Basic, Business portfolio.
+3. **Add your Instagram account to that portfolio:** Business settings, Accounts, Instagram accounts, Add.
+4. **Check the configuration** (`1687288436092442`) on the Unified login page: it shows the "Instagram Login Compatible" label, permissions only `instagram_basic`, asset only the Instagram account.
+5. **Keep the tester role** on your Instagram account (App roles, Roles, Instagram tester; accept on Instagram on the web).
+6. **Retest:** dashboard, Connect Instagram, log in with Instagram, pick the CraftMe portfolio, pick the account, approve. You should land back on your profile with "Instagram connected." Then Import from Instagram.
+7. If it stops again, note: the step it stopped at, whether you logged in with Instagram or Facebook, whether the portfolio and account were listed, and the exact message. Meta's support asks for exactly these.
+
+### v4.2 Small code changes **CODE** (about half a day, after the retest works)
+- **Help text before the button**, since Meta's screens can't be changed: "You'll log in with Instagram, choose your business portfolio, then your Instagram account. Your account must be a creator or business account and be in a business portfolio. No portfolio? Create one free at business.facebook.com (2 minutes), add your Instagram account, then come back." With a link.
+- **Clear return messages** for every reason the callback can send (cancelled, no account shared, expired), already partly there; add "cancelled" (`error=access_denied`).
+- **Remove the redirect retry shortcut** in the token exchange once the first real login shows which form Meta accepts.
+- **Multiple accounts:** if Meta shares several, let the artist choose instead of using the first (only if it happens in practice).
+
+### v4.3 Go live for all artists (you, after v4.1 and v4.2)
+1. App Review: request **Advanced Access** for `instagram_basic` (screen recording of connect and import, test instructions, a test account).
+2. Business verification of the CraftMe portfolio, if Meta asks for it with the review.
+3. Switch the app to **Live** mode. Until then only accounts with a role on the app can connect.
+
+### v4.4 Fallback if Meta blocks this route
+Plan v3 below (import by @handle with Business Discovery) stays documented as a fallback, without the bio-code step if you prefer, but it would then have no ownership proof. Paste-a-link (Phase 1) keeps working in every case.
+
+---
+
+## Earlier plans (kept for history)
+
+## PLAN v3 (fallback, not chosen: you prefer a real Meta login over a bio code): import reels by @handle, no artist login
 
 **Why a new plan.** The Unified Login built in Phase 2 works only if each artist has a Meta *business portfolio* (Meta's docs: "Business portfolio: Required"). Your own test stopped on an Instagram page and never returned, because you have no portfolio yet. Most small artists won't have one either. That is too much friction.
 
@@ -58,10 +94,6 @@ The card hides itself. The Unified Login code stays, parked, for artists who hav
 1. You: get the discovery token (v3.2, route A or B) and set the secret.
 2. **CODE**: build v3.3, test with your own handle, then with a second creator account.
 3. Later (optional): reels on Browse cards; re-enable Unified Login for artists who have portfolios.
-
----
-
-## Earlier plans (kept for history)
 
 Status on 11 Nov 2026 (updated again): **Phase 2 was rewritten for Unified Login and is deployed.** It stays **off** until the secrets below exist.
 
