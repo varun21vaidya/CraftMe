@@ -1,14 +1,14 @@
 import { Component } from 'react';
 
 // A page opened before a deploy asks for screen files that no longer exist (the "failed to load a module" family).
-const STALE_PAGE = /dynamically imported module|Loading chunk|Importing a module script/i;
+const STALE_PAGE = /dynamically imported module|Loading chunk|module script|Failed to fetch dynamically/i;
 
-/** Catches render errors under one route. Shows fixed wording only: the real error goes to the console for us. */
+/** Catches render errors under one route (and, in App, around everything). Shows fixed wording plus the short error text for us to read in a screenshot. */
 export class ErrorBoundary extends Component {
-  state = { failed: false };
+  state = { failed: false, message: '' };
 
-  static getDerivedStateFromError() {
-    return { failed: true };
+  static getDerivedStateFromError(error) {
+    return { failed: true, message: String(error?.message || error).slice(0, 300) };
   }
 
   componentDidCatch(error, info) {
@@ -30,6 +30,7 @@ export class ErrorBoundary extends Component {
           <h3>Something went wrong on this page</h3>
           <p>Nothing was lost. Try again, or go back to the home page.</p>
           <button className="btn btn-primary" onClick={() => this.setState({ failed: false })}>Try again</button>
+          {this.state.message && <p className="small faint" style={{ marginTop: 12, overflowWrap: 'anywhere' }}>{this.state.message}</p>}
         </div>
       </main>
     );

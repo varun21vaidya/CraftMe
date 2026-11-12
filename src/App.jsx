@@ -41,6 +41,7 @@ const artistOnly = (el) => <RoleRoute role="artist">{el}</RoleRoute>;
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
@@ -70,5 +71,6 @@ export default function App() {
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
