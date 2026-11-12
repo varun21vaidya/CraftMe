@@ -136,7 +136,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .site-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; background: var(--surface); border-bottom: 1px solid var(--line); }
 .site-header .bar { display: flex; align-items: center; gap: 18px; min-height: 64px; }
 .logo { display: inline-flex; align-items: center; gap: 9px; font: 500 22px var(--font-display); letter-spacing: -.02em; color: var(--ink); text-decoration: none; flex: none; }
-.logo svg { color: var(--accent); }
+.logo img { display: block; border-radius: 9px; }
 .logo small { font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding-left: 10px; border-left: 1px solid var(--line-2); margin-left: 2px; }
 .nav { display: flex; gap: 2px; }
 .nav a, .nav button { padding: 8px 12px; border-radius: 6px; color: var(--ink-2); text-decoration: none; font-weight: 500; border: 0; background: none; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }

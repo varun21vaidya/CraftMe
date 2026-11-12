@@ -10,9 +10,7 @@ import { NotificationBell } from './NotificationBell';
 
 const Logo = () => (
   <Link className="logo" to="/">
-    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="currentColor" fillRule="evenodd" d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z" />
-    </svg>
+    <img src="/brand/craftme-icon.svg" width="32" height="32" alt="" />
     CraftMe
   </Link>
 );

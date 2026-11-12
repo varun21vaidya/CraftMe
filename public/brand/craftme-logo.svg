@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="260" viewBox="0 0 1024 260" role="img" aria-labelledby="title">
+  <title id="title">CraftMe logo</title>
+  <rect width="1024" height="260" rx="56" fill="#F6F1E7"/>
+  <g transform="translate(24 24) scale(.20703125)">
+    <rect width="1024" height="1024" rx="232" fill="#A3472B"/>
+    <g fill="#F6F1E7">
+      <path d="M 395 287 C 395 267 411 251 431 251 H 593 C 613 251 629 267 629 287 C 629 307 613 323 593 323 H 431 C 411 323 395 307 395 287 Z"/>
+      <path d="M 431 310 H 593 C 593 354 614 374 644 407 C 683 451 702 498 702 555 C 702 677 620 760 512 760 C 404 760 322 677 322 555 C 322 498 341 451 380 407 C 410 374 431 354 431 310 Z"/>
+      <path d="M 337 491 C 300 477 272 497 263 532 C 251 581 273 629 310 646 C 333 657 357 650 377 629 L 355 601 C 341 616 328 619 316 609 C 297 595 292 570 297 548 C 302 528 314 523 333 531 Z"/>
+      <path d="M 687 491 C 724 477 752 497 761 532 C 773 581 751 629 714 646 C 691 657 667 650 647 629 L 669 601 C 683 616 696 619 708 609 C 727 595 732 570 727 548 C 722 528 710 523 691 531 Z"/>
+    </g>
+    <path d="M 376 518 L 421 474 L 467 518 L 512 474 L 557 518 L 603 474 L 648 518" fill="none" stroke="#A3472B" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+    <g fill="#A3472B">
+      <circle cx="438" cy="626" r="18"/>
+      <circle cx="512" cy="626" r="18"/>
+      <circle cx="586" cy="626" r="18"/>
+    </g>
+  </g>
+  <text x="272" y="173" fill="#2B241E" font-family="Google Sans Flex, Google Sans, Arial, sans-serif" font-size="116" font-weight="500" letter-spacing="-3">CraftMe</text>
+</svg>
