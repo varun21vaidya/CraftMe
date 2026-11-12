@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { reelCode, reelEmbedUrl } from '../lib/reels';
 import { Icon } from './common/Icon';
 
-const MIN_EMBED = 326; // Instagram's embed is blank below this width
+// Instagram's player is laid out for at least 326px wide and about 760px high (header, video, footer).
+// It is drawn at that size and scaled down to fit the frame, so it never needs a scrollbar and never needs a wide screen.
+const EMBED_W = 326;
+const EMBED_H = 760;
 const SLOW_MS = 6000;
 
 /**
@@ -14,6 +17,7 @@ export default function ReelCard({ reel, fill = false, active = true }) {
   const [open, setOpen] = useState(false);
   const [slow, setSlow] = useState(false);
   const frame = useRef(null);
+  const [box, setBox] = useState({ w: 0, h: 0 });
   const code = reelCode(reel.url);
 
   useEffect(() => { if (!active) setOpen(false); }, [active]);
@@ -24,25 +28,30 @@ export default function ReelCard({ reel, fill = false, active = true }) {
     return () => clearTimeout(t);
   }, [open]);
 
+  useEffect(() => {
+    const el = frame.current;
+    if (!el || !window.ResizeObserver) return undefined;
+    const ro = new ResizeObserver(() => setBox({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   if (!code) return null; // the database rejects other links; never render one
 
-  const play = () => {
-    // too narrow for the embed: go straight to Instagram
-    if ((frame.current?.clientWidth || 0) < MIN_EMBED) window.open(reel.url, '_blank', 'noopener,noreferrer');
-    else setOpen(true);
-  };
+  const scale = Math.min(box.w / EMBED_W, box.h / EMBED_H, 1.5) || 1;
+  const player = { width: EMBED_W, height: EMBED_H, left: '50%', top: Math.max((box.h - EMBED_H * scale) / 2, 0), transform: `translateX(-50%) scale(${scale})`, transformOrigin: 'top center' };
 
   return (
     <figure className={`reel${fill ? ' fill' : ' panel'}`}>
       {reel.title && !fill && <strong>{reel.title}</strong>}
       <div className="reel-frame" ref={frame}>
         {open ? (
-          <iframe src={reelEmbedUrl(code)} title={reel.title || 'Instagram reel'} allowFullScreen
+          <iframe src={reelEmbedUrl(code)} title={reel.title || 'Instagram reel'} style={player} allowFullScreen
             allow="autoplay; encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin" />
         ) : (
           <>
             {reel.cover && <img src={reel.cover} alt="" loading="lazy" />}
-            <button type="button" className="reel-play" aria-label={`Play reel${reel.title ? `: ${reel.title}` : ''}`} onClick={play}>
+            <button type="button" className="reel-play" aria-label={`Play reel${reel.title ? `: ${reel.title}` : ''}`} onClick={() => setOpen(true)}>
               <Icon name="play" size={30} />
             </button>
             {!reel.cover && <span className="reel-label">Reel</span>}

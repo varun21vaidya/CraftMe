@@ -47,15 +47,16 @@ export default function CheckoutPage() {
   const [hold, setHold] = useState(null); // {orderId, razorpayOrderId, keyId, amount, holdUntil}
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [phone, setPhone] = useState(''); // the number from the address form, so Razorpay doesn't ask for it again
 
   if (!cart.items.length && !hold) return <Navigate to="/cart" replace />;
 
-  const pay = async (h) => {
+  const pay = async (h, contact = phone) => {
     setBusy(true);
     setError(null);
     const proof = await payWithRazorpay({
       keyId: h.keyId, razorpayOrderId: h.razorpayOrderId, amount: h.amount, description: 'CraftMe order',
-      prefill: { name: currentUser.displayName || '', email: currentUser.email || '' },
+      prefill: { name: currentUser.displayName || '', email: currentUser.email || '', ...(contact && { contact: `+91${contact}` }) },
     });
     if (!proof.ok) {
       setBusy(false);
@@ -76,7 +77,8 @@ export default function CheckoutPage() {
     setSubmitting(false);
     if (!res.ok) return setError(errorText(res.error));
     setHold(res.data);
-    return pay(res.data);
+    setPhone(address.phone);
+    return pay(res.data, address.phone);
   };
 
   return (

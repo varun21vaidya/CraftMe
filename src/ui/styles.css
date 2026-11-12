@@ -516,7 +516,7 @@ body::before { background: var(--bg); }
 .reel-frame { position: relative; background: #16130f; border-radius: 8px; overflow: hidden; display: grid; place-items: center; aspect-ratio: 9 / 16; max-height: min(65dvh, 640px); width: 100%; }
 .reel.fill .reel-frame { flex: 1; min-height: 0; aspect-ratio: auto; max-height: none; }
 .reel-frame > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-.reel-frame > iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+.reel-frame > iframe { position: absolute; border: 0; background: #fff; } /* size and scale come from ReelCard */
 .reel-play { position: relative; z-index: 1; width: 68px; height: 68px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .92); color: #16130f; display: grid; place-items: center; cursor: pointer; box-shadow: var(--shadow-2); transition: transform .15s; }
 .reel-play:hover { transform: scale(1.06); }
 .reel-label { position: absolute; bottom: 12px; color: #fff; font: 500 12px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
