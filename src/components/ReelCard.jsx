@@ -30,8 +30,11 @@ export default function ReelCard({ reel, fill = false, active = true }) {
 
   useEffect(() => {
     const el = frame.current;
-    if (!el || !window.ResizeObserver) return undefined;
-    const ro = new ResizeObserver(() => setBox({ w: el.clientWidth, h: el.clientHeight }));
+    if (!el) return undefined;
+    const measure = () => setBox({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    if (!window.ResizeObserver) return undefined;
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
