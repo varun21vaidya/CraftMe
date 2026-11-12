@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useArtist, useArtwork, useListings, useReel } from '../api/gateway';
+import CollectionMenu from '../components/CollectionMenu';
 import Gallery from '../components/Gallery';
+import SaveButton from '../components/SaveButton';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { formatINR } from '../lib/format';
@@ -58,6 +60,12 @@ export default function ArtworkPage() {
           <button className="btn btn-primary btn-lg btn-block" disabled={!canBuy || own} onClick={add}>
             {canBuy ? 'Add to Cart' : 'Sold'}
           </button>
+          {!own && (
+            <>
+              <SaveButton artworkId={art.id} artistId={art.artistId} label />
+              <CollectionMenu artworkId={art.id} />
+            </>
+          )}
         </aside>
       </div>
     </main>

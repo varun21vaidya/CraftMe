@@ -340,3 +340,46 @@ export const upload = (kind, file, uid) => safe(async () => {
   const url = kind === 'damage' ? must(await bucket.createSignedUrl(name, 3600)).signedUrl : bucket.getPublicUrl(name).data.publicUrl;
   return { path: `${kind}/${name}`, url };
 });
+
+// ---------- wish list and collections (private to the signed-in user) ----------
+/** Every saved work id, so each heart knows its state without a request per card. */
+export const useSavedIds = (uid) => useQuery(
+  uid ? async () => must(await supabase.from('saved_works').select('artwork_id').eq('user_id', uid).limit(500)).map((r) => r.artwork_id) : null,
+  [uid],
+);
+/** Saved works with what the page needs to show and buy them; artwork is null when it is no longer visible. Newest first. */
+export const useSavedWorks = (uid, limit = 24) => useQuery(
+  uid ? async () => must(await supabase.from('saved_works')
+    .select(`artwork_id, created_at, artwork:artworks(*, ${ARTIST_NAME}, listings(*))`)
+    .eq('user_id', uid).order('created_at', { ascending: false }).limit(limit)).map(camel) : null,
+  [uid, limit],
+);
+export const useCollections = (uid) => useQuery(
+  uid ? async () => must(await supabase.from('collections').select('*, collection_works(artwork_id)').eq('user_id', uid).order('created_at')).map(camel) : null,
+  [uid],
+);
+export const saveWork = (uid, artworkId) => safe(async () => {
+  must(await supabase.from('saved_works').insert({ user_id: uid, artwork_id: artworkId }));
+  return {};
+});
+export const unsaveWork = (uid, artworkId) => safe(async () => {
+  must(await supabase.from('saved_works').delete().eq('user_id', uid).eq('artwork_id', artworkId));
+  return {};
+});
+export const createCollection = (uid, name) => safe(async () => ({ id: must(await supabase.from('collections').insert({ user_id: uid, name: name.trim() }).select('id').single()).id }));
+export const renameCollection = (id, name) => safe(async () => {
+  must(await supabase.from('collections').update({ name: name.trim() }).eq('id', id).select('id').single());
+  return {};
+});
+export const deleteCollection = (id) => safe(async () => {
+  must(await supabase.from('collections').delete().eq('id', id));
+  return {};
+});
+export const addToCollection = (uid, collectionId, artworkId) => safe(async () => {
+  must(await supabase.from('collection_works').upsert({ collection_id: collectionId, user_id: uid, artwork_id: artworkId }, { onConflict: 'collection_id,artwork_id', ignoreDuplicates: true }));
+  return {};
+});
+export const removeFromCollection = (collectionId, artworkId) => safe(async () => {
+  must(await supabase.from('collection_works').delete().eq('collection_id', collectionId).eq('artwork_id', artworkId));
+  return {};
+});

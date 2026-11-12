@@ -2,7 +2,7 @@
 import fs from "node:fs";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -326,6 +326,41 @@ await as("authenticated", A, async () => {
 });
 await as("authenticated", A, () => rejects("a reel name over 80 characters is refused", () =>
   db.query(`update public.reels set title = '${"x".repeat(81)}' where id = '${reelA}'`)));
+
+// Wish list and collections (0015)
+const wid = (await one(`select id from public.artworks where status='published' and artist_open and artist_id = '${artist}' limit 1`)).id;
+let col;
+await as("authenticated", B, async () => {
+  await db.query(`insert into public.saved_works (user_id, artwork_id) values ('${buyer}', '${wid}')`);
+  ok("a buyer can save a published work", (await one(`select count(*)::int n from public.saved_works`)).n === 1);
+  await rejects("saving the same work twice is refused", () => db.query(`insert into public.saved_works (user_id, artwork_id) values ('${buyer}', '${wid}')`));
+  await rejects("cannot save for someone else", () => db.query(`insert into public.saved_works (user_id, artwork_id) values ('${other}', '${wid}')`));
+  col = (await db.query(`insert into public.collections (user_id, name) values ('${buyer}', 'Gifts') returning id`)).rows[0].id;
+  await rejects("a duplicate collection name in another case is refused", () => db.query(`insert into public.collections (user_id, name) values ('${buyer}', ' gifts ')`));
+  await rejects("an empty collection name is refused", () => db.query(`insert into public.collections (user_id, name) values ('${buyer}', '  ')`));
+  await rejects("a 61 character collection name is refused", () => db.query(`insert into public.collections (user_id, name) values ('${buyer}', '${"x".repeat(61)}')`));
+  await db.query(`insert into public.collection_works (collection_id, user_id, artwork_id) values ('${col}', '${buyer}', '${wid}')`);
+  ok("a saved work goes into a collection", (await one(`select count(*)::int n from public.collection_works`)).n === 1);
+});
+await as("authenticated", O, async () => {
+  ok("another user sees none of it", (await one(`select (select count(*) from public.saved_works)::int + (select count(*) from public.collections)::int + (select count(*) from public.collection_works)::int n`)).n === 0);
+  await rejects("cannot put a work in someone else's collection", () => db.query(`insert into public.collection_works (collection_id, user_id, artwork_id) values ('${col}', '${other}', '${wid}')`));
+  await db.query(`delete from public.saved_works`);
+});
+await as("anon", {}, () => rejects("a signed-out visitor cannot read saved works", () => db.query(`select * from public.saved_works`)));
+await as("authenticated", A, () => rejects("an artist cannot save their own work", () => db.query(`insert into public.saved_works (user_id, artwork_id) values ('${artist}', '${wid}')`)));
+await as("authenticated", B, async () => {
+  ok("another user's delete changed nothing", (await one(`select count(*)::int n from public.saved_works`)).n === 1);
+  await db.query(`delete from public.saved_works where artwork_id = '${wid}'`);
+  ok("un-saving removes the work from its collections", (await one(`select count(*)::int n from public.collection_works`)).n === 0);
+  await db.query(`insert into public.saved_works (user_id, artwork_id) values ('${buyer}', '${wid}')`);
+  await db.query(`delete from public.collections where id = '${col}'`);
+  ok("deleting a collection keeps the saved work", (await one(`select count(*)::int n from public.saved_works`)).n === 1);
+});
+const hid = (await db.query(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'Hidden', 'Paintings', 'draft') returning id`)).rows[0].id;
+await as("authenticated", B, () => rejects("a hidden work cannot be saved", () => db.query(`insert into public.saved_works (user_id, artwork_id) values ('${buyer}', '${hid}')`)));
+await db.exec(`insert into public.collections (user_id, name) select '${other}', 'c' || g from generate_series(1, 20) g`);
+await as("authenticated", O, () => rejects("the 21st collection is refused", () => db.query(`insert into public.collections (user_id, name) values ('${other}', 'one too many')`)));
 
 // The api function runs as service_role: it must reach the tables the Instagram code uses
 await as("service_role", {}, async () => {

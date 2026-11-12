@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import LazyLoadImage from './ui/LazyLoadImage';
+import SaveButton from './SaveButton';
 import { formatINR } from '../lib/format';
 
 /** One work. The "by <Artist>" link is separate from the work's link (a link can't sit inside a link); hideArtist drops it on the Artist's own page. */
@@ -7,6 +8,7 @@ export default function ArtCard({ art, hideArtist = false }) {
   const by = !hideArtist && art.artist?.displayName;
   return (
     <article className="art-card">
+      <SaveButton artworkId={art.id} artistId={art.artistId} overlay />
       <Link className="art-link" to={`/artwork/${art.id}`}>
         <div className="mat">
           {art.photos?.[0] && <LazyLoadImage src={art.photos[0]} alt={art.title} width="100%" style={{ aspectRatio: '1 / 1', objectFit: 'cover' }} />}

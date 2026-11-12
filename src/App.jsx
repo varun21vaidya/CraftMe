@@ -3,6 +3,7 @@ import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { NotificationsProvider } from './contexts/NotificationsContext';
+import { SavedProvider } from './contexts/SavedContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ProtectedRoute, RoleRoute } from './components/common/Guards';
 import { Layout } from './components/common/Layout';
@@ -18,6 +19,7 @@ const OrderPage = lazy(() => import('./pages/OrderPage'));
 const ArtistInbox = lazy(() => import('./pages/ArtistInbox'));
 const NewArtwork = lazy(() => import('./pages/NewArtwork'));
 const MyWorks = lazy(() => import('./pages/MyWorks'));
+const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 const ArtistPage = lazy(() => import('./pages/ArtistPage'));
 const ProfileEdit = lazy(() => import('./pages/ProfileEdit'));
 const Privacy = lazy(() => import('./pages/Privacy'));
@@ -46,6 +48,7 @@ export default function App() {
       <AuthProvider>
         <CartProvider>
           <NotificationsProvider>
+            <SavedProvider>
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={screen(<Browse />)} />
@@ -58,7 +61,9 @@ export default function App() {
                 <Route path="/instagram/return" element={screen(<InstagramReturn />)} />
                 <Route path="/cart" element={screen(<CartPage />, signedIn)} />
                 <Route path="/checkout" element={screen(<CheckoutPage />, signedIn)} />
-                <Route path="/orders" element={screen(<OrdersPage />, signedIn)} />
+                <Route path="/wishlist" element={screen(<WishlistPage />, signedIn)} />
+                <Route path="/wishlist/:collectionId" element={screen(<WishlistPage />, signedIn)} />
+                <Route path="/orders"element={screen(<OrdersPage />, signedIn)} />
                 <Route path="/orders/:id" element={screen(<OrderPage />, signedIn)} />
                 <Route path="/dashboard/orders" element={screen(<ArtistInbox />, artistOnly)} />
                 <Route path="/dashboard/profile" element={screen(<ProfileEdit />, artistOnly)} />
@@ -67,6 +72,7 @@ export default function App() {
                 <Route path="*" element={screen(<NotFound />)} />
               </Route>
             </Routes>
+            </SavedProvider>
           </NotificationsProvider>
         </CartProvider>
       </AuthProvider>
