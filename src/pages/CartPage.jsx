@@ -11,9 +11,9 @@ function CartLine({ item, listing, onQty, onRemove }) {
   const loading = listing === undefined;
   return (
     <article className="cart-line">
-      <div className="mat">{art?.photos?.[0] && <LazyLoadImage src={art.photos[0]} alt={art.title} width="100%" />}</div>
+      <Link className="mat" to={art ? `/artwork/${art.id}` : "/browse"} tabIndex={-1} aria-hidden="true">{art?.photos?.[0] && <LazyLoadImage src={art.photos[0]} alt="" width="100%" />}</Link>
       <div className="stack sm">
-        <strong>{art?.title || (loading ? '…' : 'No longer available')}</strong>
+        {art ? <Link to={`/artwork/${art.id}`} style={{ color: 'inherit' }}><strong>{art.title}</strong></Link> : <strong>{loading ? '…' : 'No longer available'}</strong>}
         {gone && <span className="badge warn">No longer available. Please remove it.</span>}
         <div className="row">
           <div className="qty">
