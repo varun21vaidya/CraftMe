@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSavedWorks } from '../api/gateway';
 import LazyLoadImage from '../components/ui/LazyLoadImage';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,10 +7,12 @@ import { useCart } from '../contexts/CartContext';
 import { useSaved } from '../contexts/SavedContext';
 import { formatINR } from '../lib/format';
 import { cartAction, groupByArtist, nameTaken, wishlistMessage } from '../lib/wishlist';
+import CollectionMenu from '../components/CollectionMenu';
+import NewCollectionForm from '../components/NewCollectionForm';
 
 const PAGE = 24;
 
-function Item({ s, collectionId }) {
+function Item({ s, collectionId, artistName }) {
   const { cart, add } = useCart();
   const { toggle, removeFrom } = useSaved();
   const [note, setNote] = useState('');
@@ -27,6 +29,7 @@ function Item({ s, collectionId }) {
         <div className="mat">{art.photos?.[0] && <LazyLoadImage src={art.photos[0]} alt={art.title} width="100%" style={{ aspectRatio: '1 / 1', objectFit: 'cover' }} />}</div>
         <div className="stack sm" style={{ marginTop: 10 }}>
           <strong>{art.title}</strong>
+          <span className="small muted">By {artistName}</span>
           <span className="small muted">{action.kind === 'gone' ? 'Not available right now' : art.fromPricePaise != null ? `${action.kind === 'choose' ? 'From ' : ''}${formatINR(action.kind === 'add' ? action.listing.price : art.fromPricePaise)}` : ''}</span>
         </div>
       </Link>
@@ -36,6 +39,7 @@ function Item({ s, collectionId }) {
           : <button type="button" className="btn btn-primary btn-sm btn-block" onClick={() => add(art.artistId, action.listing.id)}>Add to Cart</button>)}
         {action.kind === 'choose' && <Link className="btn btn-primary btn-sm btn-block" to={`/artwork/${art.id}`}>Choose a version</Link>}
         {action.kind === 'gone' && <span className="badge warn">Not available</span>}
+        <CollectionMenu artworkId={s.artworkId} />
         <button type="button" className="btn-link small" onClick={remove}>{collectionId ? 'Remove from collection' : 'Remove'}</button>
         {note && <span className="small" role="alert">{note}</span>}
       </div>
@@ -45,35 +49,40 @@ function Item({ s, collectionId }) {
 
 export default function WishlistPage() {
   const { collectionId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get('q') || '';
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { cart, add } = useCart();
-  const { has, collections, rename, remove, create } = useSaved();
+  const { has, collections, rename, remove } = useSaved();
   const [limit, setLimit] = useState(PAGE);
-  const [saved, loading, error, reload] = useSavedWorks(currentUser.uid, limit);
+  const [saved, loading, error, reload] = useSavedWorks(currentUser.uid, query || collectionId ? 500 : limit);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [confirmDel, setConfirmDel] = useState(false);
   const [msg, setMsg] = useState('');
   const [skipped, setSkipped] = useState('');
-  const [newName, setNewName] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const col = collectionId ? collections.find((c) => c.id === collectionId) : null;
   const members = col ? new Set(col.collectionWorks.map((w) => w.artworkId)) : null;
   // has(): a work you just removed leaves the list at once; a collection shows only its own works
-  const list = (saved || []).filter((s) => has(s.artworkId) && (!members || members.has(s.artworkId)));
+  const scope = (saved || []).filter((s) => has(s.artworkId) && (!members || members.has(s.artworkId)));
+  const needle = query.trim().toLocaleLowerCase();
+  const list = scope.filter((s) => !needle || [s.artwork?.title, s.artwork?.artist?.displayName].some((value) => value?.toLocaleLowerCase().includes(needle)));
   const { groups, gone } = groupByArtist(list);
 
   const addAll = (g) => {
     const todo = g.items.map((s) => cartAction(s.artwork)).filter((a) => a.kind === 'add' && !cart.items.some((i) => i.listingId === a.listing.id));
     const left = g.items.length - todo.length;
     setSkipped(left ? `${left} ${left === 1 ? 'work was' : 'works were'} skipped: already in your Cart, sold, or you need to choose a version.` : '');
-    if (cart.items.length && cart.artistId !== g.artistId) { // opens the "Start a new Cart?" dialog for the first work
+    if (cart.items.length && cart.artistId !== g.artistId) {
       if (todo[0]) add(g.artistId, todo[0].listing.id);
       return;
     }
     todo.forEach((a) => add(g.artistId, a.listing.id));
   };
+
   const submitRename = async (e) => {
     e.preventDefault();
     const n = name.trim();
@@ -88,16 +97,6 @@ export default function WishlistPage() {
     const res = await remove(col.id);
     if (res.ok) navigate('/wishlist');
     else setMsg(wishlistMessage(res));
-  };
-  const makeNew = async (e) => {
-    e.preventDefault();
-    const n = newName.trim();
-    if (!n || n.length > 60) return setMsg('Use 1 to 60 characters.');
-    if (nameTaken(collections, n)) return setMsg('You already have a collection with that name.');
-    const res = await create(n);
-    if (!res.ok) return setMsg(wishlistMessage(res));
-    setNewName('');
-    return navigate(`/wishlist/${res.id}`);
   };
 
   if (collectionId && !loading && collections.length && !col) {
@@ -116,6 +115,15 @@ export default function WishlistPage() {
           </Link>
         ))}
       </nav>
+
+      <label className="stack sm" style={{ margin: '16px 0' }}>
+        <span>Search saved works</span>
+        <input type="search" value={query} onChange={(e) => {
+          const next = new URLSearchParams(searchParams);
+          if (e.target.value) next.set('q', e.target.value); else next.delete('q');
+          setSearchParams(next, { replace: true });
+        }} placeholder="Search by artwork or artist" />
+      </label>
 
       {col && (
         <div className="row" style={{ marginBottom: 16 }}>
@@ -144,21 +152,20 @@ export default function WishlistPage() {
       {error && !loading && <div className="empty"><h3>We couldn’t load your wish list</h3><button className="btn btn-primary" onClick={reload}>Try again</button></div>}
       {!loading && !error && list.length === 0 && (
         <div className="empty">
-          <h3>{col ? 'Nothing in this collection yet' : 'Nothing saved yet'}</h3>
-          <p>{col ? 'Open a work and use “Add to collection”.' : 'Tap the heart on any work to keep it here.'}</p>
+          <h3>{needle && scope.length ? 'No matching works' : col ? 'Nothing in this collection yet' : 'Nothing saved yet'}</h3>
+          <p>{needle && scope.length ? 'Try a different search.' : col ? 'Open a work and use “Add to collection”.' : 'Tap the heart on any work to keep it here.'}</p>
           <Link className="btn btn-primary" to="/browse">Browse art</Link>
         </div>
       )}
 
-      {groups.map((g) => (
-        <section key={g.artistId} className="stack" style={{ marginBottom: 28 }} aria-label={`Works by ${g.name}`}>
-          <div className="row between">
-            <h2 className="h3">By <Link to={`/artist/${g.artistId}`}>{g.name}</Link></h2>
-            {g.items.length > 1 && <button type="button" className="btn btn-secondary btn-sm" onClick={() => addAll(g)}>Add all to Cart</button>}
-          </div>
-          <div className="grid">{g.items.map((s) => <Item key={s.artworkId} s={s} collectionId={col?.id} />)}</div>
-        </section>
-      ))}
+      <div className="row" style={{ flexWrap: 'wrap', marginBottom: 16 }}>
+        {groups.filter((g) => g.items.length > 1).map((g) => (
+          <button key={g.artistId} type="button" className="btn btn-secondary btn-sm" onClick={() => addAll(g)}>Add all by {g.name} to Cart</button>
+        ))}
+      </div>
+      <div className="grid wishlist-grid">
+        {groups.flatMap((g) => g.items.map((s) => <Item key={s.artworkId} s={s} collectionId={col?.id} artistName={g.name} />))}
+      </div>
 
       {gone.length > 0 && (
         <section className="stack" aria-label="No longer available">
@@ -167,13 +174,15 @@ export default function WishlistPage() {
         </section>
       )}
 
-      {!loading && saved?.length === limit && <button type="button" className="btn btn-secondary" onClick={() => setLimit((n) => n + PAGE)}>Show more</button>}
+      {!query && !collectionId && !loading && saved?.length === limit && <button type="button" className="btn btn-secondary" onClick={() => setLimit((n) => n + PAGE)}>Show more</button>}
 
       {!col && !loading && (
-        <form className="row panel" style={{ marginTop: 24 }} onSubmit={makeNew}>
-          <input value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={60} placeholder="New collection, e.g. Gifts for Mom" aria-label="New collection name" />
-          <button className="btn btn-primary btn-sm" type="submit">Create collection</button>
-        </form>
+        <div className="stack" style={{ marginTop: 24 }}>
+          <button className="btn btn-secondary" aria-expanded={creating} onClick={() => setCreating(!creating)}>
+            {creating ? 'Cancel' : 'New collection'}
+          </button>
+          {creating && <NewCollectionForm onCreated={(id) => { setCreating(false); navigate(`/wishlist/${id}`); }} />}
+        </div>
       )}
     </main>
   );

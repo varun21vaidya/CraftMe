@@ -536,8 +536,27 @@ body::before { background: var(--bg); }
 .save-btn[aria-pressed="true"] { color: var(--accent); } .save-btn[aria-pressed="true"] svg { fill: currentColor; }
 .save-btn.labelled { border-radius: 8px; width: 100%; }
 .save-msg { position: absolute; right: 0; top: 46px; z-index: 5; width: max-content; max-width: 220px; padding: 6px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow-1); }
-.coll-menu { position: relative; }
-.coll-pop { margin-top: 8px; }
-.coll-pop label { cursor: pointer; }
-.coll-pop form input { flex: 1; min-width: 0; }
+.collection-dialog { width: min(620px, calc(100% - 32px)); max-height: 85dvh; overflow: auto; color: inherit; margin: auto; }
+.collection-dialog::backdrop { background: rgb(0 0 0 / 55%); }
+.collection-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 135px), 1fr)); gap: 10px; }
+.collection-tile { cursor: pointer; overflow-wrap: anywhere; }
+.collection-tile:has(input:checked) { border-color: var(--accent); }
+.collection-tile img { width: 100%; aspect-ratio: 2 / 1; object-fit: cover; }
+@media (max-width: 640px) {
+  .collection-dialog { inset: auto 0 0; width: 100%; max-width: 100%; margin: 0; border-radius: 16px 16px 0 0; }
+}
+.market-search { flex: 1; min-width: 0; }
+.market-search form { display: flex; gap: 6px; }
+.market-search input { min-width: 0; width: 100%; }
+.market-search .market-search-toggle { display: none; }
+@media (max-width: 900px) {
+  .market-search { flex: 0 0 auto; }
+  .market-search .market-search-toggle { display: inline-flex; }
+  .market-search form { display: none; }
+  .market-search-open form { display: flex; position: absolute; z-index: 10; inset: 100% 0 auto; padding: 12px; background: var(--surface); }
+}
+.wishlist-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); }
+@media (min-width: 350px) and (max-width: 640px) {
+  .wishlist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 640px) { .hactions > a[href="/wishlist"] { display: none; } }

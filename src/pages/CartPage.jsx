@@ -32,8 +32,46 @@ function CartLine({ item, listing, onQty, onRemove }) {
   );
 }
 
+function SavedCart() {
+  const { saved, savedLoading, savedError, reloadSaved, restore, locked, retry, message, cart } = useCart();
+  const groups = new Map();
+  for (const row of saved || []) {
+    const key = row.listing?.artistId || null;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+  const available = ({ listing }) => listing?.status === 'live' && listing.stock > listing.held;
+  return (
+    <section className="stack" style={{ marginTop: 32 }} aria-labelledby="saved-cart-title">
+      <h2 id="saved-cart-title">Saved for later</h2>
+      {savedLoading && <p role="status">Loading saved items…</p>}
+      {savedError && <p role="alert">Could not load saved items. <button onClick={reloadSaved}>Try again</button></p>}
+      {!savedLoading && !savedError && !groups.size && <p className="muted">No items saved for later.</p>}
+      {!cart.conflict && message && <p role="status">{message} {retry && <button onClick={retry}>Try again</button>}</p>}
+      {!cart.conflict && retry && !message && <button onClick={retry}>Retry cart switch</button>}
+      {Array.from(groups, ([artist, rows]) => (
+        <div className="panel stack" key={artist || 'unavailable'}>
+          <div className="row between">
+            <h3>{rows[0].listing?.artist?.displayName || 'Unavailable works'}</h3>
+            {artist && <button className="btn btn-secondary btn-sm" disabled={locked || !rows.every(available)}
+              onClick={() => restore(rows)}>Restore cart</button>}
+          </div>
+          {rows.map((row) => (
+            <div className="row between" key={row.listingId}>
+              <span>{row.listing?.title || 'Unavailable work'} · Qty {row.qty}
+                {available(row) ? ` · ${formatINR(row.listing.price)} each` : ' · Unavailable'}</span>
+              <button className="btn btn-secondary btn-sm" disabled={locked || !available(row)}
+                onClick={() => restore([row])}>Move to cart</button>
+            </div>
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export default function CartPage() {
-  const { cart, setQty, remove } = useCart();
+  const { cart, setQty, remove, locked } = useCart();
   const listings = useListingsByIds(cart.items.map((i) => i.listingId));
 
   if (!cart.items.length) {
@@ -43,13 +81,14 @@ export default function CartPage() {
           <h3>Your Cart is empty</h3><p>Find something you love and add it here.</p>
           <Link className="btn btn-primary" to="/browse">Browse art</Link>
         </div>
+        <SavedCart />
       </main>
     );
   }
 
   const live = cart.items.filter((i) => listings[i.listingId]?.status === 'live');
   const preview = live.reduce((sum, i) => sum + listings[i.listingId].price * i.qty, 0);
-  const ready = live.length === cart.items.length; // every line is still on sale
+  const ready = !locked && live.length === cart.items.length;
 
   return (
     <main className="wrap page">
@@ -79,6 +118,7 @@ export default function CartPage() {
           </ul>
         </aside>
       </div>
+      <SavedCart />
     </main>
   );
 }

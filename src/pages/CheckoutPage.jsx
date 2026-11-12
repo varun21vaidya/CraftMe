@@ -41,7 +41,7 @@ function HeldPayment({ hold, onPay, busy }) {
 
 export default function CheckoutPage() {
   const { currentUser } = useAuth();
-  const { cart, clear } = useCart();
+  const { cart, clear, locked } = useCart();
   const navigate = useNavigate();
   const listings = useListingsByIds(cart.items.map((i) => i.listingId));
   const [hold, setHold] = useState(null); // {orderId, razorpayOrderId, keyId, amount, holdUntil}
@@ -71,6 +71,7 @@ export default function CheckoutPage() {
   };
 
   const place = async (address, { setSubmitting }) => {
+    if (locked) { setSubmitting(false); return; }
     setError(null);
     const lines = cart.items.map((i) => ({ listingId: i.listingId, quantity: i.qty, seenUnitPaise: listings[i.listingId]?.price }));
     const res = await call('placeOrder', { artistId: cart.artistId, lines, address });
@@ -97,7 +98,7 @@ export default function CheckoutPage() {
                   {touched[name] && errors[name] && <span className="error-msg">{errors[name]}</span>}
                 </div>
               ))}
-              <button className="btn btn-primary btn-lg" type="submit" disabled={isSubmitting}>Continue to payment</button>
+              <button className="btn btn-primary btn-lg" type="submit" disabled={isSubmitting || locked}>Continue to payment</button>
             </Form>
           )}
         </Formik>

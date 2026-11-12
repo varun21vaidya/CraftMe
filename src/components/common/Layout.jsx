@@ -7,6 +7,7 @@ import { useSaved } from '../../contexts/SavedContext';
 import { CartConflictDialog } from '../cart/CartConflictDialog';
 import { Icon } from './Icon';
 import { NotificationBell } from './NotificationBell';
+import MarketplaceSearch from './MarketplaceSearch';
 
 const Logo = () => (
   <Link className="logo" to="/">
@@ -39,6 +40,7 @@ export function Layout() {
         <div className="wrap bar">
           <Logo />
           <nav className="nav" aria-label="Main">{links}</nav>
+          <MarketplaceSearch />
           <div className="hactions">
             {currentUser ? (
               <>

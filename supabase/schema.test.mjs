@@ -2,7 +2,7 @@
 import fs from "node:fs";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -370,6 +370,35 @@ await as("service_role", {}, async () => {
   await db.query(`update public.reels set verified = true where id = '${reelA}'`);
   await db.query(`select * from public.instagram_accounts`);
   ok("the server role can reach reels and instagram_accounts", true);
+});
+
+const searchArt = await one(`insert into public.artworks (artist_id, title, category, status)
+  values ('${other}', 'Clay 100% bowl', 'Pottery & Ceramics', 'published') returning id`);
+const otherListing = await one(`insert into public.listings (artist_id, artwork_id, title, kind, price, stock, status)
+  values ('${other}', '${searchArt.id}', 'Clay bowl', 'product', 1000, 20, 'live') returning id`);
+const activeListing = await one(`insert into public.listings (artist_id, artwork_id, title, kind, price, stock, status)
+  values ('${artist}', '${wid}', 'Print', 'print', 1000, 20, 'live') returning id`);
+await as("anon", {}, async () => {
+  const { rows } = await db.query("select public.search_catalogue($1, false, null, 0) as item", ["100%"]);
+  ok("public catalogue search treats percent as literal text", rows.length === 1 && rows[0].item.id === searchArt.id);
+  const hidden = await db.query("select public.search_catalogue('Hidden', false, null, 0)");
+  ok("catalogue search excludes drafts", hidden.rows.length === 0);
+});
+await as("authenticated", B, async () => {
+  const op = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
+  const active = JSON.stringify([{ listingId: activeListing.id, qty: 3 }]);
+  const args = [buyer, op, active, [], otherListing.id];
+  const callSwitch = "select public.switch_saved_cart($1, $2, $3, $4, $5) as result";
+  const first = (await db.query(callSwitch, args)).rows[0].result;
+  await db.query(callSwitch, args);
+  const saved = await one("select qty from public.saved_cart_items");
+  ok("cart switch saves outgoing quantities once and returns the new cart", first.artistId === other && saved.qty === 3);
+  const restored = (await db.query(callSwitch, [buyer, 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',
+    JSON.stringify(first.items), [activeListing.id], null])).rows[0].result;
+  ok("restoring the saved cart swaps artist and preserves quantity", restored.artistId === artist && restored.items[0].qty === 3);
+});
+await as("authenticated", O, async () => {
+  ok("saved carts are private to the buyer", (await one("select count(*)::int n from public.saved_cart_items")).n === 0);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

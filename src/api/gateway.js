@@ -167,6 +167,10 @@ export const useArtistInbox = (uid) => useQuery(
 );
 /** Browse: one query on artworks (the card data lives on the Artwork). cursor = last item's createdAt (epoch ms). */
 const ARTIST_NAME = 'artist:profiles!artist_id(display_name)'; // the card's "by <name>" link, in the same request
+export const useCatalogueSearch = (query, artists, categories, page) => useQuery(async () =>
+  camel(must(await supabase.rpc('search_catalogue', {
+    p_query: query, p_artists: artists, p_categories: categories ?? null, p_offset: page * 24,
+  }))), [query, artists, categories?.join(','), page]);
 export const useArtworks = ({ categories } = {}, cursor = null) => useQuery(async () => {
   let q = supabase.from('artworks').select(`*, ${ARTIST_NAME}`).eq('status', 'published').eq('artist_open', true);
   if (categories) q = q.in('category', categories);
@@ -341,6 +345,20 @@ export const upload = (kind, file, uid) => safe(async () => {
   return { path: `${kind}/${name}`, url };
 });
 
+export const useSavedCart = (uid) => useQuery(
+  uid ? async () => camel(must(await supabase.from('saved_cart_items')
+    .select('listing_id, qty, listing:listings(id, artist_id, title, price, status, stock, held, artist:profiles!artist_id(display_name))')
+    .eq('buyer_id', uid).order('listing_id'))) : null,
+  [uid],
+);
+
+export const switchSavedCart = (uid, operation) => safe(async () => ({
+  result: must(await supabase.rpc('switch_saved_cart', {
+    p_buyer: uid, p_operation: operation.id, p_active: operation.active,
+    p_restore: operation.restore, p_new: operation.listingId,
+  })),
+}));
+
 // ---------- wish list and collections (private to the signed-in user) ----------
 /** Every saved work id, so each heart knows its state without a request per card. */
 export const useSavedIds = (uid) => useQuery(
@@ -355,7 +373,7 @@ export const useSavedWorks = (uid, limit = 24) => useQuery(
   [uid, limit],
 );
 export const useCollections = (uid) => useQuery(
-  uid ? async () => must(await supabase.from('collections').select('*, collection_works(artwork_id)').eq('user_id', uid).order('created_at')).map(camel) : null,
+  uid ? async () => must(await supabase.from('collections').select('*, collection_works(artwork_id, artwork:artworks!collection_works_artwork_fk(photos))').eq('user_id', uid).order('created_at')).map(camel) : null,
   [uid],
 );
 export const saveWork = (uid, artworkId) => safe(async () => {

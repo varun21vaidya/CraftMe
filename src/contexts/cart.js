@@ -8,6 +8,10 @@ const clamp = (n) => Math.min(Math.max(Math.trunc(n) || 1, 1), MAX_QTY);
 
 export function cartReducer(state, action) {
   switch (action.type) {
+    case 'CONFLICT':
+      return { ...state, conflict: action.selection };
+    case 'APPLY':
+      return { artistId: action.cart.artistId, items: action.cart.items, conflict: null };
     case 'ADD': {
       const { artistId, listingId } = action;
       if (state.items.length && state.artistId !== artistId) return { ...state, conflict: { artistId, listingId } };
