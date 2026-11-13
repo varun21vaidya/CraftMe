@@ -10,6 +10,7 @@ import { Layout } from './components/common/Layout';
 import { ToastProvider } from './components/ui/Toast';
 import { Login } from './components/auth/Login';
 import Browse from './pages/Browse';
+import Home from './pages/Home';
 
 // checkout, orders and the Artist screens load only when visited
 const ArtworkPage = lazy(() => import('./pages/ArtworkPage'));
@@ -61,7 +62,7 @@ export default function App() {
             <SavedProvider>
             <Routes>
               <Route element={<Layout />}>
-                <Route path="/" element={screen(<Browse />)} />
+                <Route path="/" element={screen(<Home />)} />
                 <Route path="/browse" element={screen(<Browse />)} />
                 <Route path="/artwork/:id" element={screen(<ArtworkPage />)} />
                 <Route path="/artist/:id" element={screen(<ArtistPage />)} />

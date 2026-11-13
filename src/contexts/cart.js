@@ -18,17 +18,18 @@ export function cartReducer(state, action) {
     case 'ADD': {
       const { artistId, listingId } = action;
       const seen = price(action.price);
-      if (state.items.length && state.artistId !== artistId) return { ...state, conflict: { artistId, listingId, ...(seen !== undefined && { price: seen }) } };
+      const qty = clamp(action.qty ?? 1);
+      if (state.items.length && state.artistId !== artistId) return { ...state, conflict: { artistId, listingId, ...(qty > 1 && { qty }), ...(seen !== undefined && { price: seen }) } };
       const found = state.items.some((i) => i.listingId === listingId);
       if (found && action.once) return state; // "Buy now" pressed twice is still one unit
       const items = found
-        ? state.items.map((i) => (i.listingId === listingId ? { ...i, qty: clamp(i.qty + 1) } : i))
-        : [...state.items, line(listingId, 1, seen)];
+        ? state.items.map((i) => (i.listingId === listingId ? { ...i, qty: clamp(i.qty + qty) } : i))
+        : [...state.items, line(listingId, qty, seen)];
       return { ...state, artistId, items, conflict: null };
     }
     case 'REPLACE': // the Buyer chose "start a new Cart"
       return state.conflict
-        ? { ...state, artistId: state.conflict.artistId, items: [line(state.conflict.listingId, 1, price(state.conflict.price))], conflict: null }
+        ? { ...state, artistId: state.conflict.artistId, items: [line(state.conflict.listingId, clamp(state.conflict.qty ?? 1), price(state.conflict.price))], conflict: null }
         : state;
     case 'DISMISS':
       return { ...state, conflict: null };

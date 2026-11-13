@@ -156,9 +156,9 @@ function BuyerCart({ children, uid }) {
   const mutate = (action) => { if (free()) dispatch(action); };
 
   /** Adds one unit. Returns 'added', or 'conflict' when the "Start a new Cart?" dialog opened instead. */
-  const add = (artistId, listingId, price) => {
+  const add = (artistId, listingId, { qty = 1, price } = {}) => {
     if (!free()) return 'busy';
-    dispatch({ type: 'ADD', artistId, listingId, price });
+    dispatch({ type: 'ADD', artistId, listingId, qty, price });
     return clash(artistId) ? 'conflict' : 'added';
   };
 

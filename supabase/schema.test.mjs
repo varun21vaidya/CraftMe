@@ -3,7 +3,7 @@ import fs from "node:fs";
 import {RULES} from "../src/lib/rules.js";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0004_storage", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout", "0020_damage_review"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0004_storage", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout", "0020_damage_review", "0021_storefront"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -550,6 +550,117 @@ await as("authenticated", O, async () => {
   ok("the Artist reads the address once the Order is Paid", await shipCount(A, paidOrder) === 1);
   ok("another user cannot read it", await shipCount(O, paidOrder) === 0);
   ok("the buyer reads their own", await shipCount(B, paidOrder) === 1);
+}
+
+// ---------- P03 storefront ----------
+{
+  const mkUser = async (name) => (await one(`insert into auth.users (id, raw_user_meta_data) values (gen_random_uuid(), '${JSON.stringify({full_name: name})}') returning id`)).id;
+  const sa = await mkUser("Sam Art"), sb = await mkUser("Meera Iyer"), sc = await mkUser("Meera Iyer"), sd = await mkUser("Restricted Rae"), buyer3 = await mkUser("Casual Buyer"), digits = await mkUser("12345");
+  const S = (id) => ({sub: id, app_metadata: {}});
+  await db.exec(`update public.profiles set roles = '{artist}' where id in ('${sa}', '${sb}', '${sc}', '${sd}', '${digits}')`);
+  const slugOf = async (id) => (await one(`select slug from public.profiles where id = '${id}'`)).slug;
+  ok("a slug is made when the Artist role is granted", await slugOf(sa) === "sam-art");
+  ok("two Artists with one name get different slugs", await slugOf(sb) === "meera-iyer" && await slugOf(sc) === "meera-iyer-2");
+  ok("a name with no letters still gets a slug", (await slugOf(digits)).length >= 3);
+  ok("a Buyer has no slug", await slugOf(buyer3) === null);
+  await db.exec(`update public.profiles set display_name = 'Renamed Meera' where id = '${sb}'`);
+  ok("a display-name change does not change the slug", await slugOf(sb) === "meera-iyer");
+  await as("authenticated", S(sb), () => rejects("a client cannot write slug directly", () => db.query(`update public.profiles set slug = 'mine-now' where id = '${sb}'`)));
+  await as("authenticated", S(sb), () => failsWith("a taken slug is refused", "slug_taken", () => db.query(`select public.set_artist_slug('sam-art')`)));
+  await as("authenticated", S(sb), () => failsWith("a bad slug shape is refused", "slug", () => db.query(`select public.set_artist_slug('Bad Slug!')`)));
+  await as("authenticated", S(sb), () => failsWith("a uuid-shaped slug is refused", "slug", () => db.query(`select public.set_artist_slug('${sb.replace(/-/g, "")}')`)));
+  await as("authenticated", S(buyer3), () => failsWith("a Buyer cannot set a slug", "forbidden", () => db.query(`select public.set_artist_slug('casual-buyer')`)));
+  await as("authenticated", S(sb), async () => { await db.query(`select public.set_artist_slug(' New-Name ')`); });
+  ok("set_artist_slug changes only the caller's slug", await slugOf(sb) === "new-name" && await slugOf(sc) === "meera-iyer-2");
+  await as("authenticated", S(sc), async () => { await db.query(`select public.set_artist_slug('meera-iyer')`); });
+  ok("the old slug is free for someone else", await slugOf(sc) === "meera-iyer");
+
+  // works
+  const art = async (artist, title, cat, status = "published", medium = "", createdAt = "now()") =>
+    (await one(`insert into public.artworks (artist_id, title, category, status, medium, created_at) values ('${artist}', '${title}', '${cat}', '${status}', '${medium}', ${createdAt}) returning id`)).id;
+  const lst = (aw, artist, kind, price, stock, status = "live", medium = "") =>
+    db.exec(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status, medium) values ('${aw}', '${artist}', '${kind}', '${kind}', ${price}, ${stock}, '${status}', '${medium}')`);
+  const w8 = await art(sa, "Riso Sunrise", "Art Prints", "published", "two-colour riso");
+  await lst(w8, sa, "print", 180000, 40); await lst(w8, sa, "product", 90000, 5);
+  const w2 = await art(sa, "Kolam at Dawn", "Drawings");
+  await lst(w2, sa, "original", 1800000, 0, "sold"); await lst(w2, sa, "print", 220000, 12);
+  const w3 = await art(sa, "Temple Tank", "Paintings", "published", "Acrylic on canvas");
+  await lst(w3, sa, "original", 3000000, 0, "sold");
+  const w4 = await art(sa, "Coconut Draft", "Paintings", "draft"); await lst(w4, sa, "print", 100000, 5, "draft");
+  const w5 = await art(sa, "Pongal Ended", "Art Prints"); await lst(w5, sa, "print", 150000, 5, "ended");
+  const w7 = await art(sd, "Peacock Hidden", "Paintings"); await lst(w7, sd, "original", 2000000, 1);
+  await db.exec(`update public.profiles set restricted = true where id = '${sd}'; update public.artworks set artist_open = false where artist_id = '${sd}'; update public.listings set artist_open = false where artist_id = '${sd}'`);
+  const wm = await art(sb, "Kappa Print", "Paintings"); await lst(wm, sb, "print", 250000, 5, "live", "Oil on canvas");
+  const browse = async (claims, p) => as(claims.sub ? "authenticated" : "anon", claims, async () => (await one(`select public.browse_catalogue('${JSON.stringify(p)}'::jsonb) r`)).r);
+  const titles = (r) => r.items.map((i) => i.title).sort();
+  const G = {};
+  let r = await browse(G, {});
+  ok("browse never shows a draft, an ended-only work or a restricted Artist's work", !titles(r).some((t) => ["Coconut Draft", "Pongal Ended", "Peacock Hidden"].includes(t)) && titles(r).includes("Temple Tank"));
+  r = await browse(G, {categories: ["Art Prints"], kinds: ["print"], q: "riso", artist: sa});
+  ok("browse: group, type, text and artist together find the one work", r.total === 1 && r.items[0].title === "Riso Sunrise");
+  ok("browse: an item has the card data (artist name, kinds)", r.items[0].artist.display_name === "Sam Art" && r.items[0].kinds.includes("print"));
+  r = await browse(G, {q: "ACRYLIC"}); ok("browse: q matches the artwork's medium, ignoring case", titles(r).join() === "Temple Tank");
+  r = await browse(G, {q: "oil on"}); ok("browse: q matches a live listing's medium", titles(r).join() === "Kappa Print");
+  r = await browse(G, {q: "100%"}); ok("browse: % in q is a plain character, not a wildcard", titles(r).join() === "Clay 100% bowl");
+  r = await browse(G, {q: "c_ay"}); ok("browse: _ in q is a plain character too", r.total === 0);
+  r = await browse(G, {q: "sam art"}); ok("browse: q matches the artist's name", r.total === 3);
+  r = await browse(G, {minPaise: 260000, maxPaise: 200000, artist: sb});
+  ok("browse: reversed price bounds are swapped", titles(r).join() === "Kappa Print");
+  r = await browse(G, {minPaise: 200000, maxPaise: 260000, artist: sa}); ok("browse: price bounds compare the from price", titles(r).join() === "Kolam at Dawn");
+  r = await browse(G, {hideSold: true, artist: sa}); ok("browse: hide sold keeps a sold Original with a live Print and drops an all-sold work", titles(r).includes("Kolam at Dawn") && !titles(r).includes("Temple Tank"));
+  r = await browse(G, {onlySold: true, artist: sa}); ok("browse: onlySold lists the all-sold work", titles(r).join() === "Temple Tank");
+  r = await browse(G, {kinds: ["original"], artist: sa}); ok("browse: type keeps only works with a live Listing of that kind", r.total === 0);
+
+  // paging with ties: 30 works with one timestamp and 4 shared prices
+  const ties = await art(sb, "Tie 00", "Art Prints"); await lst(ties, sb, "print", 99900, 3);
+  for (let i = 1; i < 30; i++) { const t = await art(sb, `Tie ${String(i).padStart(2, "0")}`, "Art Prints"); await lst(t, sb, "print", i < 4 ? 99900 : 100000 + i, 3); }
+  await db.exec(`update public.artworks set created_at = '2026-01-01T00:00:00Z' where title like 'Tie %'`);
+  for (const sort of ["new", "price_asc", "price_desc", "rating"]) {
+    const total = (await browse(G, {sort})).total; const seen = []; let full = true;
+    for (let pg = 0; pg * 24 < total; pg++) { const part = await browse(G, {sort, page: pg}); if (pg < Math.ceil(total / 24) - 1 && part.items.length !== 24) full = false; seen.push(...part.items.map((i) => i.id)); }
+    ok(`browse ${sort}: pages are 24 long and together give every work once`, full && seen.length === total && new Set(seen).size === total);
+  }
+  r = await browse(G, {sort: "price_asc"}); ok("browse: price ascending starts with the lowest", r.items[0].from_price_paise <= r.items[1].from_price_paise);
+  r = await browse(G, {sort: "price_desc"}); ok("browse: price descending starts with the highest", r.items[0].from_price_paise >= r.items[1].from_price_paise);
+
+  // reports
+  const rf = (name, text, claims, sqlText) => as("authenticated", claims, () => failsWith(name, text, () => db.query(sqlText)));
+  await rf("an unknown reason is refused", "reason", S(buyer3), `select public.report('artwork', '${w8}', 'spam', '')`);
+  await rf("an artist reason is refused for an artwork", "reason", S(buyer3), `select public.report('artwork', '${w8}', 'impersonation', '')`);
+  await rf("a missing target is refused", "not_found", S(buyer3), `select public.report('artwork', gen_random_uuid(), 'other', '')`);
+  await rf("a draft cannot be reported", "not_found", S(buyer3), `select public.report('artwork', '${w4}', 'other', '')`);
+  await rf("a report on one's own work is refused", "own_target", S(sa), `select public.report('artwork', '${w8}', 'other', '')`);
+  await rf("a report on one's own profile is refused", "own_target", S(sa), `select public.report('artist', '${sa}', 'other', '')`);
+  await rf("501 characters of details are refused", "details", S(buyer3), `select public.report('artwork', '${w8}', 'copied', '${"x".repeat(501)}')`);
+  await as("authenticated", S(buyer3), () => db.query(`select public.report('artwork', '${w8}', 'copied', '${"x".repeat(500)}')`));
+  ok("a report is stored open with its details", (await one(`select reason || '|' || length(details) || '|' || status as v from public.reports where target_id = '${w8}'`)).v === "copied|500|open");
+  await rf("the same report twice is refused", "already_exists", S(buyer3), `select public.report('artwork', '${w8}', 'copied', '')`);
+  await as("authenticated", S(buyer3), () => db.query(`select public.report('artist', '${sa}', 'impersonation', 'looks like a copy')`));
+  ok("an artist report is stored", Number((await one(`select count(*) c from public.reports where target_type = 'artist'`)).c) === 1);
+  await rf("a restricted Artist cannot be reported", "not_found", S(buyer3), `select public.report('artist', '${sd}', 'other', '')`);
+
+  // reviews are readable without the buyer id
+  await as("anon", {}, () => rejects("a signed-out visitor cannot read buyer_id", () => db.query("select buyer_id from public.reviews")));
+  await as("anon", {}, async () => ok("a signed-out visitor reads the public review columns, approved rows only", (await db.query("select order_id, rating, comment, buyer_name, status, created_at from public.reviews")).rows.every((x) => x.status === "approved")));
+
+  // stats, summary, verified
+  const stats = (id) => as("anon", {}, async () => (await one(`select public.artist_public_stats('${id}') s`)).s);
+  const sast = await stats(sa);
+  ok("stats count the Artist's public works", sast.artworks === 3 && sast.ordersShipped === 0 && sast.avgShipHours === null);
+  ok("stats are null for a restricted Artist and for a Buyer", (await stats(sd)) === null && (await stats(buyer3)) === null);
+  const summary = await as("anon", {}, async () => (await one(`select public.artist_review_summary('${artist}') s`)).s);
+  ok("the review summary has five buckets", ["1", "2", "3", "4", "5"].every((k) => typeof summary[k] === "number"));
+  ok("verified starts false for a new Artist", (await one(`select verified v from public.profiles where id = '${sa}'`)).v === false);
+  await db.exec(`insert into public.artist_private (profile_id, legal_name, pan) values ('${sa}', 'Sam', 'ABCDE1234F') on conflict do nothing`);
+  await as("authenticated", {sub: other, app_metadata: {admin: true}}, () => db.query(`select public.mark_verified('${sa}')`));
+  ok("mark_verified sets verified", (await one(`select verified v from public.profiles where id = '${sa}'`)).v === true);
+  await as("authenticated", S(sa), () => db.query(`select public.submit_verification('Sam A', 'ABCDE1234F', '{"type":"upi","upi":"sam@upi"}')`));
+  ok("a re-submitted verification clears verified", (await one(`select verified v from public.profiles where id = '${sa}'`)).v === false);
+
+  // view counter
+  await as("anon", {}, () => db.query(`select public.bump_view('${w8}')`));
+  await as("anon", {}, () => db.query(`select public.bump_view('${w4}')`));
+  ok("bump_view counts a public work and not a draft", (await one(`select views v from public.artworks where id = '${w8}'`)).v === 1 && (await one(`select views v from public.artworks where id = '${w4}'`)).v === 0);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

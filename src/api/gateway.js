@@ -65,7 +65,8 @@ const RPC = {
   confirmReceived: (i) => ['confirm_received', { p_order: i.orderId }],
   reportDamage: (i) => ['report_damage', { p_order: i.orderId, p_line_ids: i.lineIds, p_note: i.note, p_photos: i.photoPaths ?? [], p_kind: i.kind }],
   submitReview: (i) => ['submit_review', { p_order: i.orderId, p_rating: i.rating, p_comment: i.comment }],
-  report: (i) => ['report', { p_target_type: i.targetType, p_target: i.targetId, p_reason: i.reason }],
+  report: (i) => ['report', { p_target_type: i.targetType, p_target: i.targetId, p_reason: i.reason, p_details: i.details ?? '' }],
+  setArtistSlug: (i) => ['set_artist_slug', { p_slug: i.slug }],
   submitVerification: (i) => ['submit_verification', { p_legal_name: i.legalName, p_pan: i.pan, p_method: i.payoutMethod }],
   decideDamage: (i) => ['decide_damage', { p_order: i.orderId, p_decision: i.decision, p_note: i.note ?? '' }],
   decideReview: (i) => ['decide_review', { p_order: i.reviewId, p_decision: i.decision }],
@@ -215,6 +216,9 @@ export const useCatalogueSearch = (query, artists, categories, page) => useQuery
   camel(must(await supabase.rpc('search_catalogue', {
     p_query: query, p_artists: artists, p_categories: categories ?? null, p_offset: page * 24,
   }))), [query, artists, categories?.join(','), page]);
+/** Artists whose name contains q (empty q asks nothing). */
+export const useArtistSearch = (q) => useQuery(
+  q ? async () => camel(must(await supabase.rpc('search_catalogue', { p_query: q, p_artists: true, p_categories: null, p_offset: 0 }))) : null, [q]);
 export const useArtworks = ({ categories } = {}, cursor = null) => useQuery(async () => {
   let q = supabase.from('artworks').select(`*, ${ARTIST_NAME}`).eq('status', 'published').eq('artist_open', true);
   if (categories) q = q.in('category', categories);
@@ -225,6 +229,33 @@ export const useArtwork =(id) => useQuery(
   id ? async () => camel(must(await supabase.from('artworks').select('*').eq('id', id).maybeSingle()) || null) : null,
   [id],
 );
+/** Browse with filters: { total, items } for one page of 24. The result carries the key it was asked for, so a page can tell a stale answer from the current one. */
+export const useBrowse = (rpcFilters) => {
+  const key = JSON.stringify(rpcFilters);
+  const [data, , error, reload] = useQuery(async () => ({ key, ...camel(must(await supabase.rpc('browse_catalogue', { p: rpcFilters }))) }), [key]);
+  const current = data && data.key === key ? data : undefined;
+  return [current, !current && !error, error, reload];
+};
+/** The site switches the Admin sets (settings.switches); {} until set. */
+export const useSwitches = () => useQuery(async () => must(await supabase.from('settings').select('switches').limit(1).maybeSingle())?.switches || {}, []);
+/** The Artist behind a short name, for the redirect to /artist/<id> only. */
+export const useArtistIdBySlug = (slug) => useQuery(
+  slug ? async () => must(await supabase.from('profiles').select('id').eq('slug', slug).maybeSingle())?.id ?? null : null, [slug]);
+export const useArtistStats = (id) => useQuery(id ? async () => camel(must(await supabase.rpc('artist_public_stats', { p_artist: id }))) : null, [id]);
+export const useArtistReviewSummary = (id) => useQuery(id ? async () => must(await supabase.rpc('artist_review_summary', { p_artist: id })) : null, [id]);
+export const REVIEWS_PAGE = 10;
+/** Approved reviews of an Artist, newest first; { rows, count }. buyer_id is never asked for. */
+export const useArtistReviews = (id, page = 0, size = REVIEWS_PAGE) => useQuery(
+  id ? async () => {
+    const { data, error, count } = await supabase.from('reviews').select('order_id, rating, comment, buyer_name, created_at', { count: 'exact' })
+      .eq('artist_id', id).eq('status', 'approved').order('created_at', { ascending: false }).order('order_id').range(page * size, page * size + size - 1);
+    if (error) throw error;
+    return { rows: camel(data), count: count ?? 0 };
+  } : null,
+  [id, page, size],
+);
+/** Counts one visit to an Artwork page; the caller makes sure it happens once per session. */
+export const bumpView = (artworkId) => supabase.rpc('bump_view', { p_artwork: artworkId }).then(() => {}, () => {});
 export const useArtist = (id) => useQuery(
   id ? async () => {
     const row = must(await supabase.from('profiles').select('*').eq('id', id).maybeSingle());

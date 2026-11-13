@@ -16,6 +16,7 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
   retries: 0,
+  expect: { timeout: 10000 }, // the first load of a page compiles it on the dev server
   reporter: [['list']],
   use: { baseURL: 'http://localhost:5173', trace: 'retain-on-failure' },
   projects,

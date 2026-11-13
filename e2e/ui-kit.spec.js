@@ -11,7 +11,7 @@ test.describe('QA-S36-03 dialogs', () => {
     await signInAs(page, 'B1');
     await page.goto(`/artwork/${W.W1}`);
     await page.getByRole('button', { name: 'Add to Cart' }).click();
-    await expect(page).toHaveURL(/\/cart$/);
+    await expect(page.getByRole('button', { name: 'In your Cart' })).toBeVisible(); // P03: the page stays
     await page.goto(`/artwork/${W.W6}`);
     const add = page.getByRole('button', { name: 'Add to Cart' });
     await add.click();

@@ -13,6 +13,22 @@ describe('cart', () => {
     expect(s.items[0].qty).toBe(MAX_QTY);
   });
 
+  it('ADD takes a quantity: a new line starts at it, an existing line grows by it, both capped (QA-S03-04)', () => {
+    let s = cartReducer(emptyCart, { type: 'ADD', artistId: 'a1', listingId: 'l1', qty: 2, price: 220000 });
+    expect(s.items).toEqual([{ listingId: 'l1', qty: 2, seen: 220000 }]);
+    s = cartReducer(s, { type: 'ADD', artistId: 'a1', listingId: 'l1', qty: 3 });
+    expect(s.items[0].qty).toBe(5);
+    s = cartReducer(s, { type: 'ADD', artistId: 'a1', listingId: 'l1', qty: 99 });
+    expect(s.items[0].qty).toBe(MAX_QTY);
+  });
+
+  it('a clash keeps the quantity asked for and a new Cart starts with it', () => {
+    let s = cartReducer(emptyCart, { type: 'ADD', artistId: 'a1', listingId: 'l1' });
+    s = cartReducer(s, { type: 'ADD', artistId: 'a2', listingId: 'l9', qty: 3, price: 100 });
+    expect(s.conflict).toEqual({ artistId: 'a2', listingId: 'l9', qty: 3, price: 100 });
+    expect(cartReducer(s, { type: 'REPLACE' }).items).toEqual([{ listingId: 'l9', qty: 3, seen: 100 }]);
+  });
+
   it('refuses a second Artist and offers a new Cart instead', () => {
     const s = add(add(emptyCart, 'a1', 'l1'), 'a2', 'l9', 5000);
     expect(s.items).toEqual([{ listingId: 'l1', qty: 1 }]);

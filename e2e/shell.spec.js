@@ -211,9 +211,9 @@ test.describe('QA-S20 not found and missing resources', () => {
   test('QA-S20-02 bad ids, missing resources and network errors', async ({ page, context }) => {
     await signInAs(page, 'B1');
     const missing = [
-      ['/artwork/xyz', /We couldn.t find this artwork/],
-      [`/artwork/${W.W4}`, /We couldn.t find this artwork/], // a draft
-      [`/artwork/${W.W7}`, /We couldn.t find this artwork/], // a restricted Artist's work
+      ['/artwork/xyz', /We couldn.t find this artwork/i],
+      [`/artwork/${W.W4}`, /We couldn.t find this artwork/i], // a draft
+      [`/artwork/${W.W7}`, /We couldn.t find this artwork/i], // a restricted Artist's work
       ['/orders/xyz', /We couldn.t find this order/],
       ['/artist/xyz', /We couldn.t find this Artist/],
     ];

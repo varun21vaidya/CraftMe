@@ -101,10 +101,25 @@ update public.orders set payment_method = 'upi', commission_bps = 1000, gift_not
 insert into public.saved_addresses (user_id, name, phone, address, address2, landmark, city, state, pin) values
   ('b1000000-0000-4000-8000-000000000001', 'Ananya Verma', '9876543210', 'Flat 402, Sea Breeze Apartments', 'Carter Road, Bandra West', '', 'Mumbai', 'Maharashtra', '400050');
 
-insert into public.artworks (id, artist_id, title, description, category, photos, status, created_at) values
-  ('cf000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'Filler 01', 'Filler work F01.', 'Paintings', array['/demo/madhubani-fish.jpg'], 'published', now() - interval '1 day');
-insert into public.listings (id, artwork_id, artist_id, title, kind, price, stock, status) values
-  ('df000000-0000-4000-8000-000000000001', 'cf000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'Print', 'print', 50000, 10, 'live');
+-- P03: thirty filler works F01 to F30 (F01 stays Artist A1's, used by the saved-cart tests). Six share one timestamp; F11 to F14 share one price.
+-- A1's fillers are Ready-made so A1's Prints and Originals stay W1 and W2 only.
+create temp table qa_filler as
+select n, case when n = 1 or n % 3 = 0 then 'a1000000-0000-4000-8000-000000000001'::uuid when n % 3 = 1 then 'a2000000-0000-4000-8000-000000000002'::uuid
+               else 'a4000000-0000-4000-8000-000000000004'::uuid end as artist,
+       (array['Paintings', 'Wood Crafts', 'Keychains', 'Wall Hangings', 'Bead & Charm Kits'])[n % 5 + 1] as category
+from generate_series(1, 30) n;
+insert into public.artworks (id, artist_id, title, description, category, photos, status, created_at, medium)
+select ('cf000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, artist, 'Filler ' || lpad(n::text, 2, '0'), 'Filler work F' || lpad(n::text, 2, '0') || '.', category,
+       array['/demo/madhubani-fish.jpg'], 'published',
+       case when n <= 6 then now() - interval '1 day' else now() - interval '2 days' - n * interval '1 hour' end,
+       case when n % 7 = 0 then 'Acrylic on board' else '' end
+from qa_filler;
+insert into public.listings (id, artwork_id, artist_id, title, kind, price, stock, status)
+select ('df000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, ('cf000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, artist,
+       case when artist = 'a1000000-0000-4000-8000-000000000001' or category <> 'Paintings' then 'Ready-made' else 'Print' end,
+       case when artist = 'a1000000-0000-4000-8000-000000000001' or category <> 'Paintings' then 'product' else 'print' end,
+       case when n = 1 then 50000 when n between 11 and 14 then 99900 else (500 + (n - 1) * 2050) * 100 end, 10, 'live'
+from qa_filler;
 
 -- helper: one order with its lines and address. p_lines: [{listing, artwork, title, kind, unit, qty, refunded}]
 create function pg_temp.qa_order(p_id uuid, p_code text, p_buyer uuid, p_artist uuid, p_stage text, p_lines jsonb, p_times jsonb, p_extra jsonb default '{}')
@@ -179,3 +194,29 @@ insert into public.reviews (order_id, artist_id, buyer_id, rating, comment, stat
 
 update public.settings set commission_bps = 1000, onboarding_fee_paise = 49900,
   switches = '{"acceptArtists": true, "instagramConnect": true, "demoBanner": true, "emails": false}';
+
+-- ---------- P03: where the Artists are, wall labels, A1's public Reviews and reel ----------
+update public.profiles set city = 'Chennai', state = 'Tamil Nadu', verified = true where id = 'a1000000-0000-4000-8000-000000000001';
+update public.profiles set city = 'Lucknow', state = 'Uttar Pradesh' where id = 'a2000000-0000-4000-8000-000000000002';
+update public.profiles set verified = true where id in ('a3000000-0000-4000-8000-000000000003', 'a4000000-0000-4000-8000-000000000004');
+update public.artworks set medium = 'Acrylic on canvas', year = 2024, signed = 'back' where id = 'c1000000-0000-4000-8000-000000000001';
+update public.artworks set medium = 'Rice flour on paper', year = 2025, signed = 'unsigned' where id = 'c1000000-0000-4000-8000-000000000002';
+update public.artworks set medium = 'Cast brass', year = 2023 where id = 'c1000000-0000-4000-8000-000000000006';
+update public.artworks set medium = 'Two-colour riso print' where id = 'c1000000-0000-4000-8000-000000000008';
+
+-- A1's three approved Reviews (O7 already has one): 5, 5 and 4 stars = the profile's stored 14 over 3.
+-- The two extra Reviews hang on two received Orders of Admin Two (a buyer no other script counts), so O9, O10 and the review scripts stay as they are.
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000016', 'CM-20416', 'ad000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000001', 'received',
+  jsonb_build_array(:'w1p'::jsonb), '{"paid": "-20 days", "shipped": "-18 days", "received": "-15 days"}');
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000017', 'CM-20417', 'ad000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000001', 'received',
+  jsonb_build_array(:'w2p'::jsonb), '{"paid": "-8 days", "shipped": "-6 days", "received": "-4 days"}');
+insert into public.reviews (order_id, artist_id, buyer_id, rating, comment, status, buyer_name, created_at) values
+  ('e0000000-0000-4000-8000-000000000016', 'a1000000-0000-4000-8000-000000000001', 'ad000000-0000-4000-8000-000000000002', 5,
+   'Exactly as photographed, and it arrived in three days.', 'approved', 'Ananya', now() - interval '12 days'),
+  ('e0000000-0000-4000-8000-000000000017', 'a1000000-0000-4000-8000-000000000001', 'ad000000-0000-4000-8000-000000000002', 4,
+   'Lovely colours. The tube was a little dented but the print was fine.', 'approved', 'Rahul', now() - interval '3 days');
+update public.orders set reviewed = true where id in ('e0000000-0000-4000-8000-000000000016', 'e0000000-0000-4000-8000-000000000017');
+
+insert into public.reels (id, artist_id, url, highlighted, position, owner_confirmed) values
+  ('ee000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'https://www.instagram.com/reel/CqaQa123abc/', true, 0, true);
+update public.artworks set reel_id = 'ee000000-0000-4000-8000-000000000001' where id = 'c1000000-0000-4000-8000-000000000001';
