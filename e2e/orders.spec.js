@@ -134,7 +134,7 @@ test.describe('QA-S12 my orders', () => {
     await expect(panel.locator('article').filter({ hasText: 'CM-20407' }).getByRole('link', { name: 'Write a Review' })).toHaveCount(0);
     await panel.locator('article').filter({ hasText: 'CM-20406' }).getByRole('link', { name: 'Write a Review' }).click();
     await expect(page).toHaveURL(new RegExp(`/orders/${O.O6}/review$`));
-    await expect(page.getByRole('heading', { name: 'How was it?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Review Meera Iyer' })).toBeVisible();
   });
 
   test('QA-S12-03 empty, loading, error', async ({ page }) => {

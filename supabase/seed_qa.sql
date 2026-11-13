@@ -172,5 +172,10 @@ insert into public.damage_reports (order_id, buyer_id, artist_id, photos, note, 
    '{damage/b2000000-0000-4000-8000-000000000002/1.jpg,damage/b2000000-0000-4000-8000-000000000002/2.jpg}', 'The corner is torn.', 'open',
    '{d2000000-0000-4000-8000-000000000002}');
 
+-- P02: O7's approved Review (QA-S15-04)
+insert into public.reviews (order_id, artist_id, buyer_id, rating, comment, status, buyer_name, created_at) values
+  ('e0000000-0000-4000-8000-000000000007', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', 5,
+   'Beautiful print, packed with care.', 'approved', 'Ananya', now() - interval '35 days');
+
 update public.settings set commission_bps = 1000, onboarding_fee_paise = 49900,
   switches = '{"acceptArtists": true, "instagramConnect": true, "demoBanner": true, "emails": false}';

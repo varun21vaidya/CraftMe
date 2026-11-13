@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { call, upload, useOrder } from '../api/gateway';
-import { useAuth } from '../contexts/AuthContext';
+import { useOrder } from '../api/gateway';
 import { useCart } from '../contexts/CartContext';
 import { ConfirmingPayment } from '../components/checkout/ConfirmingPayment';
 import { Icon } from '../components/common/Icon';
@@ -10,50 +9,16 @@ import { OrderItems, ShipTo } from '../components/orders/OrderItems';
 import { OrderPlaced } from '../components/orders/OrderPlaced';
 import { OrderReceipt } from '../components/orders/OrderReceipt';
 import { StageTracker } from '../components/orders/StageTracker';
-import { ReviewForm } from '../components/reviews/ReviewForm';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { CopyButton } from '../components/ui/CopyButton';
 import { Timeline } from '../components/ui/Timeline';
 import { isBadId } from '../lib/artist';
-import { errorText, formatClock, formatDate, formatDay, formatINR, methodLabel, REFUND_STATUS_LABEL, STAGE_BADGE } from '../lib/format';
+import { formatClock, formatDate, formatDay, formatINR, methodLabel, REFUND_STATUS_LABEL, STAGE_BADGE } from '../lib/format';
 import { orderTimeline } from '../lib/orderTimeline';
 import { useCountdown } from '../lib/useCountdown';
 
 const first = (name) => String(name || 'the Artist').trim().split(/\s+/)[0];
 const PAID_OR_LATER = ['paid', 'shipped', 'received', 'refunded'];
-
-// The inline damage form stays until P02 ships the Damage Report page at /orders/:id/damage.
-function DamageForm({ order }) {
-  const { currentUser } = useAuth();
-  const [note, setNote] = useState('');
-  const [files, setFiles] = useState([]);
-  const [msg, setMsg] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  const send = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    const ups = await Promise.all(files.map((f) => upload('damage', f, currentUser.uid)));
-    const bad = ups.find((u) => !u.ok);
-    const res = bad ? bad : await call('reportDamage', {
-      orderId: order.id, lineIds: order.lines.map((l) => l.listingId), note, photoPaths: ups.map((u) => u.path),
-    });
-    setBusy(false);
-    setMsg(res.ok ? 'Thanks. We’ll look at your photos and get back to you.' : errorText(res.error));
-  };
-
-  return (
-    <form className="panel stack" onSubmit={send}>
-      <h3>Something wrong with your order?</h3>
-      <div className="field"><label htmlFor="note">What happened?</label>
-        <textarea id="note" className="input" rows={3} required maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} /></div>
-      <div className="field"><label htmlFor="dphotos">Photos <span className="opt">up to 5</span></label>
-        <input id="dphotos" type="file" multiple accept="image/jpeg,image/png" onChange={(e) => setFiles([...e.target.files].slice(0, 5))} /></div>
-      {msg && <p role="status">{msg}</p>}
-      <button className="btn btn-secondary" disabled={busy || !note.trim()}>Send</button>
-    </form>
-  );
-}
 
 /** The one sentence that says where the Order stands. */
 function StageMessage({ order, onFinishPaying }) {
@@ -139,8 +104,6 @@ export default function OrderPage() {
 
       <div className="split">
         <div className="stack lg">
-          {view === 'damage' && can.canReportDamage && <DamageForm order={order} />}
-          {view === 'review' && can.canReview && <div className="panel stack"><h3>How was it?</h3><ReviewForm orderId={order.id} onDone={reload} /></div>}
           <section className="panel stack"><h3>Items</h3><OrderItems order={order} /></section>
           {order.shippedAt && (
             <section className="panel stack"><h3>Shipment</h3>
@@ -163,8 +126,8 @@ export default function OrderPage() {
           <section className="panel stack" aria-label="Actions">
             <h3>What you can do</h3>
             {can.canConfirmReceived && <button type="button" className="btn btn-primary btn-lg btn-block" onClick={() => setReceiving(true)}><Icon name="check" />I&apos;ve received it</button>}
-            {can.canReportDamage && view !== 'damage' && <Link className="btn btn-secondary btn-block" to={`/orders/${order.id}/damage`}><Icon name="alert" />Something not right?</Link>}
-            {can.canReview && view !== 'review' && <Link className="btn btn-primary btn-block" to={`/orders/${order.id}/review`}><Icon name="star" />Review {first(artist)}</Link>}
+            {can.canReportDamage && <Link className="btn btn-secondary btn-block" to={`/orders/${order.id}/damage`}><Icon name="alert" />Something not right?</Link>}
+            {can.canReview && <Link className="btn btn-primary btn-block" to={`/orders/${order.id}/review`}><Icon name="star" />Review {first(artist)}</Link>}
             {can.canPay && <button type="button" className="btn btn-primary btn-block" onClick={finishPaying}>Finish paying</button>}
             {order.stage === 'paid' && (
               <>

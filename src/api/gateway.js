@@ -32,8 +32,9 @@ const allowedActions = (o, role, now) => {
   };
 };
 const toOrder = (row) => {
-  const { orderLines, ...rest } = camel(row);
-  const order = { ...rest, lines: orderLines || [] };
+  const { orderLines, damageReports, ...rest } = camel(row);
+  // damage_reports.order_id is unique, so PostgREST sends one object (or null) instead of a list
+  const order = { ...rest, lines: orderLines || [], damageReports: damageReports ? [].concat(damageReports) : [] };
   const now = Date.now();
   return { ...order, buyerActions: allowedActions(order, 'buyer', now), artistActions: allowedActions(order, 'artist', now) };
 };
@@ -62,7 +63,7 @@ const fromDbError = (error, requestId) => {
 const RPC = {
   markShipped: (i) => ['mark_shipped', { p_order: i.orderId, p_courier: i.courier, p_tracking: i.trackingNumber ?? '' }],
   confirmReceived: (i) => ['confirm_received', { p_order: i.orderId }],
-  reportDamage: (i) => ['report_damage', { p_order: i.orderId, p_line_ids: i.lineIds, p_note: i.note, p_photos: i.photoPaths ?? [] }],
+  reportDamage: (i) => ['report_damage', { p_order: i.orderId, p_line_ids: i.lineIds, p_note: i.note, p_photos: i.photoPaths ?? [], p_kind: i.kind }],
   submitReview: (i) => ['submit_review', { p_order: i.orderId, p_rating: i.rating, p_comment: i.comment }],
   report: (i) => ['report', { p_target_type: i.targetType, p_target: i.targetId, p_reason: i.reason }],
   submitVerification: (i) => ['submit_verification', { p_legal_name: i.legalName, p_pan: i.pan, p_method: i.payoutMethod }],
@@ -152,7 +153,7 @@ function useQuery(fetcher, deps, pollMs = 0) {
 const ORDERS = '*, order_lines(*)';
 // The buyer's views: line photos, the Artist's name, the address, refunds and damage reports in one request.
 const BUYER_ORDER = '*, order_lines(*, artwork:artworks(id, photos)), artist:profiles!artist_id(id, display_name)';
-const BUYER_ORDER_FULL = `${BUYER_ORDER}, order_shipping(*), refunds(*), damage_reports(id, status, created_at, decided_at, decision, line_ids)`;
+const BUYER_ORDER_FULL = `${BUYER_ORDER}, order_shipping(*), refunds(*), damage_reports(id, code, kind, note, status, created_at, decided_at, decision, line_ids)`;
 export const useOrder = (orderId) => useQuery(
   orderId ? async () => {
     const row = must(await supabase.from('orders').select(BUYER_ORDER_FULL).eq('id', orderId).maybeSingle());
@@ -164,6 +165,14 @@ export const useOrder = (orderId) => useQuery(
 export const getOrderStage = (orderId) => safe(async () => ({
   stage: must(await supabase.from('orders').select('stage').eq('id', orderId).maybeSingle())?.stage ?? null,
 }));
+/** The buyer's own Review of an Order (approved or not), or null. */
+export const useMyReview = (orderId) => useQuery(
+  orderId ? async () => {
+    const row = must(await supabase.from('reviews').select('rating, comment, status, created_at').eq('order_id', orderId).maybeSingle());
+    return row ? camel(row) : null;
+  } : null,
+  [orderId],
+);
 export const ORDERS_PAGE = 20;
 const TAB_STAGE = { paid: 'paid', shipped: 'shipped', received: 'received', refunded: 'refunded' };
 /** One page of the buyer's history for a tab ('all' or a stage). Holds are listed separately (useOpenHolds). */
@@ -380,6 +389,14 @@ export const upload = (kind, file, uid) => safe(async () => {
   const url = kind === 'damage' ? must(await bucket.createSignedUrl(name, 3600)).signedUrl : bucket.getPublicUrl(name).data.publicUrl;
   return { path: `${kind}/${name}`, url };
 });
+
+/** Best effort: removes uploaded files (full paths as upload() returned them). Never throws; the cleanup job catches what this misses. */
+export const removeUploads = async (kind, paths) => {
+  try {
+    const names = (paths || []).map((p) => p.slice(kind.length + 1));
+    if (names.length) await supabase.storage.from(kind).remove(names);
+  } catch { /* the cleanup job removes them later */ }
+};
 
 export const useSavedCart = (uid) => useQuery(
   uid ? async () => camel(must(await supabase.from('saved_cart_items')

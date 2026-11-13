@@ -2,6 +2,7 @@
 // functions (supabase/migrations/0003_logic.sql); this file only talks to Razorpay and hands the result to them.
 //   POST /api            {name, requestId, ...input}  -> envelope {ok, data|error, requestId}   (needs a signed-in user)
 //   POST /api/webhook    Razorpay webhook (signature checked, events de-duplicated)
+//   POST /api/cron?job=cleanup   scheduled jobs (header x-cron-secret = CRON_SECRET); `cleanup` removes damage photos no report uses, older than 24 hours
 //   /api/instagram/*     Instagram connection (Unified Login): browser callback, Meta deauthorize and data-deletion (instagram.ts)
 // Deployed with verify_jwt off: commands verify the user below, the webhook verifies Razorpay's signature.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -14,6 +15,7 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
 const KEY_ID = Deno.env.get("RAZORPAY_KEY_ID") ?? "";
 const KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET") ?? "";
 const WEBHOOK_SECRET = Deno.env.get("RAZORPAY_WEBHOOK_SECRET") ?? "";
+const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
 
 // Fake provider mode (local tests only). Asked for in production, every command and the webhook answer "unavailable".
 let MODE: "live" | "fake" = "live";
@@ -372,11 +374,31 @@ async function webhook(req: Request) {
   return new Response(null, { status: 200 });
 }
 
+/** The one scheduled-jobs route. Without the secret nothing runs. Jobs: cleanup. */
+async function cron(req: Request) {
+  const given = req.headers.get("x-cron-secret") ?? "";
+  let diff = given.length ^ CRON_SECRET.length; // compare every character so the time doesn't say how many matched
+  for (let i = 0; i < CRON_SECRET.length; i++) diff |= (given.charCodeAt(i) || 0) ^ CRON_SECRET.charCodeAt(i);
+  if (!CRON_SECRET || diff !== 0) return json({ ok: false, error: { code: "forbidden" } }, 403);
+  const job = new URL(req.url).searchParams.get("job");
+  if (job !== "cleanup") return json({ ok: false, error: { code: "invalid" } }, 400);
+  const { data, error } = await admin.rpc("damage_orphans");
+  if (error) return json({ ok: false, error: { code: "unavailable" } }, 500);
+  const names = (data ?? []) as string[];
+  for (let i = 0; i < names.length; i += 100) {
+    const { error: rmError } = await admin.storage.from("damage").remove(names.slice(i, i + 100));
+    if (rmError) return json({ ok: false, error: { code: "unavailable" } }, 500);
+  }
+  return json({ ok: true, data: { removed: names.length } });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   const instagram = await ig.route(req); // GET /instagram/callback is the only non-POST route
   if (instagram) return instagram;
   if (req.method !== "POST") return json({ ok: false, error: { code: "invalid" } }, 405);
-  if (new URL(req.url).pathname.endsWith("/webhook")) return await webhook(req);
+  const path = new URL(req.url).pathname;
+  if (path.endsWith("/webhook")) return await webhook(req);
+  if (path.endsWith("/cron")) return await cron(req);
   return json(await runCommand(req));
 });

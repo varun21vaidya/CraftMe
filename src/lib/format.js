@@ -61,6 +61,7 @@ const reasonText = {
   window_closed: 'The time for this has passed.',
   wrong_stage: 'This can’t be done at this stage of the order.',
   already_exists: 'You’ve already done this.',
+  already_decided: 'That has already been decided.',
   in_progress: 'Still working on your last request.',
   not_found: 'We couldn’t find that.',
   disabled: 'This isn’t available yet.',
@@ -73,6 +74,12 @@ const codeText = {
   invalid: 'Please check what you entered.',
   rate_limited: 'Too many tries. Please wait a little.',
   unavailable: 'We couldn’t reach CraftMe. Please try again.',
+};
+
+/** What each field the server can name (the `fields` of an `invalid` result) means to the buyer. */
+export const FIELD_TEXT = {
+  lineIds: 'Choose at least one item.', kind: 'Choose the type of damage.', note: 'Describe what happened.', photoPaths: 'Add at least 2 photos.',
+  rating: 'Pick a rating.', comment: 'Write a few words.',
 };
 
 export const errorText = (error) => reasonText[error?.reason] || codeText[error?.code] || 'Something went wrong. Please try again.';

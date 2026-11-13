@@ -3,7 +3,7 @@ import fs from "node:fs";
 import {RULES} from "../src/lib/rules.js";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0004_storage", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout", "0020_damage_review"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -14,6 +14,15 @@ await db.exec(`
   create function auth.uid() returns uuid language sql stable as $$ select nullif(auth.jwt() ->> 'sub', '')::uuid $$;
   grant usage on schema auth to anon, authenticated, service_role;
   grant execute on all functions in schema auth to anon, authenticated, service_role;
+  create schema storage;
+  create table storage.buckets (id text primary key, name text, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);
+  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid, metadata jsonb default '{}', created_at timestamptz default now());
+  alter table storage.objects enable row level security;
+  create function storage.foldername(name text) returns text[] language sql immutable as $$ select (string_to_array(name, '/'))[1:greatest(cardinality(string_to_array(name, '/')) - 1, 0)] $$;
+  grant usage on schema storage to anon, authenticated, service_role;
+  grant select, insert, update, delete on storage.objects to authenticated, service_role;
+  grant select on storage.buckets to authenticated, service_role;
+  grant execute on all functions in schema storage to anon, authenticated, service_role;
 `);
 for (const sql of migrations) await db.exec(sql);
 console.log("migrations applied");
@@ -151,12 +160,53 @@ await as("authenticated", O, () => failsWith("a stranger cannot ship", "forbidde
 await as("authenticated", A, () => failsWith("an artist must name a courier", "invalid", () => db.query(`select public.mark_shipped('${placed.orderId}', '  ')`)));
 await as("authenticated", A, async () => { await db.query(`select public.mark_shipped('${placed.orderId}', 'DTDC', 'T1')`); ok("artist ships a paid order", true); });
 ok("the UI rules match the SQL: auto_receive_at is autoReceiveDays after shipping", await secs("auto_receive_at", "shipped_at") === RULES.autoReceiveDays * 86400);
-await as("authenticated", B, () => failsWith("cannot report damage before receiving", "wrong_stage", () => db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'broken', '{}')`)));
+const photoRow = (uid, name, mime = "image/jpeg", hoursOld = 0) => db.exec(`insert into storage.objects (bucket_id, name, owner, metadata, created_at) values ('damage', '${uid}/${name}', '${uid}', '{"mimetype":"${mime}"}', now() - interval '${hoursOld} hours')`);
+for (const n of ["a.jpg", "b.jpg", "c.jpg", "d.jpg", "e.jpg", "f.jpg", "g.jpg"]) await photoRow(buyer, n);
+await photoRow(buyer, "x.webp", "image/webp");
+for (const n of ["a.jpg", "b.jpg"]) { await photoRow(other, n); await photoRow(artist, n); }
+const ph = (...names) => `damage/${buyer}/${names.join(`,damage/${buyer}/`)}`;
+const rd = (order, lineIds, note, photos, kind = "torn") => `select public.report_damage('${order}', '{${lineIds}}', '${note}', '{${photos}}', '${kind}') r`;
+const rdFails = (name, text, ...a) => as("authenticated", B, () => failsWith(name, text, () => db.query(rd(...a))));
+await rdFails("cannot report damage before receiving", "wrong_stage", placed.orderId, lp, "broken", ph("a.jpg", "b.jpg"));
 await as("authenticated", B, async () => { await db.query(`select public.confirm_received('${placed.orderId}')`); ok("buyer confirms receipt", true); });
 ok("the UI rules match the SQL: damageDays and reviewDays after receipt", await secs("damage_window_ends", "received_at") === RULES.damageDays * 86400 && await secs("review_by", "received_at") === RULES.reviewDays * 86400);
-await as("authenticated", B, () => failsWith("damage photos must be in the buyer's own folder", "photoPaths", () => db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'cracked', '{damage/${other}/x.jpg}')`)));
-await as("authenticated", B, async () => { await db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'cracked', '{damage/${buyer}/x.jpg}')`); ok("buyer reports damage in the window", true); });
-await as("authenticated", B, () => failsWith("a second damage report is refused", "already_exists", () => db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'again', '{}')`)));
+await rdFails("one photo is refused", "photoPaths", placed.orderId, lp, "cracked", ph("a.jpg"));
+await rdFails("seven photos are refused", "photoPaths", placed.orderId, lp, "cracked", ph("a.jpg", "b.jpg", "c.jpg", "d.jpg", "e.jpg", "f.jpg", "g.jpg"));
+await rdFails("the same photo twice is refused", "photoPaths", placed.orderId, lp, "cracked", ph("a.jpg", "a.jpg"));
+await rdFails("damage photos must be in the buyer's own folder", "photoPaths", placed.orderId, lp, "cracked", `damage/${other}/a.jpg,damage/${other}/b.jpg`);
+await rdFails("a photo path with no stored object is refused", "photoPaths", placed.orderId, lp, "cracked", ph("a.jpg", "missing.jpg"));
+await rdFails("a WebP object is refused", "photoPaths", placed.orderId, lp, "cracked", ph("a.jpg", "x.webp"));
+await rdFails("801 characters are refused", "note", placed.orderId, lp, "x".repeat(801), ph("a.jpg", "b.jpg"));
+await rdFails("an empty note is refused", "note", placed.orderId, lp, "   ", ph("a.jpg", "b.jpg"));
+await rdFails("no line is refused", "lineIds", placed.orderId, "", "cracked", ph("a.jpg", "b.jpg"));
+await rdFails("a duplicate line id is refused", "lineIds", placed.orderId, `${lp},${lp}`, "cracked", ph("a.jpg", "b.jpg"));
+await rdFails("a line of another order is refused", "lineIds", placed.orderId, lo, "cracked", ph("a.jpg", "b.jpg"));
+await rdFails("an unknown kind is refused", "kind", placed.orderId, lp, "cracked", ph("a.jpg", "b.jpg"), "scratched");
+await as("authenticated", O, () => failsWith("another buyer cannot report on this order", "forbidden", () => db.query(rd(placed.orderId, lp, "cracked", `damage/${other}/a.jpg,damage/${other}/b.jpg`))));
+await as("authenticated", A, () => failsWith("the artist cannot report damage", "forbidden", () => db.query(rd(placed.orderId, lp, "cracked", `damage/${artist}/a.jpg,damage/${artist}/b.jpg`))));
+await db.exec(`update public.orders set damage_window_ends = now() - interval '1 minute' where id = '${placed.orderId}'`);
+await rdFails("a report after the window is refused", "window_closed", placed.orderId, lp, "cracked", ph("a.jpg", "b.jpg"));
+await db.exec(`update public.orders set damage_window_ends = now() + interval '1 day' where id = '${placed.orderId}'`);
+await as("authenticated", B, async () => {
+  const r = (await one(rd(placed.orderId, lp, " cracked  ", ph("a.jpg", "b.jpg"), "broken"))).r;
+  ok("buyer reports damage in the window; the report has a code", /^[0-9A-F]{6}$/.test(r.code) && !!r.reportId);
+});
+{
+  const rep = await one(`select kind, code, note, cardinality(photos) n, line_ids from public.damage_reports where order_id = '${placed.orderId}'`);
+  ok("the report keeps kind, trimmed note, two photos and the line", rep.kind === "broken" && rep.note === "cracked" && rep.n === 2 && rep.line_ids[0] === lp);
+}
+await rdFails("a second damage report is refused", "already_exists", placed.orderId, lp, "again", ph("c.jpg", "d.jpg"));
+ok("the damage bucket takes only JPEG and PNG", (await one("select allowed_mime_types a from storage.buckets where id = 'damage'")).a.join() === "image/jpeg,image/png");
+const del = (claims, name) => as("authenticated", claims, async () => (await db.query(`delete from storage.objects where bucket_id = 'damage' and name = '${buyer}/${name}' returning name`)).rows.length);
+ok("the buyer deletes an unreferenced own photo", await del(B, "e.jpg") === 1);
+ok("a photo a report uses cannot be deleted", await del(B, "a.jpg") === 0);
+ok("another user cannot delete the buyer's photo", await del(O, "c.jpg") === 0);
+await photoRow(buyer, "old-orphan.jpg", "image/jpeg", 25);
+await photoRow(buyer, "new-orphan.jpg", "image/jpeg", 1);
+await db.exec(`update storage.objects set created_at = now() - interval '30 hours' where name in ('${buyer}/a.jpg', '${buyer}/b.jpg')`); // old but referenced
+const orphans = await svc(async () => (await db.query("select * from public.damage_orphans()")).rows.map((r) => r.damage_orphans));
+ok("damage_orphans lists only old unreferenced files", orphans.length === 1 && orphans[0] === `${buyer}/old-orphan.jpg`);
+await as("authenticated", B, () => rejects("a buyer cannot call damage_orphans", () => db.query("select * from public.damage_orphans()")));
 await as("authenticated", B, async () => { await db.query(`select public.submit_review('${placed.orderId}', 5, 'lovely')`); ok("buyer reviews a received order", true); });
 await as("authenticated", B, () => failsWith("a second review is refused", "already_exists", () => db.query(`select public.submit_review('${placed.orderId}', 4, 'again')`)));
 await as("authenticated", B, () => failsWith("a buyer cannot decide a review", "forbidden", () => db.query(`select public.decide_review('${placed.orderId}', 'approved')`)));
