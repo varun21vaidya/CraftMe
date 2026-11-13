@@ -596,3 +596,6 @@ body::before { background: var(--bg); }
 .empty .market-search { flex: none; width: min(100%, 420px); }
 .empty .market-search .market-search-toggle { display: none; }
 .empty .market-search form { display: flex; position: static; padding: 0; }
+
+/* the two plain search boxes (header/404 and Saved page) get the same inner padding as other fields */
+.market-search input[type="search"], input[type="search"]:not(.input) { min-height: 42px; padding: 9px 14px; border-radius: 6px; }
