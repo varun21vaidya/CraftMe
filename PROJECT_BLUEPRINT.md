@@ -202,19 +202,19 @@ Legend: ✅ done · 🟡 partial · ⬜ not started · 🔵 later.
 | # | Feature | Status | Work needed |
 |---|---|---|---|
 | A1 | Google sign-in | 🟡 | Fix export, redirect after sign-in, error messages |
-| A2 | Email + password sign-in and sign-up | ⬜ | Forms, verification email |
-| A3 | Password reset | ⬜ | Reset flow |
+| A2 | ~~Email + password sign-in and sign-up~~ | ⛔ | Superseded: Google is the only login (screen-parity decision D01). S06 stays deferred. |
+| A3 | ~~Password reset~~ | ⛔ | Superseded with A2 (D01). S07 stays deferred. |
 | A4 | GitHub sign-in | 🟡 | Provider exists; add a button or remove |
 | A5 | Sign-out | ⬜ | Header menu |
 | A6 | Auth state in context | 🟡 | Clean up; expose `isAdmin`, `isArtist` |
 | A7 | Additive roles (Buyer, Artist, Admin) as custom claims | 🟡 | Admin claim exists; add Artist; clients can't change claims |
 | A8 | Profile document created on first sign-in | ⬜ | Auth trigger |
 | A9 | Profile page (name, photo, bio) | ⬜ | Page; rule limits editable fields |
-| A10 | Become an Artist: Artist Verification (legal name, PAN, payout UPI or bank, verified phone) | ⬜ | Form, phone OTP via Firebase Auth, private storage |
-| A11 | Pay the Onboarding Fee (Razorpay Checkout) to get the Artist role | ⬜ | Callable + webhook |
+| A10 | Become an Artist: Artist Verification (legal name, PAN, payout UPI or bank, verified phone) | ⬜ | Built in full (D02). Form, phone OTP over WhatsApp via the Supabase Send SMS Hook and Meta Cloud API (D03; replaces Firebase Auth OTP), private storage |
+| A11 | Pay the Onboarding Fee (Razorpay Checkout) to get the Artist role | ⬜ | Edge Function command + webhook (D02) |
 | A12 | Protected routes | ✅ | Reuse |
 | A13 | Admin-only routes | ✅ | Reuse; one place for the role check |
-| A14 | Delete account / export data | 🔵 | Privacy compliance |
+| A14 | Delete account / export data | ⬜ | Deletion is in scope (D11): self-serve request, auto-anonymize once no open orders, reports or unsettled payouts. Export stays later. |
 
 ### 4.2 Artist tools
 | # | Feature | Status | Work needed |
@@ -242,11 +242,11 @@ Legend: ✅ done · 🟡 partial · ⬜ not started · 🔵 later.
 | IG2 | Connect Instagram (Business/Creator only): OAuth, exchange for a 60-day token, stored server-side only | ⬜ | Callable + functions-only token store |
 | IG3 | Token refresh before 60 days; reconnect prompt if it lapses | ⬜ | Sweep job |
 | IG4 | Pick posts and reels from the Artist's own feed | ⬜ | Function lists media; Artist picks |
-| IG5 | Instagram Showcase: up to 9 posts/reels on the profile | ⬜ | Store permalinks only; render official embeds |
+| IG5 | Instagram Showcase: up to 9 posts/reels on the profile | ⬜ | Confirmed (D09): 9 mixed posts and reels, replacing the app's 12 total / 6 highlighted reel caps. Store permalinks only; render official embeds |
 | IG6 | Reel link on an Artwork (picked or pasted) | ⬜ | Same embed component |
 | IG7 | Paste-a-link fallback for personal accounts and before Meta approval | ⬜ | Link validation (Instagram post/reel URL) |
 | IG8 | Embeds load only when scrolled into view | ⬜ | Lazy embed component |
-| IG9 | Disconnect, plus Meta's deauthorise and data-deletion callbacks | ⬜ | HTTPS functions; delete tokens and picked IDs on request |
+| IG9 | Disconnect, plus Meta's deauthorise and data-deletion callbacks | ⬜ | HTTPS functions; delete the token and all API-imported picks on disconnect or request. Links the artist pasted themselves are kept (D09) |
 | IG10 | Connect button hidden until Meta approves (feature switch) | ⬜ | Setting |
 
 ### 4.4 Discovery
