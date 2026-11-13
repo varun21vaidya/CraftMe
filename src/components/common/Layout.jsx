@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { signOutUser } from '../../api/gateway';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { useSaved } from '../../contexts/SavedContext';
+import { initials } from '../../lib/artist';
+import { GROUPS } from '../../lib/categories';
+import { currentTheme, subscribeTheme, toggleTheme } from '../../lib/theme';
 import { CartConflictDialog } from '../cart/CartConflictDialog';
+import { Menu } from '../ui/Menu';
+import { ThemeToggle } from '../ui/ThemeToggle';
 import { Icon } from './Icon';
 import { NotificationBell } from './NotificationBell';
 import MarketplaceSearch from './MarketplaceSearch';
@@ -16,30 +21,37 @@ const Logo = () => (
   </Link>
 );
 
+const groupLink = (name) => `/browse?group=${encodeURIComponent(name)}`;
+
 export function Layout() {
   const { currentUser, isArtist } = useAuth();
   const { count } = useCart();
   const { count: saved } = useSaved();
+  const theme = useSyncExternalStore(subscribeTheme, currentTheme);
   const [open, setOpen] = useState(false);
+  const burger = useRef(null);
   const { pathname } = useLocation();
   useEffect(() => setOpen(false), [pathname]); // close after picking a link
 
-  const links = (
-    <>
-      <Link to="/browse">Browse</Link>
-      {isArtist && <Link to="/dashboard/new">Add artwork</Link>}
-      {isArtist && <Link to="/dashboard/works">My works</Link>}
-      {isArtist && <Link to="/dashboard/orders">Orders to ship</Link>}
-      {isArtist && <Link to="/dashboard/profile">My profile</Link>}
-    </>
-  );
+  const groups = Object.keys(GROUPS).map((name) => ({ to: groupLink(name), label: name }));
+  const account = [
+    { to: '/orders', label: 'My orders' },
+    { to: '/wishlist', label: 'Wish list' },
+    ...(isArtist ? [{ to: '/dashboard/orders', label: 'Artist dashboard' }] : []),
+    'divider',
+    { onSelect: toggleTheme, label: theme === 'dark' ? 'Light theme' : 'Dark theme' },
+    { onSelect: signOutUser, label: 'Log out', icon: 'logout' },
+  ];
 
   return (
     <>
       <header className="site-header">
         <div className="wrap bar">
           <Logo />
-          <nav className="nav" aria-label="Main">{links}</nav>
+          <nav className="nav" aria-label="Main">
+            <Link to="/browse">Browse</Link>
+            <Menu label="Categories" button="Categories" items={groups} align="left" />
+          </nav>
           <MarketplaceSearch />
           <div className="hactions">
             {currentUser ? (
@@ -53,24 +65,26 @@ export function Layout() {
                   {saved > 0 && <span className="count">{saved}</span>}
                 </Link>
                 <NotificationBell />
-                <Link className="btn btn-ghost btn-sm" to="/orders">My orders</Link>
-                <button className="iconbtn" aria-label="Log out" onClick={signOutUser}><Icon name="logout" size={20} /></button>
+                <Menu label="Account menu" items={account}
+                  button={<span className="avatar sm" aria-hidden="true">{initials(currentUser.displayName || currentUser.email)}</span>} />
               </>
             ) : (
               <Link className="btn btn-primary btn-sm" to="/login">Log in</Link>
             )}
-            <button className="iconbtn burger" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+            <button ref={burger} className="iconbtn burger" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
               <Icon name={open ? 'x' : 'menu'} size={22} />
             </button>
           </div>
         </div>
         {open && (
-          <div className="mobile-menu">
+          <div className="mobile-menu" onKeyDown={(e) => { if (e.key === 'Escape') { setOpen(false); burger.current?.focus(); } }}>
             <div className="wrap">
               <nav className="nav" aria-label="Menu">
-                {links}
+                <Link to="/browse">Browse</Link>
+                {groups.map((g) => <Link key={g.to} to={g.to}>{g.label}</Link>)}
                 {currentUser && <Link to="/wishlist">Wish list{saved > 0 ? ` (${saved})` : ''}</Link>}
                 {currentUser && <Link to="/orders">My orders</Link>}
+                {isArtist && <Link to="/dashboard/orders">Artist dashboard</Link>}
               </nav>
             </div>
           </div>
@@ -80,8 +94,12 @@ export function Layout() {
       <CartConflictDialog />
       <footer className="site-footer">
         <div className="wrap">
-          <div className="legal"><span>© 2026 CraftMe · Prices in ₹, shipping within India included</span>
-            <a href="/privacy">Privacy</a></div>
+          <div className="cols">
+            <div><Logo /><p className="small muted" style={{ marginTop: 10 }}>Original art and handmade work from Indian artists.</p></div>
+            <div><h4>Shop</h4><ul>{groups.map((g) => <li key={g.to}><Link to={g.to}>{g.label}</Link></li>)}</ul></div>
+            <div><h4>Help</h4><ul><li><Link to="/legal/privacy">Privacy</Link></li></ul></div>
+          </div>
+          <div className="legal"><span>© 2026 CraftMe · Prices in ₹, shipping within India included</span><ThemeToggle /></div>
         </div>
       </footer>
     </>

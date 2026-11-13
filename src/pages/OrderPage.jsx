@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { call, upload, useOrder } from '../api/gateway';
 import { useAuth } from '../contexts/AuthContext';
 import { ReviewForm } from '../components/reviews/ReviewForm';
+import { isBadId } from '../lib/artist';
 import { errorText, formatClock, formatDate, formatINR, STAGE_LABEL } from '../lib/format';
 import { useCountdown } from '../lib/useCountdown';
 
@@ -40,11 +41,12 @@ function DamageForm({ order }) {
 
 export default function OrderPage() {
   const { id } = useParams();
-  const [order, loading] = useOrder(id);
+  const [order, loading, error, reload] = useOrder(id);
   const [msg, setMsg] = useState(null);
   const holdLeft = useCountdown(order?.stage === 'hold' ? order.holdUntil : 0);
 
   if (loading) return <main className="wrap page"><div className="skeleton" style={{ height: 200 }} aria-busy="true" /></main>;
+  if (error && !order && !isBadId(error)) return <main className="wrap page"><div className="empty" role="alert"><h3>We couldn’t load this page</h3><button className="btn btn-primary" onClick={reload}>Try again</button></div></main>;
   if (!order) return <main className="wrap page"><div className="empty"><h3>We couldn’t find this order</h3><Link className="btn btn-primary" to="/orders">My orders</Link></div></main>;
 
   const can = order.buyerActions || {}; // the backend decides which buttons exist

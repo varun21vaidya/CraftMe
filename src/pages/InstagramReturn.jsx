@@ -19,7 +19,7 @@ export default function InstagramReturn() {
     window.close();
     const fallback = setTimeout(() => {
       const q = new URLSearchParams({ instagram: result || 'error', ...(reason ? { reason } : {}) });
-      navigate(`/dashboard/profile?${q}`, { replace: true });
+      navigate(`/dashboard/settings?${q}`, { replace: true });
     }, 1500);
     return () => clearTimeout(fallback);
   }, [navigate, reason, result]);
@@ -27,7 +27,7 @@ export default function InstagramReturn() {
   return (
     <main className="wrap page" style={{ maxWidth: 560 }}>
       <p className="alert info" role="status">{instagramMessage(result, reason) || 'Finishing…'}</p>
-      <p className="small muted">You can close this window. <Link to="/dashboard/profile">Back to your profile</Link></p>
+      <p className="small muted">You can close this window. <Link to="/dashboard/settings">Back to your profile</Link></p>
     </main>
   );
 }

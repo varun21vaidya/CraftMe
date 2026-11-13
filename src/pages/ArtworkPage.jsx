@@ -6,6 +6,7 @@ import Gallery from '../components/Gallery';
 import SaveButton from '../components/SaveButton';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
+import { isBadId } from '../lib/artist';
 import { formatINR } from '../lib/format';
 
 const kindLabel = { original: 'Original', print: 'Print', product: 'Ready-made' };
@@ -15,14 +16,15 @@ export default function ArtworkPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const cart = useCart();
-  const [art, loadingArt] = useArtwork(id);
+  const [art, loadingArt, error, reload] = useArtwork(id);
   const [listings, loadingListings] = useListings(id);
   const [artist] = useArtist(art?.artistId);
   const [reel] = useReel(art?.reelId);
   const [pickedId, setPicked] = useState(null);
 
   if (loadingArt || loadingListings) return <main className="wrap page"><div className="skeleton" style={{ height: 320 }} aria-busy="true" /></main>;
-  if (!art) return <main className="wrap page"><div className="empty"><h3>We couldn’t find this artwork</h3></div></main>;
+  if (error && !isBadId(error)) return <main className="wrap page"><div className="empty" role="alert"><h3>We couldn’t load this page</h3><button className="btn btn-primary" onClick={reload}>Try again</button></div></main>;
+  if (!art) return <main className="wrap page"><div className="empty"><h3>We couldn’t find this artwork</h3><Link className="btn btn-primary" to="/browse">Browse art</Link></div></main>;
 
   const options = (listings || []).slice().sort((a, b) => a.price - b.price);
   const picked = options.find((l) => l.id === pickedId) || options.find((l) => l.status === 'live') || options[0];

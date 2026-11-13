@@ -30,3 +30,7 @@ docs/screens/shots/
 supabase/.temp/
 .vercel
 .env.local
+
+# Playwright
+/test-results/
+/playwright-report/

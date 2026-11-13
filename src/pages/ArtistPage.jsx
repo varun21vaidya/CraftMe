@@ -74,8 +74,8 @@ export default function ArtistPage() {
         <strong>{artist.restricted ? 'Buyers can’t see your works right now.' : 'This is how buyers see your page.'}</strong>
       </div>
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-        <Link className="btn btn-secondary btn-sm" to="/dashboard/profile">Edit profile</Link>
-        {!artist.restricted && <Link className="btn btn-secondary btn-sm" to="/dashboard/works">My works</Link>}
+        <Link className="btn btn-secondary btn-sm" to="/dashboard/settings">Edit profile</Link>
+        {!artist.restricted && <Link className="btn btn-secondary btn-sm" to="/dashboard/artworks">My works</Link>}
       </div>
     </div>
   );

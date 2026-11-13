@@ -6,6 +6,7 @@
 // Deployed with verify_jwt off: commands verify the user below, the webhook verifies Razorpay's signature.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { makeInstagram } from "./instagram.ts";
+import { fakeRz, providerMode } from "./providers.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
@@ -13,6 +14,11 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
 const KEY_ID = Deno.env.get("RAZORPAY_KEY_ID") ?? "";
 const KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET") ?? "";
 const WEBHOOK_SECRET = Deno.env.get("RAZORPAY_WEBHOOK_SECRET") ?? "";
+
+// Fake provider mode (local tests only). Asked for in production, every command and the webhook answer "unavailable".
+let MODE: "live" | "fake" = "live";
+let MODE_ERROR: string | null = null;
+try { MODE = providerMode(); } catch (e) { MODE_ERROR = (e as Error).message; }
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -59,6 +65,7 @@ const safeEqual = (a: string, b: string) => {
   return d === 0;
 };
 async function rz(path: string, method: "GET" | "POST", body?: unknown) {
+  if (MODE === "fake") return await fakeRz(admin, path, method, body);
   const res = await fetch(`https://api.razorpay.com/v1${path}`, {
     method,
     headers: { Authorization: "Basic " + btoa(`${KEY_ID}:${KEY_SECRET}`), "Content-Type": "application/json" },
@@ -159,7 +166,8 @@ const commands: Record<string, (c: Ctx) => Promise<unknown>> = {
     if (!order) throw new CommandError("conflict", "not_found");
     if (order.buyer_id !== uid) throw new CommandError("forbidden");
     const expected = await hmacHex(KEY_SECRET, `${input.razorpayOrderId}|${input.razorpayPaymentId}`);
-    if (input.razorpayOrderId !== order.razorpay_order_id || !safeEqual(expected, input.signature)) throw new CommandError("conflict", "bad_signature");
+    const signed = (MODE === "fake" && input.signature === "fake") || safeEqual(expected, input.signature);
+    if (input.razorpayOrderId !== order.razorpay_order_id || !signed) throw new CommandError("conflict", "bad_signature");
     return await markPaid(input.orderId, input.razorpayPaymentId);
   },
 
@@ -253,6 +261,7 @@ async function claim(uid: string, rid: string) {
 }
 
 async function runCommand(req: Request) {
+  if (MODE_ERROR) return fail("unavailable", null, { reason: MODE_ERROR });
   const body = await req.json().catch(() => ({}));
   const rid = typeof body.requestId === "string" && body.requestId.length > 0 && body.requestId.length <= 100 ? body.requestId : null;
   if (!rid) return fail("invalid", null, { reason: "missing", fields: ["requestId"] });
@@ -290,6 +299,7 @@ async function runCommand(req: Request) {
 
 // ---------- Razorpay webhook ----------
 async function webhook(req: Request) {
+  if (MODE_ERROR) return json(fail("unavailable", null, { reason: MODE_ERROR }), 503);
   const raw = new Uint8Array(await req.arrayBuffer());
   const sig = req.headers.get("X-Razorpay-Signature") ?? "";
   if (!WEBHOOK_SECRET || !safeEqual(await hmacHex(WEBHOOK_SECRET, raw), sig)) return new Response(null, { status: 400 });

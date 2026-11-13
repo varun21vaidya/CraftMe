@@ -146,7 +146,7 @@ export default function MyWorks() {
     <main className="wrap page" style={{ maxWidth: 760 }}>
       <div className="page-head">
         <div><h1>My works</h1></div>
-        <Link className="btn btn-primary btn-sm" to="/dashboard/new">Add artwork</Link>
+        <Link className="btn btn-primary btn-sm" to="/dashboard/artworks/new">Add artwork</Link>
       </div>
       {loading && <div className="skeleton" style={{ height: 120 }} aria-busy="true" />}
       {error && <p className="alert err" role="alert">{errorText({ code: 'unavailable' })}</p>}

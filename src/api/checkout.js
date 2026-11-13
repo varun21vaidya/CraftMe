@@ -15,6 +15,10 @@ const loadScript = () => {
 
 /** Opens the payment window. Resolves with the payment proof, {dismissed:true} if closed, or an unavailable error. */
 export async function payWithRazorpay({ keyId, razorpayOrderId, amount, description, prefill }) {
+  if (import.meta.env.DEV && String(keyId).startsWith('rzp_fake')) { // fake provider mode: a small test window instead of Razorpay
+    const { openFakePay } = await import('../components/cart/FakePayDialog');
+    return openFakePay({ razorpayOrderId, amount });
+  }
   try {
     await loadScript();
   } catch {

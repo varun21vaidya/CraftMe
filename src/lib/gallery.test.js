@@ -22,6 +22,6 @@ describe('notificationTarget', () => {
   it('sends artists to Orders to ship', () => {
     for (const t of ['order_new', 'order_received', 'ship_reminder']) expect(notificationTarget(t, { orderId: 'o1' })).toBe('/dashboard/orders');
   });
-  it('sends the Instagram reminder to the profile', () => expect(notificationTarget('instagram_reconnect')).toBe('/dashboard/profile'));
+  it('sends the Instagram reminder to the profile', () => expect(notificationTarget('instagram_reconnect')).toBe('/dashboard/settings'));
   it('has nowhere to go for an unknown type', () => expect(notificationTarget('mystery', {})).toBeNull());
 });

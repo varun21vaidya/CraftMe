@@ -17,7 +17,10 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx",
     "test": "vitest run",
-    "test:schema": "node supabase/schema.test.mjs"
+    "test:schema": "node supabase/schema.test.mjs",
+    "test:e2e": "playwright test",
+    "db:local": "supabase start",
+    "db:seed": "supabase db reset && node e2e/helpers/seed.mjs"
   },
   "browserslist": {
     "production": [
@@ -33,6 +36,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.15",
+    "@playwright/test": "^1.65.0",
     "@vitejs/plugin-react": "^6.2.1",
     "eslint": "^8.57.1",
     "eslint-plugin-react": "^7.37.5",

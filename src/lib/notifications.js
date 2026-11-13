@@ -10,7 +10,7 @@ export const notificationTarget = (type, data) => {
     case 'ship_reminder':
       return '/dashboard/orders';
     case 'instagram_reconnect':
-      return '/dashboard/profile';
+      return '/dashboard/settings';
     default:
       return null;
   }

@@ -1,5 +1,6 @@
 ﻿import {PGlite} from "@electric-sql/pglite";
 import fs from "node:fs";
+import {RULES} from "../src/lib/rules.js";
 
 const db = new PGlite();
 const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
@@ -132,6 +133,8 @@ const place = (b, a, l) => `select public.place_order('${b}','${a}','${l}','${ad
 await as("authenticated", B, () => rejects("a buyer cannot call place_order directly", () => db.query(place(buyer, artist, lines(1)))));
 const placed = await svc(async () => (await one(place(buyer, artist, lines(2)))).r);
 ok("place_order holds stock and totals the order", Number(placed.amount) === 200000 && (await one(`select held from public.listings where id='${lp}'`)).held === 2);
+const secs = async (a, b) => Number((await one(`select extract(epoch from (${a} - ${b}))::int s from public.orders where id='${placed.orderId}'`)).s);
+ok("the UI rules match the SQL: a fresh hold lasts holdMinutes", await secs("hold_until", "created_at") === RULES.holdMinutes * 60);
 await svc(() => failsWith("cannot hold more than the free stock", "sold", () => db.query(place(other, artist, lines(2)))));
 await svc(() => failsWith("a changed price is reported", "price_changed", () => db.query(place(other, artist, lines(1, 90000)))));
 ok("a refused order leaves no hold behind", (await one(`select held from public.listings where id='${lp}'`)).held === 2);
@@ -141,13 +144,16 @@ const paid1 = await svc(async () => (await one(`select public.mark_paid('${place
 ok("mark_paid moves the stock from held to sold", paid1.stage === "paid" && (await one(`select stock, held from public.listings where id='${lp}'`)).stock === 1);
 const paid2 = await svc(async () => (await one(`select public.mark_paid('${placed.orderId}', 'pay_1', 2360) r`)).r);
 ok("mark_paid twice changes nothing", paid2.stage === "paid" && (await one(`select stock from public.listings where id='${lp}'`)).stock === 1);
+ok("the UI rules match the SQL: ship_by is shipDays after payment", await secs("ship_by", "paid_at") === RULES.shipDays * 86400);
 ok("paying notified the buyer and the artist", (await one(`select count(*)::int n from public.notifications where type in ('order_paid','order_new')`)).n === 2);
 
 await as("authenticated", O, () => failsWith("a stranger cannot ship", "forbidden", () => db.query(`select public.mark_shipped('${placed.orderId}', 'DTDC')`)));
 await as("authenticated", A, () => failsWith("an artist must name a courier", "invalid", () => db.query(`select public.mark_shipped('${placed.orderId}', '  ')`)));
 await as("authenticated", A, async () => { await db.query(`select public.mark_shipped('${placed.orderId}', 'DTDC', 'T1')`); ok("artist ships a paid order", true); });
+ok("the UI rules match the SQL: auto_receive_at is autoReceiveDays after shipping", await secs("auto_receive_at", "shipped_at") === RULES.autoReceiveDays * 86400);
 await as("authenticated", B, () => failsWith("cannot report damage before receiving", "wrong_stage", () => db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'broken', '{}')`)));
 await as("authenticated", B, async () => { await db.query(`select public.confirm_received('${placed.orderId}')`); ok("buyer confirms receipt", true); });
+ok("the UI rules match the SQL: damageDays and reviewDays after receipt", await secs("damage_window_ends", "received_at") === RULES.damageDays * 86400 && await secs("review_by", "received_at") === RULES.reviewDays * 86400);
 await as("authenticated", B, () => failsWith("damage photos must be in the buyer's own folder", "photoPaths", () => db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'cracked', '{damage/${other}/x.jpg}')`)));
 await as("authenticated", B, async () => { await db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'cracked', '{damage/${buyer}/x.jpg}')`); ok("buyer reports damage in the window", true); });
 await as("authenticated", B, () => failsWith("a second damage report is refused", "already_exists", () => db.query(`select public.report_damage('${placed.orderId}', '{${lp}}', 'again', '{}')`)));

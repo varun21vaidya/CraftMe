@@ -396,6 +396,18 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .modal-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; padding: 20px 22px 4px; }
 .modal-body { padding: 14px 22px 22px; display: flex; flex-direction: column; gap: 16px; }
 .modal-foot { padding: 14px 22px; border-top: 1px solid var(--line); background: var(--surface-2); display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; border-radius: 0 0 12px 12px; }
+/* native <dialog> modal (components/ui/Dialog.jsx): the backdrop styling lives on ::backdrop */
+dialog.modal { border: 0; padding: 0; margin: auto; color: var(--ink); }
+dialog.modal:not([open]) { display: none; }
+dialog.modal::backdrop { background: rgba(10, 12, 14, .58); }
+dialog.modal[aria-busy="true"] { cursor: progress; }
+@media (max-width: 560px) {
+  dialog.modal { width: 100%; max-width: 100%; max-height: 100dvh; margin: auto 0 0; border-radius: 12px 12px 0 0; }
+  dialog.modal .modal-foot { flex-direction: column-reverse; border-radius: 0; }
+  dialog.modal .modal-foot .btn { width: 100%; }
+}
+.toast.err { background: var(--err-soft); color: var(--err); border: 1px solid var(--err); }
+.toast .iconbtn:hover { background: rgba(127, 127, 127, .25); }
 .countdown { font: 600 15px var(--font-mono); font-variant-numeric: tabular-nums; }
 
 /* ---------- reviewer bar and annotations ---------- */
