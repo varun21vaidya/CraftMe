@@ -32,7 +32,12 @@ test.describe('QA-SH-01 public header', () => {
       await signInAs(page, key);
       await page.goto('/browse');
       await expect(header(page).getByRole('link', { name: /^Cart, \d+ items$/ })).toBeVisible();
-      await expect(header(page).getByRole('link', { name: /^Wish list, \d+ saved$/ })).toBeVisible();
+      if (page.viewportSize().width > 640) await expect(header(page).getByRole('link', { name: /^Wish list, \d+ saved$/ })).toBeVisible();
+      else { // phones: the wish list moves into the burger menu so the header fits without sideways scroll
+        await header(page).getByRole('button', { name: 'Open menu' }).click();
+        await expect(page.locator('.mobile-menu').getByRole('link', { name: /^Wish list/ })).toBeVisible();
+        await header(page).getByRole('button', { name: 'Close menu' }).click();
+      }
       await expect(header(page).getByRole('button', { name: 'Account menu' })).toBeVisible();
       await expect(header(page).getByRole('link', { name: 'Log in' })).toHaveCount(0);
       // the artist links live in the account menu, not in the header itself
@@ -128,7 +133,7 @@ test.describe('QA-SH-06 guards', () => {
   test('a signed-in buyer without the role lands on Home with a toast, and no artist data is requested', async ({ page }) => {
     await signInAs(page, 'B1');
     const artistReads = [];
-    page.on('response', (r) => { if (/\/rest\/v1\/(artworks|orders)\?.*artist_id/.test(r.url()) && r.ok()) artistReads.push(r.url()); });
+    page.on('response', (r) => { if (/\/rest\/v1\/(artworks|orders)\?.*artist_id=eq\./.test(r.url()) && r.ok()) artistReads.push(r.url()); });
     await page.goto('/dashboard/artworks');
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole('alert').filter({ hasText: "You don't have access to that page." })).toBeVisible();

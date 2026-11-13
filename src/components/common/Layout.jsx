@@ -17,7 +17,7 @@ import MarketplaceSearch from './MarketplaceSearch';
 const Logo = () => (
   <Link className="logo" to="/">
     <img src="/brand/craftme-icon.svg" width="32" height="32" alt="" />
-    CraftMe
+    <span className="logo-word">CraftMe</span>
   </Link>
 );
 

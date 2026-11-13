@@ -5,6 +5,9 @@
 -- (O1, O3 to O15, payouts, reports, the thirty filler works F01 to F30, saved address, notifications) with the screens that need them.
 \set ON_ERROR_STOP on
 
+-- Tests move time by editing rows and calling public.sweep() themselves, so the scheduled jobs stay off locally.
+select cron.unschedule(jobname) from cron.job where jobname like 'craftme-%';
+
 -- ---------- re-runnable: remove the previous fixtures and everything the tests made with them ----------
 -- (a full `supabase db reset` takes a minute; this takes a second, so each spec file can start clean)
 create temp table qa_old as select id from auth.users where email like '%@craftme.test';
@@ -92,6 +95,7 @@ insert into public.order_lines (order_id, listing_id, artwork_id, title, kind, u
   ('e2000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000002', 'c1000000-0000-4000-8000-000000000001', 'Monsoon Over Marina', 'print', 250000, 1);
 insert into public.order_shipping (order_id, name, phone, address, city, state, pin) values
   ('e2000000-0000-4000-8000-000000000002', 'Ananya Verma', '9876543210', '12 Carter Road', 'Mumbai', 'Maharashtra', '400050');
+update public.orders set payment_method = 'upi', commission_bps = 1000, gift_note = 'Happy birthday' where id = 'e2000000-0000-4000-8000-000000000002';
 
 -- ---------- P01: B1's saved address, filler work F01, and orders O1, O3 to O10, O14 (ids e0000000-…-0000000000NN) ----------
 insert into public.saved_addresses (user_id, name, phone, address, address2, landmark, city, state, pin) values

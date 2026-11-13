@@ -484,5 +484,23 @@ await as("authenticated", O, async () => {
   await as("authenticated", B, () => failsWith("a second confirmation fails with wrong_stage", "wrong_stage", () => db.query(`select public.confirm_received('${late}')`)));
 }
 
+
+// ---------- QA-S09-09: the address is private until payment ----------
+{
+  const art = (await one(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'Private', 'Paintings', 'published') returning id`)).id;
+  const li = (await one(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${art}','${artist}','Print','print',10000,5,'live') returning id`)).id;
+  const addrJson = JSON.stringify({name: "B", phone: "9876543210", address: "1 Road", city: "Pune", state: "Maharashtra", pin: "411001"});
+  const placeOne = async () => (await svc(async () => (await one(`select public.place_order('${buyer}','${artist}','${JSON.stringify([{listingId: li, quantity: 1}])}','${addrJson}') r`)).r)).orderId;
+  const held = await placeOne();
+  const shipCount = async (claims, id) => as("authenticated", claims, async () => (await one(`select count(*)::int n from public.order_shipping where order_id = '${id}'`)).n);
+  ok("the Artist cannot read the address of a hold", await shipCount(A, held) === 0);
+  await svc(() => db.query(`select public.expire_hold('${held}', true)`));
+  const paidOrder = await placeOne();
+  await svc(() => db.query(`select public.mark_paid('${paidOrder}', 'pay_private', 0)`));
+  ok("the Artist reads the address once the Order is Paid", await shipCount(A, paidOrder) === 1);
+  ok("another user cannot read it", await shipCount(O, paidOrder) === 0);
+  ok("the buyer reads their own", await shipCount(B, paidOrder) === 1);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

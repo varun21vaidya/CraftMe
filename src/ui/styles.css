@@ -137,6 +137,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .site-header .bar { display: flex; align-items: center; gap: 18px; min-height: 64px; }
 .logo { display: inline-flex; align-items: center; gap: 9px; font: 500 22px var(--font-display); letter-spacing: -.02em; color: var(--ink); text-decoration: none; flex: none; }
 .logo img { display: block; border-radius: 9px; }
+/* a signed-in phone header (search, cart, bell, account, menu) needs the room: the word goes, the link keeps its name */
+@media (max-width: 400px) { .site-header .logo-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
 .logo small { font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding-left: 10px; border-left: 1px solid var(--line-2); margin-left: 2px; }
 .nav { display: flex; gap: 2px; }
 .nav a, .nav button { padding: 8px 12px; border-radius: 6px; color: var(--ink-2); text-decoration: none; font-weight: 500; border: 0; background: none; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
@@ -586,4 +588,8 @@ body::before { background: var(--bg); }
 @media (min-width: 350px) and (max-width: 640px) {
   .wishlist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 640px) { .hactions > a[href="/wishlist"] { display: none; } }
+@media (max-width: 640px) { .hactions > a[href="/wishlist"] { display: none; } } /* phones: it is in the burger menu, so the header fits 375 px */
+/* the 404 page's own search is always open, even where the header's collapses to a toggle */
+.empty .market-search { flex: none; width: min(100%, 420px); }
+.empty .market-search .market-search-toggle { display: none; }
+.empty .market-search form { display: flex; position: static; padding: 0; }
