@@ -3,7 +3,7 @@ import fs from "node:fs";
 import {RULES} from "../src/lib/rules.js";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -406,6 +406,83 @@ await as("authenticated", B, async () => {
 await as("authenticated", O, async () => {
   ok("saved carts are private to the buyer", (await one("select count(*)::int n from public.saved_cart_items")).n === 0);
 });
+
+
+// ---------- checkout (0019) ----------
+{
+  const art = (await one(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'Checkout', 'Paintings', 'published') returning id`)).id;
+  const mk = async (kind, price, stock, status = 'live') => (await one(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${art}','${artist}','${kind}','${kind}',${price},${stock},'${status}') returning id`)).id;
+  const pa = await mk('print', 50000, 20), pb = await mk('print', 60000, 20), sold = await mk('original', 90000, 0, 'sold');
+  const heldOut = await mk('original', 70000, 1), ended = await mk('print', 40000, 5, 'ended');
+  await db.exec(`update public.listings set held = 1 where id = '${heldOut}'`);
+  const full = JSON.stringify({name: "B", phone: "9876543210", address: "1 Road", address2: "Flat 4", landmark: "Near the park", city: "Pune", state: "Maharashtra", pin: "411001", note: "  Happy birthday  ", save: true});
+  const r = await svc(async () => (await one(`select public.place_order('${buyer}','${artist}','${JSON.stringify([{listingId: pa, quantity: 1}])}','${full}') r`)).r);
+  ok("place_order returns the code and the server clock", typeof r.code === "string" && r.code.length === 6 && !!r.serverNow);
+  const ship = await one(`select address2, landmark from public.order_shipping where order_id = '${r.orderId}'`);
+  ok("address2 and landmark are stored", ship.address2 === "Flat 4" && ship.landmark === "Near the park");
+  ok("the gift note is trimmed and stored", (await one(`select gift_note from public.orders where id = '${r.orderId}'`)).gift_note === "Happy birthday");
+  ok("save writes the saved address", (await one(`select city from public.saved_addresses where user_id = '${buyer}'`))?.city === "Pune");
+  const noSave = JSON.stringify({name: "B", phone: "9876543210", address: "2 Road", city: "Mumbai", state: "Maharashtra", pin: "400050"});
+  const r2 = await svc(async () => (await one(`select public.place_order('${buyer}','${artist}','${JSON.stringify([{listingId: pb, quantity: 1}])}','${noSave}') r`)).r);
+  ok("the old four-key address still places an order", !!r2.orderId);
+  ok("an order without save leaves the saved address alone", (await one(`select city from public.saved_addresses where user_id = '${buyer}'`)).city === "Pune");
+  await as("authenticated", B, async () => ok("the owner reads their saved address", (await one("select count(*)::int n from public.saved_addresses")).n === 1));
+  await as("authenticated", O, async () => ok("another user cannot read it", (await one("select count(*)::int n from public.saved_addresses")).n === 0));
+  await as("authenticated", O, () => rejects("another user cannot write an address for someone else", () =>
+    db.query(`insert into public.saved_addresses (user_id, name, phone, address, city, state, pin) values ('${buyer}','x','9876543210','a','c','s','411001')`)));
+  await as("authenticated", B, () => rejects("a bad PIN is refused", () =>
+    db.query(`update public.saved_addresses set pin = '4110' where user_id = '${buyer}'`)));
+  await as("anon", {}, () => rejects("anon cannot read saved addresses", () => db.query("select * from public.saved_addresses")));
+  await svc(() => db.query(`select public.expire_hold('${r.orderId}', true), public.expire_hold('${r2.orderId}', true)`));
+
+  // my_order_counts: only the caller's purchases
+  const counts = await as("authenticated", B, async () => (await one("select public.my_order_counts() c")).c);
+  const expected = await one(`select count(*) filter (where stage='paid')::int paid, count(*) filter (where stage not in ('hold','hold_expired'))::int "all" from public.orders where buyer_id='${buyer}'`);
+  ok("my_order_counts counts the caller's orders by stage", counts.paid === expected.paid && counts.all === expected.all);
+  const artistCounts = await as("authenticated", A, async () => (await one("select public.my_order_counts() c")).c);
+  ok("an Artist's sales are not counted as their purchases", artistCounts.all === 0);
+  await as("anon", {}, () => rejects("anon cannot call my_order_counts", () => db.query("select public.my_order_counts()")));
+
+  // switch_saved_cart_many (D07)
+  const otherArt = (await one(`insert into public.artworks (artist_id, title, category, status) values ('${other}', 'Elsewhere', 'Paintings', 'published') returning id`)).id;
+  const ol = (await one(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${otherArt}','${other}','Print','print',30000,5,'live') returning id`)).id;
+  await db.exec(`delete from public.saved_cart_items where buyer_id = '${buyer}'`);
+  const op = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const switchMany = `select public.switch_saved_cart_many($1, $2, $3, $4) r`;
+  const args = [buyer, op, JSON.stringify([{listingId: ol, qty: 2}]), [pa, pb, sold, heldOut, ended]];
+  const many = await as("authenticated", B, async () => (await db.query(switchMany, args)).rows[0].r);
+  ok("the group switch adds the eligible listings at quantity 1", many.artistId === artist && many.items.length === 2 && many.items.every((i) => i.qty === 1));
+  const reasons = Object.fromEntries(many.skipped.map((x) => [x.listingId, x.reason]));
+  ok("the group switch reports sold, held and gone listings", reasons[sold] === "sold" && reasons[heldOut] === "held" && reasons[ended] === "gone");
+  ok("the outgoing Cart is saved for later", (await one(`select qty from public.saved_cart_items where buyer_id='${buyer}' and listing_id='${ol}'`)).qty === 2);
+  const replay = await as("authenticated", B, async () => (await db.query(switchMany, args)).rows[0].r);
+  ok("a replayed operation returns the first result and saves nothing twice", JSON.stringify(replay) === JSON.stringify(many)
+    && (await one(`select qty from public.saved_cart_items where buyer_id='${buyer}' and listing_id='${ol}'`)).qty === 2
+    && (await one(`select count(*)::int n from public.saved_cart_operations where buyer_id='${buyer}' and operation_id='${op}'`)).n === 1);
+  const same = await as("authenticated", B, async () => (await db.query(switchMany, [buyer, "dddddddd-dddd-4ddd-8ddd-dddddddddddd", JSON.stringify([{listingId: pa, qty: 3}]), [pa, pb]])).rows[0].r);
+  ok("a listing already in the Cart keeps its quantity", same.items.find((i) => i.listingId === pa).qty === 3 && same.items.length === 2);
+  const none = await as("authenticated", B, async () => (await db.query(switchMany, [buyer, "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", JSON.stringify([{listingId: ol, qty: 1}]), [sold]])).rows[0].r);
+  ok("nothing eligible leaves the Cart unchanged", none.unchanged === true && none.skipped[0].reason === "sold");
+  await as("authenticated", B, () => rejects("listings from two Artists are refused", () => db.query(switchMany, [buyer, "ffffffff-ffff-4fff-8fff-ffffffffffff", "[]", [pa, ol]])));
+  await as("authenticated", O, () => rejects("the group switch only runs for the caller", () => db.query(switchMany, [buyer, "abababab-abab-4bab-8bab-abababababab", "[]", [pa]])));
+  await as("anon", {}, () => rejects("anon cannot call the group switch", () => db.query(switchMany, [buyer, "acacacac-acac-4cac-8cac-acacacacacac", "[]", [pa]])));
+
+  // received automatically vs confirmed early: derived from received_at >= auto_receive_at
+  const shipAndPay = async () => {
+    const o = await svc(async () => (await one(`select public.place_order('${buyer}','${artist}','${JSON.stringify([{listingId: pa, quantity: 1}])}','${noSave}') r`)).r);
+    await svc(() => db.query(`select public.mark_paid('${o.orderId}', 'pay_${o.orderId}', 0)`));
+    await as("authenticated", A, () => db.query(`select public.mark_shipped('${o.orderId}', 'DTDC', 'T')`));
+    return o.orderId;
+  };
+  const early = await shipAndPay();
+  await as("authenticated", B, () => db.query(`select public.confirm_received('${early}')`));
+  ok("a receipt confirmed early is not labelled automatic", (await one(`select received_at < auto_receive_at a from public.orders where id='${early}'`)).a === true);
+  const late = await shipAndPay();
+  await db.exec(`update public.orders set auto_receive_at = now() - interval '1 minute', shipped_at = now() - interval '15 days' where id = '${late}'`);
+  await svc(() => db.query(`select public.sweep()`));
+  ok("the sweep's receipt is labelled automatic", (await one(`select received_at >= auto_receive_at a from public.orders where id='${late}'`)).a === true);
+  await as("authenticated", B, () => failsWith("a second confirmation fails with wrong_stage", "wrong_stage", () => db.query(`select public.confirm_received('${late}')`)));
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

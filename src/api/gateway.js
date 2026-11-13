@@ -150,17 +150,52 @@ function useQuery(fetcher, deps, pollMs = 0) {
 }
 
 const ORDERS = '*, order_lines(*)';
+// The buyer's views: line photos, the Artist's name, the address, refunds and damage reports in one request.
+const BUYER_ORDER = '*, order_lines(*, artwork:artworks(id, photos)), artist:profiles!artist_id(id, display_name)';
+const BUYER_ORDER_FULL = `${BUYER_ORDER}, order_shipping(*), refunds(*), damage_reports(id, status, created_at, decided_at, decision, line_ids)`;
 export const useOrder = (orderId) => useQuery(
   orderId ? async () => {
-    const row = must(await supabase.from('orders').select(ORDERS).eq('id', orderId).maybeSingle());
+    const row = must(await supabase.from('orders').select(BUYER_ORDER_FULL).eq('id', orderId).maybeSingle());
     return row ? toOrder(row) : null;
   } : null,
   [orderId], 4000, // the payment webhook may land while the page is open
 );
-export const useMyOrders = (uid) => useQuery(
-  uid ? async () => must(await supabase.from('orders').select(ORDERS).eq('buyer_id', uid).order('created_at', { ascending: false }).limit(50)).map(toOrder) : null,
+/** Just the stage, for the Cart to learn whether a pending payment went through. */
+export const getOrderStage = (orderId) => safe(async () => ({
+  stage: must(await supabase.from('orders').select('stage').eq('id', orderId).maybeSingle())?.stage ?? null,
+}));
+export const ORDERS_PAGE = 20;
+const TAB_STAGE = { paid: 'paid', shipped: 'shipped', received: 'received', refunded: 'refunded' };
+/** One page of the buyer's history for a tab ('all' or a stage). Holds are listed separately (useOpenHolds). */
+export const useMyOrders = (uid, { tab = 'all', page = 1 } = {}) => useQuery(
+  uid ? async () => {
+    let q = supabase.from('orders').select(BUYER_ORDER, { count: 'exact' }).eq('buyer_id', uid);
+    q = TAB_STAGE[tab] ? q.eq('stage', TAB_STAGE[tab]) : q.not('stage', 'in', '(hold,hold_expired)');
+    const { data, error, count } = await q.order('created_at', { ascending: false }).order('id').range((page - 1) * ORDERS_PAGE, page * ORDERS_PAGE - 1);
+    if (error) throw error;
+    return { rows: data.map(toOrder), count: count ?? 0 };
+  } : null,
+  [uid, tab, page], 15000,
+);
+export const useMyOrderCounts = (uid) => useQuery(
+  uid ? async () => must(await supabase.rpc('my_order_counts')) : null,
   [uid], 15000,
 );
+/** Holds with time left: shown above the order tabs as "Finish paying". */
+export const useOpenHolds = (uid) => useQuery(
+  uid ? async () => must(await supabase.from('orders').select('id, code, total, hold_until').eq('buyer_id', uid).eq('stage', 'hold')
+    .gt('hold_until', new Date().toISOString()).order('created_at', { ascending: false })).map(camel) : null,
+  [uid], 15000,
+);
+export const useSavedAddress = (uid) => useQuery(
+  uid ? async () => camel(must(await supabase.from('saved_addresses').select('*').eq('user_id', uid).maybeSingle())) : null,
+  [uid],
+);
+/** Upsert the one saved address (also used by the profile page in P04). */
+export const saveAddress = (uid, fields) => safe(async () => {
+  must(await supabase.from('saved_addresses').upsert({ user_id: uid, ...pick(fields, ['name', 'phone', 'address', 'address2', 'landmark', 'city', 'state', 'pin']), updated_at: new Date().toISOString() }));
+  return {};
+});
 export const useArtistInbox = (uid) => useQuery(
   uid ? async () => must(await supabase.from('orders').select(ORDERS).eq('artist_id', uid).order('created_at', { ascending: false }).limit(50)).map(toOrder) : null,
   [uid], 15000,
@@ -207,19 +242,20 @@ export const useListings = (artworkId) => useQuery(
   [artworkId], 10000,
 );
 /**
- * The Listings in the Cart, so the Cart shows today's price. Returns {listingId: listing | null};
- * null means gone or no longer for sale.
+ * The Listings in the Cart with their artwork's title and photo, so the Cart shows today's price and stock.
+ * Returns [{listingId: listing | null}, loading, error, reload]; null means gone or no longer visible.
  */
 export function useListingsByIds(ids) {
   const key = ids.join(',');
-  const [data] = useQuery(
+  const [data, loading, error, reload] = useQuery(
     key ? async () => {
-      const found = Object.fromEntries(must(await supabase.from('listings').select('*').in('id', key.split(','))).map((r) => [r.id, camel(r)]));
+      const rows = must(await supabase.from('listings').select('*, artwork:artworks(id, title, photos)').in('id', key.split(',')));
+      const found = Object.fromEntries(rows.map((r) => [r.id, camel(r)]));
       return Object.fromEntries(key.split(',').map((id) => [id, found[id] || null]));
     } : null,
     [key], 10000,
   );
-  return data || {};
+  return [data || {}, loading, error, reload];
 }
 export const useNotifications = (uid) => useQuery(
   uid ? async () => must(await supabase.from('notifications').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(20)).map(camel) : null,
@@ -347,7 +383,7 @@ export const upload = (kind, file, uid) => safe(async () => {
 
 export const useSavedCart = (uid) => useQuery(
   uid ? async () => camel(must(await supabase.from('saved_cart_items')
-    .select('listing_id, qty, listing:listings(id, artist_id, title, price, status, stock, held, artist:profiles!artist_id(display_name))')
+    .select('listing_id, qty, listing:listings(id, artist_id, title, kind, price, status, stock, held, artist:profiles!artist_id(display_name), artwork:artworks(title))')
     .eq('buyer_id', uid).order('listing_id'))) : null,
   [uid],
 );
@@ -356,6 +392,13 @@ export const switchSavedCart = (uid, operation) => safe(async () => ({
   result: must(await supabase.rpc('switch_saved_cart', {
     p_buyer: uid, p_operation: operation.id, p_active: operation.active,
     p_restore: operation.restore, p_new: operation.listingId,
+  })),
+}));
+
+/** "Add all by this Artist" (D07): one switch for a group, replayed by operation id like switchSavedCart. */
+export const switchSavedCartMany = (uid, operation) => safe(async () => ({
+  result: must(await supabase.rpc('switch_saved_cart_many', {
+    p_buyer: uid, p_operation: operation.id, p_active: operation.active, p_add: operation.add,
   })),
 }));
 

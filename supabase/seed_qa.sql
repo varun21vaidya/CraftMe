@@ -5,8 +5,26 @@
 -- (O1, O3 to O15, payouts, reports, the thirty filler works F01 to F30, saved address, notifications) with the screens that need them.
 \set ON_ERROR_STOP on
 
+-- ---------- re-runnable: remove the previous fixtures and everything the tests made with them ----------
+-- (a full `supabase db reset` takes a minute; this takes a second, so each spec file can start clean)
+create temp table qa_old as select id from auth.users where email like '%@craftme.test';
+create temp table qa_old_orders as select id from public.orders where buyer_id in (select id from qa_old) or artist_id in (select id from qa_old);
+update public.orders set payout_id = null where id in (select id from qa_old_orders);
+delete from public.payouts where artist_id in (select id from qa_old);
+delete from public.reviews where order_id in (select id from qa_old_orders);
+delete from public.refunds where order_id in (select id from qa_old_orders);
+delete from public.damage_reports where order_id in (select id from qa_old_orders);
+delete from public.orders where id in (select id from qa_old_orders); -- lines and shipping cascade
+delete from public.reports where reporter_id in (select id from qa_old);
+delete from public.requests where user_id in (select id from qa_old);
+delete from public.processed_events;
+delete from public.listings where artist_id in (select id from qa_old);
+delete from public.artworks where artist_id in (select id from qa_old);
+delete from public.profiles where id in (select id from qa_old); -- private rows, notifications, wish lists, reels, saved address cascade
+delete from auth.users where id in (select id from qa_old);       -- identities and saved carts cascade
+
 -- ---------- people: key -> fixed id (mirrored in e2e/helpers/ids.js) ----------
-create temp table qa_people (key text, id uuid, email text, name text, meta jsonb) on commit drop;
+create temp table qa_people (key text, id uuid, email text, name text, meta jsonb);
 insert into qa_people values
   ('B1',  'b1000000-0000-4000-8000-000000000001', 'b1@craftme.test',  'Ananya Verma',  '{}'),
   ('B2',  'b2000000-0000-4000-8000-000000000002', 'b2@craftme.test',  'Rahul Nair',    '{}'),
@@ -74,6 +92,81 @@ insert into public.order_lines (order_id, listing_id, artwork_id, title, kind, u
   ('e2000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000002', 'c1000000-0000-4000-8000-000000000001', 'Monsoon Over Marina', 'print', 250000, 1);
 insert into public.order_shipping (order_id, name, phone, address, city, state, pin) values
   ('e2000000-0000-4000-8000-000000000002', 'Ananya Verma', '9876543210', '12 Carter Road', 'Mumbai', 'Maharashtra', '400050');
+
+-- ---------- P01: B1's saved address, filler work F01, and orders O1, O3 to O10, O14 (ids e0000000-…-0000000000NN) ----------
+insert into public.saved_addresses (user_id, name, phone, address, address2, landmark, city, state, pin) values
+  ('b1000000-0000-4000-8000-000000000001', 'Ananya Verma', '9876543210', 'Flat 402, Sea Breeze Apartments', 'Carter Road, Bandra West', '', 'Mumbai', 'Maharashtra', '400050');
+
+insert into public.artworks (id, artist_id, title, description, category, photos, status, created_at) values
+  ('cf000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'Filler 01', 'Filler work F01.', 'Paintings', array['/demo/madhubani-fish.jpg'], 'published', now() - interval '1 day');
+insert into public.listings (id, artwork_id, artist_id, title, kind, price, stock, status) values
+  ('df000000-0000-4000-8000-000000000001', 'cf000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'Print', 'print', 50000, 10, 'live');
+
+-- helper: one order with its lines and address. p_lines: [{listing, artwork, title, kind, unit, qty, refunded}]
+create function pg_temp.qa_order(p_id uuid, p_code text, p_buyer uuid, p_artist uuid, p_stage text, p_lines jsonb, p_times jsonb, p_extra jsonb default '{}')
+returns void language plpgsql as $$
+declare l jsonb; total bigint := 0;
+begin
+  for l in select * from jsonb_array_elements(p_lines) loop total := total + (l->>'unit')::bigint * (l->>'qty')::int; end loop;
+  insert into public.orders (id, code, buyer_id, artist_id, total, stage, created_at, hold_until, paid_at, ship_by, shipped_at, auto_receive_at,
+    received_at, damage_window_ends, review_by, razorpay_order_id, razorpay_payment_id, gateway_fee, commission_bps, payment_method,
+    courier, tracking_number, refunded_total, payable, reviewed, overdue, open_report, damage_reported)
+  values (p_id, p_code, p_buyer, p_artist, total, p_stage,
+    now() + coalesce((p_times->>'created')::interval, (p_times->>'paid')::interval, interval '0'),
+    now() + (p_times->>'hold')::interval,
+    now() + (p_times->>'paid')::interval, now() + (p_times->>'paid')::interval + interval '7 days',
+    now() + (p_times->>'shipped')::interval, now() + (p_times->>'shipped')::interval + interval '14 days',
+    now() + (p_times->>'received')::interval, now() + (p_times->>'received')::interval + interval '3 days',
+    now() + (p_times->>'received')::interval + interval '30 days',
+    'order_fake_qa_' || lower(p_code), case when p_times ? 'paid' then 'pay_fake_ok_order_fake_qa_' || lower(p_code) end,
+    case when p_times ? 'paid' then round(total * 0.0236) else 0 end, case when p_times ? 'paid' then 1000 end,
+    case when p_times ? 'paid' then 'upi' end,
+    case when p_times ? 'shipped' then coalesce(p_extra->>'courier', 'DTDC') end, case when p_times ? 'shipped' then coalesce(p_extra->>'tracking', 'DT' || right(p_code, 5) || 'IN') end,
+    coalesce((p_extra->>'refunded')::bigint, 0), coalesce((p_extra->>'payable')::boolean, false), coalesce((p_extra->>'reviewed')::boolean, false),
+    coalesce((p_extra->>'overdue')::boolean, false), coalesce((p_extra->>'open_report')::boolean, false), coalesce((p_extra->>'open_report')::boolean, false));
+  insert into public.order_lines (order_id, listing_id, artwork_id, title, kind, unit_paise, quantity, refunded_quantity)
+  select p_id, (x->>'listing')::uuid, (x->>'artwork')::uuid, x->>'title', x->>'kind', (x->>'unit')::bigint, (x->>'qty')::int, coalesce((x->>'refunded')::int, 0)
+  from jsonb_array_elements(p_lines) x;
+  insert into public.order_shipping (order_id, name, phone, address, address2, city, state, pin)
+  select p_id, p.display_name, '9876543210', '12 Carter Road', 'Bandra West', 'Mumbai', 'Maharashtra', '400050' from public.profiles p where p.id = p_buyer;
+end $$;
+
+-- W1 Print, W2 Print, W6 Original, as order lines
+\set w1p '{"listing":"d1000000-0000-4000-8000-000000000002","artwork":"c1000000-0000-4000-8000-000000000001","title":"Monsoon Over Marina","kind":"print","unit":250000,"qty":1}'
+\set w2p '{"listing":"d2000000-0000-4000-8000-000000000002","artwork":"c1000000-0000-4000-8000-000000000002","title":"Kolam at Dawn","kind":"print","unit":220000,"qty":1}'
+\set w6o '{"listing":"d6000000-0000-4000-8000-000000000001","artwork":"c1000000-0000-4000-8000-000000000006","title":"Brass Heron","kind":"original","unit":2800000,"qty":1}'
+
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000001', 'CM-20401', 'b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'hold',
+  jsonb_build_array(:'w1p'::jsonb), '{"hold": "10 minutes", "created": "-5 minutes"}');
+update public.listings set held = held + 1 where id = 'd1000000-0000-4000-8000-000000000002'; -- O1 holds one W1 Print
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000003', 'CM-20403', 'b2000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000001', 'paid',
+  jsonb_build_array(:'w2p'::jsonb), '{"paid": "-8 days"}', '{"overdue": true}');
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000004', 'CM-20404', 'b1000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000002', 'shipped',
+  jsonb_build_array(:'w6o'::jsonb), '{"paid": "-3 days", "shipped": "-2 days"}', '{"tracking": "DT4830012IN"}');
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000005', 'CM-20405', 'b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'received',
+  jsonb_build_array(:'w2p'::jsonb, :'w1p'::jsonb), '{"paid": "-6 days", "shipped": "-4 days", "received": "-1 day"}');
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000006', 'CM-20406', 'b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'received',
+  jsonb_build_array(:'w2p'::jsonb), '{"paid": "-15 days", "shipped": "-13 days", "received": "-10 days"}', '{"payable": true}');
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000007', 'CM-20407', 'b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'received',
+  jsonb_build_array(:'w1p'::jsonb), '{"paid": "-45 days", "shipped": "-43 days", "received": "-40 days"}', '{"payable": true, "reviewed": true}');
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000008', 'CM-20408', 'b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'received',
+  jsonb_build_array(:'w2p'::jsonb || '{"refunded": 1}', :'w1p'::jsonb), '{"paid": "-9 days", "shipped": "-8 days", "received": "-2 days"}', '{"refunded": 220000}');
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000009', 'CM-20409', 'b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'refunded',
+  jsonb_build_array(:'w1p'::jsonb || '{"refunded": 1}'), '{"paid": "-20 days", "shipped": "-18 days", "received": "-15 days"}', '{"refunded": 250000}');
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000010', 'CM-20410', 'b2000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000001', 'received',
+  jsonb_build_array(:'w2p'::jsonb, :'w1p'::jsonb), '{"paid": "-5 days", "shipped": "-3 days", "received": "-1 day"}', '{"open_report": true}');
+select pg_temp.qa_order('e0000000-0000-4000-8000-000000000014', 'CM-20414', 'b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'shipped',
+  jsonb_build_array(:'w2p'::jsonb), '{"paid": "-16 days", "shipped": "-15 days"}');
+
+insert into public.refunds (order_id, buyer_id, artist_id, amount, reason, lines, razorpay_refund_id, status, created_at) values
+  ('e0000000-0000-4000-8000-000000000008', 'b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 220000,
+   'The print arrived damaged', '[{"lineId": "d2000000-0000-4000-8000-000000000002", "quantity": 1}]', 'rfnd_fake_qa_o8', 'issued', now() - interval '1 day'),
+  ('e0000000-0000-4000-8000-000000000009', 'b1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 250000,
+   'The print arrived damaged', '[{"lineId": "d1000000-0000-4000-8000-000000000002", "quantity": 1}]', 'rfnd_fake_qa_o9', 'issued', now() - interval '12 days');
+insert into public.damage_reports (order_id, buyer_id, artist_id, photos, note, status, line_ids) values
+  ('e0000000-0000-4000-8000-000000000010', 'b2000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000001',
+   '{damage/b2000000-0000-4000-8000-000000000002/1.jpg,damage/b2000000-0000-4000-8000-000000000002/2.jpg}', 'The corner is torn.', 'open',
+   '{d2000000-0000-4000-8000-000000000002}');
 
 update public.settings set commission_bps = 1000, onboarding_fee_paise = 49900,
   switches = '{"acceptArtists": true, "instagramConnect": true, "demoBanner": true, "emails": false}';

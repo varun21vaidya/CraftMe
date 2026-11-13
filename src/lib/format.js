@@ -15,11 +15,33 @@ export const formatClock = (ms) => {
 
 export const formatDate = (ms) => new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
+/** "3 Nov" for deadlines inside a sentence. */
+export const formatDay = (ms) => new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+/** "3 NOV · 11:42" for timeline entries. */
+export const formatStamp = (ms) => {
+  const d = new Date(ms);
+  return `${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }).toUpperCase()} · ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+};
+
 // Labels for the order stages, in the customer's words.
 export const STAGE_LABEL = {
   hold: 'Waiting for payment', hold_expired: 'Expired', paid: 'Paid, being packed', shipped: 'On its way',
   received: 'Received', refunded: 'Refunded',
 };
+
+/** The short badge on order rows and the order page: [label, badge class]. */
+export const STAGE_BADGE = {
+  hold: ['Waiting for payment', 'warn'], hold_expired: ['Expired', ''], paid: ['Paid', 'ok'], shipped: ['Shipped', 'info'],
+  received: ['Received', 'ok'], refunded: ['Refunded', 'err'],
+};
+
+export const KIND_LABEL = { original: 'Original', print: 'Print', product: 'Ready-made' };
+
+export const REFUND_STATUS_LABEL = { issued: 'Issued', pending: 'Processing', unknown: 'Processing' };
+
+/** Razorpay's payment method codes in the buyer's words. */
+export const methodLabel = (m) => ({ upi: 'UPI', card: 'Card', netbanking: 'Netbanking', wallet: 'Wallet', emi: 'EMI', paylater: 'Pay later' }[m] || m || '');
 
 // The backend sends codes and reasons, never wording. All customer-facing text for them lives here.
 const reasonText = {
@@ -30,8 +52,11 @@ const reasonText = {
   artist_restricted: 'This Artist isn’t selling right now.',
   too_many_holds: 'You have a few payments waiting. Finish or wait a few minutes before starting another.',
   payments_down: 'Payments aren’t available right now. Please try again in a moment.',
-  bad_signature: 'We couldn’t confirm that payment. If money left your account, you’ll be refunded.',
-  amount_mismatch: 'We couldn’t confirm that payment. If money left your account, you’ll be refunded.',
+  payments_not_configured: 'Payments aren’t set up on this site yet.',
+  fake_mode_in_production: 'Payments aren’t set up on this site yet.',
+  hold_over: 'The time to pay for that Order ran out.',
+  bad_signature: 'We couldn’t confirm that payment. If money left your account, it will be returned.',
+  amount_mismatch: 'We couldn’t confirm that payment. If money left your account, it will be returned.',
   sold_during_payment: 'It sold while you were paying. Your money is being returned.',
   window_closed: 'The time for this has passed.',
   wrong_stage: 'This can’t be done at this stage of the order.',

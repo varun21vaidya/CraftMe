@@ -32,11 +32,13 @@ export default function ArtworkPage() {
   const canBuy = picked?.status === 'live' && left > 0;
   const own = currentUser?.uid === art.artistId;
 
+  const signIn = () => navigate('/login', { state: { from: `/artwork/${id}` } });
+  // with another Artist's work in the Cart the "Start a new Cart?" dialog opens and the Buyer stays here
   const add = () => {
-    if (!currentUser) return navigate('/login', { state: { from: `/artwork/${id}` } });
-    cart.add(art.artistId, picked.id);
-    return navigate('/cart');
+    if (!currentUser) return signIn();
+    return cart.add(art.artistId, picked.id, picked.price) === 'added' ? navigate('/cart') : undefined;
   };
+  const buyNow = () => (currentUser ? cart.buyNow(art.artistId, artist?.displayName || 'this Artist', picked) : signIn());
 
   return (
     <main className="wrap page">
@@ -62,6 +64,7 @@ export default function ArtworkPage() {
           <button className="btn btn-primary btn-lg btn-block" disabled={!canBuy || own} onClick={add}>
             {canBuy ? 'Add to Cart' : 'Sold'}
           </button>
+          {canBuy && !own && <button className="btn btn-secondary btn-lg btn-block" disabled={cart.locked} onClick={buyNow}>Buy now</button>}
           {!own && (
             <>
               <SaveButton artworkId={art.id} artistId={art.artistId} label />

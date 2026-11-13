@@ -74,6 +74,10 @@ export default function App() {
                 <Route path="/wishlist/:collectionId" element={screen(<WishlistPage />, signedIn)} />
                 <Route path="/orders" element={screen(<OrdersPage />, signedIn)} />
                 <Route path="/orders/:id" element={screen(<OrderPage />, signedIn)} />
+                <Route path="/orders/:id/receipt" element={screen(<OrderPage />, signedIn)} />
+                {/* P02 replaces these two with the Damage Report and Review pages; until then the order page shows its inline forms */}
+                <Route path="/orders/:id/damage" element={screen(<OrderPage />, signedIn)} />
+                <Route path="/orders/:id/review" element={screen(<OrderPage />, signedIn)} />
                 <Route path="/dashboard/orders" element={screen(<ArtistInbox />, artistOnly)} />
                 <Route path="/dashboard/artworks" element={screen(<MyWorks />, artistOnly)} />
                 <Route path="/dashboard/artworks/new" element={screen(<NewArtwork />, artistOnly)} />

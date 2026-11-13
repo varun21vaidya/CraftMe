@@ -92,7 +92,11 @@ async function markPaid(orderId: string, paymentId: string) {
     throw new CommandError("conflict", "amount_mismatch");
   }
   const out = await rpc("mark_paid", { p_order: orderId, p_payment: paymentId, p_fee: p.fee ?? 0 });
-  if (!out.oversold) return out;
+  if (!out.oversold) {
+    // display data only, like razorpay_order_id: written after the money rules have run
+    if (typeof p.method === "string") await admin.from("orders").update({ payment_method: p.method }).eq("id", orderId).is("payment_method", null);
+    return out;
+  }
 
   // Sold to someone else while this payment was in flight: the only automatic refund.
   let refundId: string | null = null;
@@ -131,7 +135,28 @@ const need = (cond: unknown, ...fields: string[]) => {
 const ADDR: Record<string, RegExp> = {
   name: /^[\s\S]{1,100}$/, phone: /^[6-9]\d{9}$/, address: /^[\s\S]{1,300}$/,
   city: /^[\s\S]{1,80}$/, state: /^[\s\S]{1,80}$/, pin: /^\d{6}$/,
+  address2: /^[\s\S]{0,300}$/, landmark: /^[\s\S]{0,120}$/,
 };
+
+/** The payment details the browser needs to open (or reopen) the payment window for a held Order. */
+// deno-lint-ignore no-explicit-any
+const holdReply = (o: any) => ({
+  orderId: o.id, code: o.code, razorpayOrderId: o.razorpay_order_id, keyId: KEY_ID, amount: Number(o.total),
+  holdUntil: Date.parse(o.hold_until), serverNow: Date.now(),
+  // so the page can tell whether the hold still matches the Cart, and show the address it was placed with
+  lines: (o.order_lines ?? []).map((l: { listing_id: string; quantity: number }) => ({ listingId: l.listing_id, quantity: l.quantity })),
+  address: o.order_shipping ?? null,
+});
+
+/** The caller's own Order, or conflict not_found for a missing one and forbidden for someone else's. */
+async function ownOrder(uid: string, orderId: unknown) {
+  need(typeof orderId === "string" && orderId, "orderId");
+  const { data: o } = await admin.from("orders")
+    .select("id,code,buyer_id,stage,total,hold_until,razorpay_order_id,order_lines(listing_id,quantity),order_shipping(*)").eq("id", orderId).maybeSingle();
+  if (!o) throw new CommandError("conflict", "not_found");
+  if (o.buyer_id !== uid) throw new CommandError("forbidden");
+  return o;
+}
 
 const commands: Record<string, (c: Ctx) => Promise<unknown>> = {
   async placeOrder({ uid, input }) {
@@ -142,8 +167,12 @@ const commands: Record<string, (c: Ctx) => Promise<unknown>> = {
     const address: Record<string, string> = {};
     const bad = Object.keys(ADDR).filter((k) => !ADDR[k].test((address[k] = String(input.address?.[k] ?? "").trim())));
     if (bad.length) throw new CommandError("invalid", undefined, { fields: bad });
+    need(input.note === undefined || (typeof input.note === "string" && input.note.length <= 120), "note");
 
-    const placed = await rpc("place_order", { p_buyer: uid, p_artist: input.artistId, p_lines: lines, p_address: address });
+    const placed = await rpc("place_order", {
+      p_buyer: uid, p_artist: input.artistId, p_lines: lines,
+      p_address: { ...address, note: input.note ?? "", save: input.saveAddress === true },
+    });
     let rzOrder;
     try {
       rzOrder = await rz("/orders", "POST", { amount: Number(placed.amount), currency: "INR", receipt: placed.orderId });
@@ -154,9 +183,24 @@ const commands: Record<string, (c: Ctx) => Promise<unknown>> = {
     }
     await admin.from("orders").update({ razorpay_order_id: rzOrder.id }).eq("id", placed.orderId);
     return {
-      orderId: placed.orderId, razorpayOrderId: rzOrder.id, keyId: KEY_ID, amount: Number(placed.amount),
-      holdUntil: Date.parse(placed.holdUntil),
+      orderId: placed.orderId, code: placed.code, razorpayOrderId: rzOrder.id, keyId: KEY_ID, amount: Number(placed.amount),
+      holdUntil: Date.parse(placed.holdUntil), serverNow: Date.parse(placed.serverNow),
     };
+  },
+
+  // Back to a hold after a reload: the same payment details while time is left.
+  async resumeHold({ uid, input }) {
+    configured();
+    const o = await ownOrder(uid, input.orderId);
+    if (o.stage !== "hold" || Date.parse(o.hold_until) <= Date.now() || !o.razorpay_order_id) throw new CommandError("conflict", "hold_over");
+    return holdReply(o);
+  },
+
+  // "Change address or Cart": give the pieces back now. A hold that already ended is fine.
+  async cancelHold({ uid, input }) {
+    const o = await ownOrder(uid, input.orderId);
+    if (o.stage === "hold") await rpc("expire_hold", { p_order: o.id, p_force: true });
+    return {};
   },
 
   async confirmPayment({ uid, input }) {

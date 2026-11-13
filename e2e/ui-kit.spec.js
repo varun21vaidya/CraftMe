@@ -18,7 +18,7 @@ test.describe('QA-S36-03 dialogs', () => {
 
     const dialog = page.getByRole('alertdialog', { name: 'Start a new Cart?' });
     await expect(dialog).toBeVisible();
-    const keep = dialog.getByRole('button', { name: 'Keep my cart' });
+    const keep = dialog.getByRole('button', { name: 'Keep my Cart' });
     await expect(keep).toBeFocused(); // the safe button
     for (let i = 0; i < 4; i += 1) { // Tab twice round the two buttons: focus never leaves
       await page.keyboard.press('Tab');
@@ -35,7 +35,7 @@ test.describe('QA-S36-03 dialogs', () => {
     if (phone(page)) {
       const box = await dialog.boundingBox();
       expect(Math.round(box.width)).toBe(page.viewportSize().width);
-      const [a, b] = await Promise.all([keep.boundingBox(), dialog.getByRole('button', { name: 'Switch cart' }).boundingBox()]);
+      const [a, b] = await Promise.all([keep.boundingBox(), dialog.getByRole('button', { name: 'Switch Cart' }).boundingBox()]);
       expect(Math.abs(a.x - b.x)).toBeLessThan(2); // stacked, not side by side
     }
 

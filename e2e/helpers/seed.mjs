@@ -1,6 +1,7 @@
 // `npm run db:seed` runs this after `supabase db reset`: loads supabase/seed_qa.sql into the LOCAL stack only.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 const DB_CONTAINER = 'supabase_db_craftme-local';
 
@@ -19,4 +20,4 @@ export function seed() {
   if (run.status !== 0) throw new Error(run.stderr || run.stdout);
 }
 
-if (import.meta.url === `file:///${process.argv[1].replace(/\/g, '/')}`) { seed(); console.log('seeded'); }
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) { seed(); console.log('seeded'); }

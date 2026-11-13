@@ -15,7 +15,8 @@ function FakePay({ razorpayOrderId, amount, onDone }) {
       footer={(
         <>
           <button className="btn btn-secondary" onClick={() => finish({ ok: false, dismissed: true })}>Close</button>
-          <button className="btn btn-secondary" onClick={() => finish(proof('declined'))}>Fail</button>
+          {/* like Razorpay's own window: a failed attempt never reaches CraftMe's handler, the Buyer just tries again */}
+          <button className="btn btn-secondary" onClick={() => finish({ ok: false, failed: true })}>Fail</button>
           <button className="btn btn-primary" onClick={() => finish(proof('ok'))}>Pay</button>
         </>
       )}>

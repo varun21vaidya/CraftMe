@@ -28,6 +28,16 @@ export function Dialog({ open, onClose, title, alert = false, busy = false, foot
 
   return (
     <dialog ref={ref} className="modal" role={alert ? 'alertdialog' : 'dialog'} aria-labelledby={titleId} aria-busy={busy || undefined}
+      onKeyDown={(e) => {
+        // showModal() makes the page inert, but Tab past the last control still leaves for the browser's own UI
+        if (e.key !== 'Tab') return;
+        const all = [...ref.current.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+          .filter((el) => !el.disabled && el.offsetParent !== null);
+        if (!all.length) return;
+        const [first, last] = [all[0], all[all.length - 1]];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }}
       onCancel={(e) => { e.preventDefault(); if (!busy) onClose?.(); }}
       onClick={(e) => { if (e.target === ref.current && !alert && !busy) onClose?.(); }}>
       {open && (

@@ -219,7 +219,8 @@ test.describe('QA-S20 not found and missing resources', () => {
     }
     await context.route('**/rest/v1/**', (route) => route.abort());
     await page.goto(`/artwork/${W.W1}`);
-    await expect(page.getByRole('heading', { name: /We couldn.t load this page/ })).toBeVisible();
+    // supabase-js retries a failed read 3 times (1 s, 2 s, 4 s) before the page hears about it
+    await expect(page.getByRole('heading', { name: /We couldn.t load this page/ })).toBeVisible({ timeout: 15000 });
     await context.unroute('**/rest/v1/**');
     await page.getByRole('button', { name: 'Try again' }).click();
     await expect(page.getByRole('heading', { name: 'Monsoon Over Marina' })).toBeVisible();

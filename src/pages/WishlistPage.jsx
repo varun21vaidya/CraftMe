@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useSavedWorks } from '../api/gateway';
 import LazyLoadImage from '../components/ui/LazyLoadImage';
 import { useAuth } from '../contexts/AuthContext';
-import { useCart } from '../contexts/CartContext';
+import { groupMessage, useCart } from '../contexts/CartContext';
 import { useSaved } from '../contexts/SavedContext';
 import { formatINR } from '../lib/format';
 import { cartAction, groupByArtist, nameTaken, wishlistMessage } from '../lib/wishlist';
@@ -36,7 +36,7 @@ function Item({ s, collectionId, artistName }) {
       <div className="stack sm" style={{ marginTop: 8 }}>
         {action.kind === 'add' && (inCart
           ? <Link className="btn btn-secondary btn-sm btn-block" to="/cart">In your Cart</Link>
-          : <button type="button" className="btn btn-primary btn-sm btn-block" onClick={() => add(art.artistId, action.listing.id)}>Add to Cart</button>)}
+          : <button type="button" className="btn btn-primary btn-sm btn-block" onClick={() => add(art.artistId, action.listing.id, action.listing.price)}>Add to Cart</button>)}
         {action.kind === 'choose' && <Link className="btn btn-primary btn-sm btn-block" to={`/artwork/${art.id}`}>Choose a version</Link>}
         {action.kind === 'gone' && <span className="badge warn">Not available</span>}
         <CollectionMenu artworkId={s.artworkId} />
@@ -53,7 +53,7 @@ export default function WishlistPage() {
   const query = searchParams.get('q') || '';
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { cart, add } = useCart();
+  const { cart, addMany, status } = useCart();
   const { has, collections, rename, remove } = useSaved();
   const [limit, setLimit] = useState(PAGE);
   const [saved, loading, error, reload] = useSavedWorks(currentUser.uid, query || collectionId ? 500 : limit);
@@ -72,15 +72,14 @@ export default function WishlistPage() {
   const list = scope.filter((s) => !needle || [s.artwork?.title, s.artwork?.artist?.displayName].some((value) => value?.toLocaleLowerCase().includes(needle)));
   const { groups, gone } = groupByArtist(list);
 
+  // D07: one dialog and one switch for the whole group; the server reports anything that sold meanwhile
   const addAll = (g) => {
-    const todo = g.items.map((s) => cartAction(s.artwork)).filter((a) => a.kind === 'add' && !cart.items.some((i) => i.listingId === a.listing.id));
-    const left = g.items.length - todo.length;
-    setSkipped(left ? `${left} ${left === 1 ? 'work was' : 'works were'} skipped: already in your Cart, sold, or you need to choose a version.` : '');
-    if (cart.items.length && cart.artistId !== g.artistId) {
-      if (todo[0]) add(g.artistId, todo[0].listing.id);
-      return;
-    }
-    todo.forEach((a) => add(g.artistId, a.listing.id));
+    const todo = g.items.map((s) => ({ s, a: cartAction(s.artwork) }))
+      .filter(({ a }) => a.kind === 'add' && !cart.items.some((i) => i.listingId === a.listing.id))
+      .map(({ s, a }) => ({ id: a.listing.id, price: a.listing.price, title: s.artwork.title }));
+    if (!todo.length) { setSkipped(groupMessage(0, g.items.length)); return; }
+    setSkipped('');
+    addMany(g.artistId, g.name, todo, { works: g.items.length });
   };
 
   const submitRename = async (e) => {
@@ -146,7 +145,7 @@ export default function WishlistPage() {
         </div>
       )}
       {msg && <p className="alert" role="alert">{msg}</p>}
-      {skipped && <p className="alert info" role="status">{skipped}</p>}
+      {(skipped || status) && <p className="alert info" role="status">{skipped || status}</p>}
 
       {loading && <div className="skeleton" style={{ height: 200 }} aria-busy="true" />}
       {error && !loading && <div className="empty"><h3>We couldn’t load your wish list</h3><button className="btn btn-primary" onClick={reload}>Try again</button></div>}
