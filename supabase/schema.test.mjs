@@ -3,7 +3,7 @@ import fs from "node:fs";
 import {RULES} from "../src/lib/rules.js";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0004_storage", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout", "0020_damage_review", "0021_storefront", "0022_account", "0023_onboarding"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0004_storage", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout", "0020_damage_review", "0021_storefront", "0022_account", "0023_onboarding", "0024_artist_catalogue"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -461,9 +461,10 @@ await as("authenticated", O, async () => {
 // ---------- checkout (0019) ----------
 {
   const art = (await one(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'Checkout', 'Paintings', 'published') returning id`)).id;
-  const mk = async (kind, price, stock, status = 'live') => (await one(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${art}','${artist}','${kind}','${kind}',${price},${stock},'${status}') returning id`)).id;
+  const art2 = (await one(`insert into public.artworks (artist_id, title, category, status) values ('${artist}', 'Checkout 2', 'Paintings', 'published') returning id`)).id; // one open Original per work (0024)
+  const mk = async (kind, price, stock, status = 'live', on = art) => (await one(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${on}','${artist}','${kind}','${kind}',${price},${stock},'${status}') returning id`)).id;
   const pa = await mk('print', 50000, 20), pb = await mk('print', 60000, 20), sold = await mk('original', 90000, 0, 'sold');
-  const heldOut = await mk('original', 70000, 1), ended = await mk('print', 40000, 5, 'ended');
+  const heldOut = await mk('original', 70000, 1, 'live', art2), ended = await mk('print', 40000, 5, 'ended');
   await db.exec(`update public.listings set held = 1 where id = '${heldOut}'`);
   const full = JSON.stringify({name: "B", phone: "9876543210", address: "1 Road", address2: "Flat 4", landmark: "Near the park", city: "Pune", state: "Maharashtra", pin: "411001", note: "  Happy birthday  ", save: true});
   const r = await svc(async () => (await one(`select public.place_order('${buyer}','${artist}','${JSON.stringify([{listingId: pa, quantity: 1}])}','${full}') r`)).r);
@@ -846,6 +847,100 @@ await as("authenticated", O, async () => {
   await fo("order_3", u2);
   ok("a person with no artist_private row gets one when their fee is recorded", (await rec("order_3", "pay_3")).paid === true
     && Number((await one(`select count(*) c from public.artist_private where profile_id = '${u2}' and onboarding_amount = 49900`)).c) === 1);
+}
+
+// ---------- P06 Artist catalogue (0024) ----------
+{
+  const mk = async (name) => (await one(`insert into auth.users (raw_user_meta_data) values ('{"full_name":"${name}"}') returning id`)).id;
+  const [pa, pb, pbuy] = [await mk("P06 Artist"), await mk("P06 Other Artist"), await mk("P06 Buyer")];
+  await db.exec(`update public.profiles set roles = '{artist}' where id in ('${pa}', '${pb}')`);
+  const A = { sub: pa, app_metadata: { artist: true } }, B = { sub: pb, app_metadata: { artist: true } };
+  const run = (claims, text) => as("authenticated", claims, async () => (await one(text)).r);
+  const fields = async (claims, text) => as("authenticated", claims, async () => { try { await db.query(text); return null; } catch (e) { const m = JSON.parse(e.message.replace(/^[^{]*/, "")); return m; } });
+  const mkWork = async (owner, title, photos = "'{}'") => (await one(`insert into public.artworks (artist_id, title, category, photos) values ('${owner}', '${title}', 'Paintings', ${photos}) returning id`)).id;
+  const mkList = async (work, owner, kind, stock, status = "draft", price = 100000) => (await one(`insert into public.listings (artwork_id, artist_id, kind, price, stock, status) values ('${work}', '${owner}', '${kind}', ${price}, ${stock}, '${status}') returning id`)).id;
+  const stat = async (table, id) => (await one(`select status from public.${table} where id = '${id}'`)).status;
+
+  // publish
+  const w = await mkWork(pa, "P06 Bare");
+  const miss = await fields(A, `select public.publish_artwork('${w}')`);
+  ok("publish_artwork names a missing photo and a missing listing", miss?.code === "invalid" && miss.fields.includes("photos") && miss.fields.includes("listings") && !miss.fields.includes("title"));
+  await db.exec(`update public.artworks set photos = '{https://x/a.jpg}' where id = '${w}'`);
+  const l1 = await mkList(w, pa, "original", 1);
+  await run(A, `select public.publish_artwork('${w}') r`);
+  ok("publish_artwork publishes the work and every draft listing", await stat("artworks", w) === "published" && await stat("listings", l1) === "live");
+  await run(A, `select public.publish_artwork('${w}') r`);
+  ok("publishing twice changes nothing", await stat("artworks", w) === "published" && Number((await one(`select count(*) c from public.listings where artwork_id = '${w}'`)).c) === 1);
+
+  // a second open Original, a Listing with no stock
+  await rejects("a second open Original is refused", () => mkList(w, pa, "original", 1));
+  await rejects("a listing cannot go live with no stock", async () => { const l = await mkList(w, pa, "print", 0); await db.exec(`update public.listings set status = 'live' where id = '${l}'`); });
+
+  // end and reopen
+  const lp = await mkList(w, pa, "print", 5, "live");
+  const sold = await mkList(await mkWork(pa, "P06 Sold", "'{https://x/s.jpg}'"), pa, "original", 1, "sold");
+  await run(A, `select public.end_artwork('${w}') r`);
+  ok("end_artwork ends every open listing and hides the work", await stat("listings", l1) === "ended" && await stat("listings", lp) === "ended" && await stat("artworks", w) === "draft");
+  await run(A, `select public.end_artwork('${w}') r`);
+  await run(A, `select public.reopen_artwork('${w}') r`);
+  ok("reopen_artwork makes the listings with stock live again", await stat("listings", lp) === "live" && await stat("artworks", w) === "published");
+  await run(A, `select public.end_artwork('${w}') r`);
+  await db.exec(`update public.listings set stock = 0 where artwork_id = '${w}'`);
+  const none = await fields(A, `select public.reopen_artwork('${w}')`);
+  ok("reopen with nothing left answers out_of_stock", none?.code === "conflict" && none.reason === "out_of_stock");
+  ok("a sold listing stays sold through end", (await stat("listings", sold)) === "sold");
+
+  // stock
+  const wp = await mkWork(pa, "P06 Prints", "'{https://x/p.jpg}'");
+  const pr = await mkList(wp, pa, "print", 10, "live");
+  await db.exec(`update public.listings set held = 3 where id = '${pr}'`);
+  const low = await fields(A, `select public.set_listing_stock('${pr}', 2)`);
+  ok("set_listing_stock refuses a stock below what is held", low?.code === "invalid" && low.held === 3);
+  await run(A, `select public.set_listing_stock('${pr}', 20) r`);
+  ok("set_listing_stock raises the stock", (await one(`select stock from public.listings where id = '${pr}'`)).stock === 20);
+  const orig = await mkList(wp, pa, "original", 1);
+  ok("an Original's stock cannot be set", (await fields(A, `select public.set_listing_stock('${orig}', 3)`))?.reason === "original_stock");
+  await db.exec(`update public.listings set stock = 5, held = 0, status = 'sold' where id = '${pr}'`);
+  await run(A, `select public.set_listing_stock('${pr}', 8) r`);
+  ok("a sold print given stock is live again", await stat("listings", pr) === "live");
+  ok("the stock range is 1000 at most", (await fields(A, `select public.set_listing_stock('${pr}', 1001)`))?.code === "invalid");
+
+  // delete
+  const wd = await mkWork(pa, "P06 Draft", "'{https://x/d1.jpg,https://x/d2.jpg}'");
+  await mkList(wd, pa, "print", 3);
+  const gone = await run(A, `select public.delete_artwork('${wd}') r`);
+  ok("delete_artwork removes a never-sold work and returns its files", await stat("artworks", wd) === "removed" && gone.photos.length === 2 && await stat("listings", (await one(`select id from public.listings where artwork_id = '${wd}'`)).id) === "ended");
+  ok("deleting again is done, not an error", (await run(A, `select public.delete_artwork('${wd}') r`)).photos.length === 0);
+  await db.exec(`update public.artworks set has_sales = true where id = '${w}'`);
+  ok("a work with sales cannot be deleted", (await fields(A, `select public.delete_artwork('${w}')`))?.reason === "has_sales");
+  const wh = await mkWork(pa, "P06 Held", "'{https://x/h.jpg}'");
+  const lh = await mkList(wh, pa, "print", 4, "live");
+  await svc(() => db.query(`select public.place_order('${pbuy}', '${pa}', '[{"listingId":"${lh}","quantity":1}]', '${addr}')`));
+  ok("a work in someone's open hold cannot be deleted", (await fields(A, `select public.delete_artwork('${wh}')`))?.reason === "has_sales");
+
+  // owners, roles, restriction
+  for (const [name, text] of [["end_artwork", `select public.end_artwork('${wp}')`], ["publish_artwork", `select public.publish_artwork('${wp}')`],
+    ["reopen_artwork", `select public.reopen_artwork('${wp}')`], ["delete_artwork", `select public.delete_artwork('${wp}')`], ["set_listing_stock", `select public.set_listing_stock('${pr}', 3)`]]) {
+    ok(`another Artist cannot call ${name}`, (await fields(B, text))?.code === "forbidden");
+  }
+  ok("a Buyer cannot call publish_artwork", (await fields({ sub: pbuy, app_metadata: {} }, `select public.publish_artwork('${wp}')`))?.code === "forbidden");
+  ok("an unknown id is not_found", (await fields(A, `select public.publish_artwork('00000000-0000-4000-8000-00000000dead')`))?.reason === "not_found");
+  await db.exec(`update public.profiles set restricted = true where id = '${pa}'`);
+  ok("a restricted Artist cannot publish, reopen or set stock", (await fields(A, `select public.publish_artwork('${wp}')`))?.reason === "artist_restricted"
+    && (await fields(A, `select public.reopen_artwork('${wp}')`))?.reason === "artist_restricted" && (await fields(A, `select public.set_listing_stock('${pr}', 3)`))?.reason === "artist_restricted");
+  await run(A, `select public.end_artwork('${wp}') r`);
+  ok("a restricted Artist can still end a work", await stat("artworks", wp) === "draft");
+  await db.exec(`update public.profiles set restricted = false where id = '${pa}'`);
+
+  // the estimate and the view counter
+  await db.exec(`update public.settings set commission_bps = 1000`);
+  const est = await run(A, `select public.earnings_estimate(90000) r`);
+  ok("earnings_estimate is the price less commission and 2.36%", est.commission === 9000 && est.gateway === 2124 && est.net === 78876);
+  ok("a Buyer cannot ask for an estimate", (await fields({ sub: pbuy, app_metadata: {} }, `select public.earnings_estimate(90000)`))?.code === "forbidden");
+  const draftWork = await mkWork(pb, "P06 Private");
+  await as("anon", {}, () => db.query(`select public.bump_view('${draftWork}')`));
+  ok("bump_view ignores a draft", (await one(`select views v from public.artworks where id = '${draftWork}'`)).v === 0);
+  ok("updated_at moves when a work changes", await (async () => { const before = (await one(`select updated_at u from public.artworks where id = '${draftWork}'`)).u; await db.exec(`update public.artworks set title = 'P06 Private 2' where id = '${draftWork}'`); return +(await one(`select updated_at u from public.artworks where id = '${draftWork}'`)).u > +before; })());
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

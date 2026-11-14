@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { bumpView, useArtist, useArtwork, useListings, useReel } from '../api/gateway';
 import { RelatedWorks } from '../components/artwork/RelatedWorks';
 import { ReviewsPreview } from '../components/artwork/ReviewsPreview';
@@ -27,6 +27,7 @@ export default function ArtworkPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { currentUser } = useAuth();
+  const [query] = useSearchParams();
   const cart = useCart();
   const [art, loadingArt, error, reload] = useArtwork(id);
   const [listings, loadingListings] = useListings(id);
@@ -36,20 +37,21 @@ export default function ArtworkPage() {
   const [qty, setQty] = useState(1);
   const [reporting, setReporting] = useState(false);
 
-  // one visit counts once per browser session
+  // one visit counts once per browser session, never the owner's own
   useEffect(() => {
-    if (!art?.id) return;
+    if (!art?.id || (currentUser && currentUser.uid === art.artistId)) return;
     try {
       const key = `cm-viewed:${art.id}`;
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, '1');
     } catch { /* storage blocked: count it */ }
     bumpView(art.id);
-  }, [art?.id]);
+  }, [art?.id, art?.artistId, currentUser?.uid]); // eslint-disable-line react-hooks/exhaustive-deps -- currentUser itself changes shape on every token refresh
 
   if (loadingArt || loadingListings) return <Shell><div className="skeleton" style={{ height: 320 }} aria-busy="true" /></Shell>;
   if (error && !isBadId(error)) return <Shell><div className="empty" role="alert"><h3>We couldn’t load this page.</h3><button className="btn btn-primary" onClick={reload}>Try again</button></div></Shell>;
-  if (!art || art.status !== 'published') return <Shell><div className="empty"><h3>We couldn’t find this Artwork. It may have been taken down.</h3><Link className="btn btn-primary" to="/browse">Browse art</Link></div></Shell>;
+  const preview = query.get('preview') === '1' && currentUser?.uid === art?.artistId; // the owner may look at a draft
+  if (!art || (art.status !== 'published' && !preview)) return <Shell><div className="empty"><h3>We couldn’t find this Artwork. It may have been taken down.</h3><Link className="btn btn-primary" to="/browse">Browse art</Link></div></Shell>;
 
   const options = (listings || []).slice().sort((a, b) => a.price - b.price);
   const leftOf = (l) => (l.stock || 0) - (l.held || 0);
@@ -77,10 +79,11 @@ export default function ArtworkPage() {
 
   return (
     <Shell>
+      {preview && <div className="alert info" role="status"><Icon name="eye" /><div><strong>Preview.</strong> Buyers can’t see this until you publish.</div></div>}
       <Breadcrumbs items={[{ to: '/', label: 'Home' }, { to: '/browse', label: 'Browse' }, { to: `/browse?cat=${encodeURIComponent(art.category)}`, label: art.category }, { label: art.title }]} />
       <div className="split">
         <section style={{ position: 'relative' }}>
-          <Gallery key={art.id} photos={art.photos || []} title={art.title} reel={reel} />
+          <Gallery key={art.id} photos={art.photos || []} title={art.title} reel={reel} video={art.video} />
           {!anyBuyable && options.length > 0 && <span className="sold-tag big">Sold</span>}
         </section>
         <aside className="panel stack sticky" aria-label="Buy">

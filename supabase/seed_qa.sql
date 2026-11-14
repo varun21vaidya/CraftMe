@@ -221,3 +221,6 @@ update public.orders set reviewed = true where id in ('e0000000-0000-4000-8000-0
 insert into public.reels (id, artist_id, url, highlighted, position, owner_confirmed) values
   ('ee000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'https://www.instagram.com/reel/CqaQa123abc/', true, 0, true);
 update public.artworks set reel_id = 'ee000000-0000-4000-8000-000000000001' where id = 'c1000000-0000-4000-8000-000000000001';
+
+-- ---------- P06: works that sold keep has_sales (the flag the real payment path sets), so they cannot be deleted ----------
+update public.artworks set has_sales = true where id in ('c1000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000002', 'c1000000-0000-4000-8000-000000000003');

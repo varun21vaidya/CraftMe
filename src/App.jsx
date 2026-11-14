@@ -6,6 +6,7 @@ import { NotificationsProvider } from './contexts/NotificationsContext';
 import { SavedProvider } from './contexts/SavedContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ProtectedRoute, RoleRoute } from './components/common/Guards';
+import { ArtistShell, DashboardStandIn } from './components/common/ArtistShell';
 import { Layout } from './components/common/Layout';
 import { ToastProvider } from './components/ui/Toast';
 import { Login } from './components/auth/Login';
@@ -21,7 +22,7 @@ const OrderPage = lazy(() => import('./pages/OrderPage'));
 const DamageReportPage = lazy(() => import('./pages/DamageReportPage'));
 const ReviewPage = lazy(() => import('./pages/ReviewPage'));
 const ArtistInbox = lazy(() => import('./pages/ArtistInbox'));
-const NewArtwork = lazy(() => import('./pages/NewArtwork'));
+const ArtworkEditor = lazy(() => import('./pages/ArtworkEditor'));
 const MyWorks = lazy(() => import('./pages/MyWorks'));
 const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 const ArtistPage = lazy(() => import('./pages/ArtistPage'));
@@ -87,15 +88,20 @@ export default function App() {
                 <Route path="/orders/:id/receipt" element={screen(<OrderPage />, signedIn)} />
                 <Route path="/orders/:id/damage" element={screen(<DamageReportPage />, signedIn)} />
                 <Route path="/orders/:id/review" element={screen(<ReviewPage />, signedIn)} />
-                <Route path="/dashboard/orders" element={screen(<ArtistInbox />, artistOnly)} />
-                <Route path="/dashboard/artworks" element={screen(<MyWorks />, artistOnly)} />
-                <Route path="/dashboard/artworks/new" element={screen(<NewArtwork />, artistOnly)} />
-                <Route path="/dashboard/settings" element={screen(<ProfileEdit />, artistOnly)} />
-                <Route path="/dashboard/instagram" element={screen(<ProfileEdit />, artistOnly)} />
-                <Route path="/dashboard/works" element={<Moved to="/dashboard/artworks" />} />
-                <Route path="/dashboard/new" element={<Moved to="/dashboard/artworks/new" />} />
-                <Route path="/dashboard/profile" element={<Moved to="/dashboard/settings" />} />
                 <Route path="*" element={screen(<NotFound />)} />
+              </Route>
+              <Route path="/dashboard" element={screen(<ArtistShell />, artistOnly)}>
+                <Route index element={<Navigate to="/dashboard/artworks" replace />} />
+                <Route path="orders" element={screen(<ArtistInbox />)} />
+                <Route path="artworks" element={screen(<MyWorks />)} />
+                <Route path="artworks/new" element={screen(<ArtworkEditor />)} />
+                <Route path="artworks/:id" element={screen(<ArtworkEditor />)} />
+                <Route path="payouts" element={<DashboardStandIn title="Payouts" />} />
+                <Route path="settings" element={screen(<ProfileEdit />)} />
+                <Route path="instagram" element={screen(<ProfileEdit />)} />
+                <Route path="works" element={<Moved to="/dashboard/artworks" />} />
+                <Route path="new" element={<Moved to="/dashboard/artworks/new" />} />
+                <Route path="profile" element={<Moved to="/dashboard/settings" />} />
               </Route>
             </Routes>
             </SavedProvider>

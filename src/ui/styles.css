@@ -659,3 +659,11 @@ body::before { background: var(--bg); }
 .legal-body h2 { margin-top: 24px; font-size: 1.25rem; }
 .legal-body p, .legal-body ul { margin-top: 8px; max-width: 70ch; }
 .legal-body ul { padding-left: 20px; }
+
+/* ---------- P06: Artist works list and editor ---------- */
+.works-cards { display: none; }
+@media (max-width: 760px) { .works-table { display: none; } .works-cards { display: grid; } }
+.photo-grid { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 12px; }
+.photo-grid li { position: relative; display: grid; gap: 6px; justify-items: start; }
+.photo-grid .badge { position: absolute; top: 6px; left: 6px; }
+.gal-video { width: 100%; height: 100%; object-fit: contain; background: #000; }

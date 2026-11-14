@@ -30,10 +30,10 @@ function stage(step) {
 
 async function fillDetails(page, { method = 'upi' } = {}) {
   await page.getByLabel('Legal name').fill('Ananya Verma');
-  await page.getByLabel('PAN', { exact: true }).fill('abcde1234f');
+  await page.getByLabel(/^PAN/).fill('abcde1234f');
   await page.getByLabel('City').fill('Mumbai');
   await page.getByLabel('State').selectOption('Maharashtra');
-  if (method === 'upi') await page.getByLabel('UPI ID').fill('ananya@okhdfc');
+  if (method === 'upi') await page.locator('#ob-upi').fill('ananya@okhdfc');
   await page.getByLabel('Short bio').fill('Small paintings.');
   await page.getByRole('button', { name: 'Art', exact: true }).click();
   await page.getByLabel('Everything I sell is my own work.').check();
@@ -59,7 +59,7 @@ test('QA-S18-01 details step: required fields, upper-cased PAN, saved private de
   expect(sql(`select count(*) from public.artist_private where profile_id = '${B1}'`)).toBe('0');
 
   await fillDetails(page);
-  await expect(page.getByLabel('PAN', { exact: true })).toHaveValue('ABCDE1234F');
+  await expect(page.getByLabel(/^PAN/)).toHaveValue('ABCDE1234F');
   await page.getByRole('button', { name: 'Continue to phone check' }).click();
   await expect(page.getByRole('heading', { name: 'Verify your phone' })).toBeVisible();
   expect(artistRow(`legal_name || '|' || pan || '|' || (payout_method ->> 'upi') || '|' || specialties::text || '|' || (verified_at is null) || '|' || phone_verified`))
@@ -74,16 +74,16 @@ test('QA-S18-02 bank details: validation, upper-case IFSC, the UPI field is hidd
   await page.goto('/become-artist');
   await fillDetails(page, { method: 'bank' });
   await page.getByRole('radio', { name: /Bank account/ }).check();
-  await expect(page.getByLabel('UPI ID')).toHaveCount(0);
+  await expect(page.locator('#ob-upi')).toHaveCount(0);
   await page.getByLabel('Account holder name').fill('Ananya Verma');
   await page.getByLabel('IFSC').fill('hdfc0001234');
   await expect(page.getByLabel('IFSC')).toHaveValue('HDFC0001234');
-  await page.getByLabel('Account number', { exact: true }).fill('1234567');
+  await page.getByLabel(/^Account number/).fill('1234567');
   await page.getByLabel('Confirm account number').fill('12345678');
   await page.getByRole('button', { name: 'Continue to phone check' }).click();
   await expect(page.getByText('Account numbers have 9 to 18 digits.').first()).toBeVisible();
   await expect(page.getByText('The two account numbers don’t match.').first()).toBeVisible();
-  await page.getByLabel('Account number', { exact: true }).fill('123456789012');
+  await page.getByLabel(/^Account number/).fill('123456789012');
   await page.getByLabel('Confirm account number').fill('123456789012');
   await page.getByRole('button', { name: 'Continue to phone check' }).click();
   await expect(page.getByRole('heading', { name: 'Verify your phone' })).toBeVisible();
@@ -105,7 +105,7 @@ test.describe('QA-S18-04 code entry', () => {
     await signInAs(page, 'B1');
     await page.goto('/become-artist');
     await expect(page.getByRole('heading', { name: 'Verify your phone' })).toBeVisible();
-    await page.getByLabel('Phone', { exact: true }).fill(PHONE);
+    await page.getByLabel(/^Phone/).fill(PHONE);
     await page.getByRole('button', { name: 'Send code on WhatsApp' }).click();
     await expect(page.getByText(`We sent a 6-digit code on WhatsApp to +91 ${PHONE}. It works for 10 minutes.`)).toBeVisible();
     await expect(page.getByText(/Resend in 1:00|Resend in 0:5\d/)).toBeVisible();
@@ -129,7 +129,7 @@ test.describe('QA-S18-04 code entry', () => {
     await expect(page.getByLabel('Digit 2')).toBeFocused();
 
     await page.getByRole('button', { name: 'Change number' }).click();
-    await expect(page.getByLabel('Phone', { exact: true })).toHaveValue(PHONE);
+    await expect(page.getByLabel(/^Phone/)).toHaveValue(PHONE);
     await page.getByRole('button', { name: 'Send code on WhatsApp' }).click(); // the same number again, within the minute: the server may refuse
     await expect(page.getByText(`We sent a 6-digit code on WhatsApp to +91 ${PHONE}.`).or(page.getByText('Too many tries. Wait a minute, then try again.'))).toBeVisible();
   });
@@ -146,7 +146,7 @@ test.describe('QA-S18-04 code entry', () => {
     await page.route('**/auth/v1/user', (route) => (route.request().method() === 'PUT'
       ? route.fulfill({ status: 429, contentType: 'application/json', body: JSON.stringify({ code: 'over_sms_send_rate_limit', message: 'rate' }) }) : route.continue()));
     await page.goto('/become-artist');
-    await page.getByLabel('Phone', { exact: true }).fill(PHONE);
+    await page.getByLabel(/^Phone/).fill(PHONE);
     await page.getByRole('button', { name: 'Send code on WhatsApp' }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Too many tries. Wait a minute, then try again.' })).toBeVisible();
   });
@@ -155,7 +155,7 @@ test.describe('QA-S18-04 code entry', () => {
     stage('details');
     await signInAs(page, 'B1');
     await page.goto('/become-artist');
-    await page.getByLabel('Phone', { exact: true }).fill(PHONE);
+    await page.getByLabel(/^Phone/).fill(PHONE);
     await page.getByRole('button', { name: 'Send code on WhatsApp' }).click();
     await expect(page.getByLabel('Digit 1')).toBeVisible();
     expect(artistRow('phone_verified')).toBe('f');
@@ -173,7 +173,7 @@ test.describe('QA-S18-04 code entry', () => {
     await page.route('**/auth/v1/user', (route) => (route.request().method() === 'PUT'
       ? route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ code: 'phone_exists', message: 'taken' }) }) : route.continue()));
     await page.goto('/become-artist');
-    await page.getByLabel('Phone', { exact: true }).fill(PHONE);
+    await page.getByLabel(/^Phone/).fill(PHONE);
     await page.getByRole('button', { name: 'Send code on WhatsApp' }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'That number is already used on another CraftMe account.' })).toBeVisible();
     await page.unroute('**/auth/v1/user');
@@ -408,6 +408,7 @@ test.describe('QA-S18-09 closed, fee not set, payments not set up', () => {
     await page.goto('/become-artist');
     await expect(page.getByRole('heading', { name: 'You’re an Artist on CraftMe' })).toBeVisible();
     await expect(links(page)).toHaveCount(0);
-    await expect(page.locator('header').getByRole('link', { name: 'Artist dashboard' })).toBeVisible();
+    await page.getByRole('button', { name: 'Account menu' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Artist dashboard' })).toBeVisible(); // the public header has no Artist links (P06); the account menu does
   });
 });

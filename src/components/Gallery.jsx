@@ -9,8 +9,8 @@ const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce
  * A work's photos (and its reel, last) as one swipeable carousel. The whole photo is always visible
  * (the frame is at most about 65% of the screen high), never cropped. One slide shows no controls.
  */
-export default function Gallery({ photos = [], title, reel }) {
-  const slides = [...photos.map((src) => ({ type: 'photo', src })), ...(reel ? [{ type: 'reel', reel }] : [])];
+export default function Gallery({ photos = [], title, reel, video }) {
+  const slides = [...photos.map((src) => ({ type: 'photo', src })), ...(video ? [{ type: 'video', src: video }] : []), ...(reel ? [{ type: 'reel', reel }] : [])];
   const count = slides.length;
   const [index, setIndex] = useState(0);
   const [bad, setBad] = useState({});
@@ -55,10 +55,12 @@ export default function Gallery({ photos = [], title, reel }) {
       <div className="gal-frame">
         <div className="gal-track" ref={track} onScroll={onScroll}>
           {slides.map((s, i) => (
-            <div className={`gal-slide${s.type === 'reel' ? ' reel-slide' : ''}`} key={s.type === 'photo' ? `${s.src}-${i}` : 'reel'} role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${count}`}>
+            <div className={`gal-slide${s.type === 'reel' ? ' reel-slide' : ''}`} key={s.type === 'photo' ? `${s.src}-${i}` : s.type} role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${count}`}>
               {s.type === 'reel'
                 ? <ReelCard reel={s.reel} fill active={index === i} />
-                : bad[i]
+                : s.type === 'video'
+                  ? <video className="gal-video" src={s.src} controls preload="none" playsInline aria-label={`${title}, video`} /> // nothing downloads until it is played
+                  : bad[i]
                   ? <span className="muted">Photo unavailable</span>
                   : <img src={s.src} alt={`${title}, photo ${i + 1}`} loading={i < 2 ? 'eager' : 'lazy'} onError={() => setBad((b) => ({ ...b, [i]: true }))} />}
             </div>
@@ -81,7 +83,7 @@ export default function Gallery({ photos = [], title, reel }) {
           <div className="gal-dots" aria-hidden="true">{slides.map((_, i) => <span key={i} className={i === index ? 'on' : ''} />)}</div>
           <div className="gal-thumbs">
             {slides.map((s, i) => (
-              <button type="button" key={i} className="gal-thumb" aria-label={s.type === 'reel' ? 'Show the reel' : `Show photo ${i + 1}`}
+              <button type="button" key={i} className="gal-thumb" aria-label={s.type === 'reel' ? 'Show the reel' : s.type === 'video' ? 'Show the video' : `Show photo ${i + 1}`}
                 aria-current={i === index} onClick={() => goTo(i)}>{thumb(s, i)}</button>
             ))}
           </div>

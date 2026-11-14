@@ -59,7 +59,6 @@ export function Layout() {
             <Link to="/browse">Browse</Link>
             <Menu label="Categories" button="Categories" items={groups} align="left" />
             {sell && <Link to="/become-artist">Sell your art</Link>}
-            {isArtist && <Link to="/dashboard/orders">Artist dashboard</Link>}
           </nav>
           <MarketplaceSearch />
           <div className="hactions">
@@ -95,7 +94,6 @@ export function Layout() {
                 {currentUser && <Link to="/orders">My orders</Link>}
                 {currentUser && <Link to="/profile">Profile</Link>}
                 {currentUser && <Link to="/notifications">Notifications</Link>}
-                {isArtist && <Link to="/dashboard/orders">Artist dashboard</Link>}
                 {sell && <Link to="/become-artist">Sell your art</Link>}
               </nav>
             </div>

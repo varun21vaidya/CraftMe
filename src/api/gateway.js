@@ -79,6 +79,12 @@ const RPC = {
   acceptTerms: (i) => ['accept_terms', { p_version: i.version }],
   requestDeletion: (i) => ['request_deletion', { p_scope: i.scope, p_confirm: i.confirm }],
   cancelDeletion: () => ['cancel_deletion', {}],
+  publishArtwork: (i) => ['publish_artwork', { p_artwork: i.artworkId }],
+  endArtwork: (i) => ['end_artwork', { p_artwork: i.artworkId }],
+  reopenArtwork: (i) => ['reopen_artwork', { p_artwork: i.artworkId }],
+  deleteArtwork: (i) => ['delete_artwork', { p_artwork: i.artworkId }],
+  setListingStock: (i) => ['set_listing_stock', { p_listing: i.listingId, p_stock: i.stock }],
+  earningsEstimate: (i) => ['earnings_estimate', { p_price: i.pricePaise }],
 };
 
 /** Calls a backend command. Pass your own requestId to make a retry replay the first result. */
@@ -286,8 +292,27 @@ export const useArtist = (id) => useQuery(
 /** The Artist's own works for their dashboard: drafts and taken-down works included, each with its Listings. */
 export const useMyWorks = (uid) => useQuery(
   uid ? async () => must(await supabase.from('artworks').select('*, listings(*)').eq('artist_id', uid).neq('status', 'removed')
-    .order('created_at', { ascending: false }).limit(100)).map(camel) : null,
+    .order('created_at', { ascending: false }).limit(500)).map(camel) : null,
   [uid],
+);
+/** One of the Artist's own works with all its Listings, for the editor: null when it does not exist (another Artist's work comes back too: the page checks artistId). */
+export const useWork = (id) => useQuery(
+  id ? async () => {
+    const row = must(await supabase.from('artworks').select('*, listings(*)').eq('id', id).neq('status', 'removed').maybeSingle());
+    if (!row) return null;
+    const work = camel(row);
+    return { ...work, listings: [...(work.listings || [])].sort((a, b) => a.createdAt - b.createdAt) };
+  } : null,
+  [id],
+);
+/** Orders waiting to be shipped: the badge on the dashboard's Orders link. */
+export const useToShipCount = (uid) => useQuery(
+  uid ? async () => {
+    const { count, error } = await supabase.from('orders').select('id', { count: 'exact', head: true }).eq('artist_id', uid).eq('stage', 'paid');
+    if (error) throw error;
+    return count ?? 0;
+  } : null,
+  [uid], 20000,
 );
 /** An Artist's public works, on-sale ones first then sold ones. `limit` grows by 24 each "Show more". */
 export const useArtistWorks = (id, limit = 24) => useQuery(
@@ -338,7 +363,7 @@ export const useMyProfile = (uid) => useQuery(
 /** The person's own onboarding row (private details, phone check, fee) or null before they have submitted anything. pollMs > 0 keeps it fresh. */
 export const useOnboarding = (uid, pollMs = 0) => useQuery(
   uid ? async () => {
-    const row = must(await supabase.from('artist_private').select('legal_name, pan, payout_method, holder_name, phone_verified, specialties, agreed_own_work_at, submitted_at, onboarding_paid_at, verified_at').eq('profile_id', uid).maybeSingle());
+    const row = must(await supabase.from('artist_private').select('legal_name, pan, payout_method, holder_name, phone_verified, specialties, agreed_own_work_at, submitted_at, onboarding_paid_at, verified_at, restriction_reasons').eq('profile_id', uid).maybeSingle());
     if (!row) return null;
     const { payoutMethod, ...rest } = camel(row);
     return { ...rest, payoutMethod, payoutType: payoutMethod?.type ?? null };
@@ -453,7 +478,7 @@ export const getDeletionStatus = async (code) => {
   return error || !data ? null : Date.parse(data);
 };
 const DRAFT_FIELDS = {
-  artworks: ['title', 'description', 'category', 'photos', 'video', 'status', 'reelId'],
+  artworks: ['title', 'description', 'category', 'year', 'medium', 'signed', 'photos', 'video', 'status', 'reelId'],
   listings: ['price', 'size', 'medium', 'title', 'status'],
 };
 const CREATE_EXTRA = { listings: ['artworkId', 'kind', 'stock'] };
@@ -468,39 +493,16 @@ export const saveDraft = (kind, id, fields, uid) => safe(async () => {
   return { id: row.id };
 });
 
-/**
- * Puts one of the Artist's Artworks on sale: adds a Listing (kind, size, medium, price in paise, stock), then publishes both.
- * On a failure the result carries artworkId, so the page can say the Artwork was kept as a draft.
- */
-export const sellArtwork = async (uid, artworkId, title, sale) => {
-  const l = await saveDraft('listings', null, { ...sale, title, artworkId }, uid);
-  if (!l.ok) return { ...l, artworkId };
-  const live = await safe(async () => {
-    must(await supabase.from('artworks').update({ status: 'published' }).eq('id', artworkId).select('id').single());
-    must(await supabase.from('listings').update({ status: 'live' }).eq('id', l.id).select('id').single());
-    return {};
-  });
-  return live.ok ? { ok: true, id: artworkId } : { ...live, artworkId };
-};
-/** A new work on sale in one step: a draft Artwork, then sellArtwork. */
-export const publishWork = async (uid, art, sale) => {
-  const a = await saveDraft('artworks', null, art, uid);
-  return a.ok ? sellArtwork(uid, a.id, art.title, sale) : a;
-};
-/**
- * Takes a work down (hidden from Browse, its Listings can't be bought) or puts it back on sale.
- * Sold Listings are left alone. The `.select` makes a refused update an error instead of a silent no-op.
- */
-export const setWorkOnSale = (artworkId, onSale) => safe(async () => {
-  if (onSale) {
-    must(await supabase.from('artworks').update({ status: 'published' }).eq('id', artworkId).select('id').single());
-    must(await supabase.from('listings').update({ status: 'live' }).eq('artwork_id', artworkId).eq('status', 'draft').select('id'));
-  } else {
-    must(await supabase.from('listings').update({ status: 'draft' }).eq('artwork_id', artworkId).eq('status', 'live').select('id'));
-    must(await supabase.from('artworks').update({ status: 'draft' }).eq('id', artworkId).select('id').single());
-  }
+/** Creates (id null) or edits an Artwork: title, description, category, year, medium, signed, photos, video, reelId. A new one starts as a draft. */
+export const saveArtwork = (uid, id, fields) => saveDraft('artworks', id, fields, uid);
+/** Creates or edits a Listing: price, size, medium, title; kind, stock and artworkId only when creating (stock changes later go through setListingStock). */
+export const saveListing = (uid, id, fields) => saveDraft('listings', id, fields, uid);
+const setListingStatus = (id, status) => safe(async () => {
+  must(await supabase.from('listings').update({ status }).eq('id', id).select('id').single());
   return {};
 });
+export const endListing = (id) => setListingStatus(id, 'ended');
+export const reopenListing = (id) => setListingStatus(id, 'live');
 export const setListingPrice = (listingId, paise) => safe(async () => {
   must(await supabase.from('listings').update({ price: paise }).eq('id', listingId).select('id').single());
   return {};
