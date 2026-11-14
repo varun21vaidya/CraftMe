@@ -6,26 +6,28 @@ import { forwardRef, useImperativeHandle, useRef } from 'react';
  */
 export const CodeInput = forwardRef(function CodeInput({ value, onChange, label = '6-digit code', disabled = false, invalid = false }, ref) {
   const boxes = useRef([]);
-  const cells = Array.from({ length: 6 }, (_, i) => value[i] ?? '');
+  // value keeps a blank as a space, so clearing a middle box does not slide the later digits left
+  const cells = Array.from({ length: 6 }, (_, i) => (value[i] === ' ' ? '' : value[i] ?? ''));
+  const join = (list) => list.map((c) => c || ' ').join('').replace(/ +$/, '');
   useImperativeHandle(ref, () => ({ focus: () => boxes.current[0]?.focus() }));
 
   const fill = (digits, from = 0) => {
-    const next = cells.slice(0, from).join('') + digits;
+    const next = join(cells.slice(0, from)) + digits;
     onChange(next.slice(0, 6));
     boxes.current[Math.min(from + digits.length, 5)]?.focus();
   };
   const change = (i, e) => {
     const digits = e.target.value.replace(/\D/g, '');
-    if (!digits) { onChange(cells.map((c, k) => (k === i ? '' : c)).join('')); return; }
+    if (!digits) { onChange(join(cells.map((c, k) => (k === i ? '' : c)))); return; }
     if (digits.length === 1) {
-      onChange(cells.map((c, k) => (k === i ? digits : c)).join(''));
+      onChange(join(cells.map((c, k) => (k === i ? digits : c))));
       boxes.current[Math.min(i + 1, 5)]?.focus();
     } else fill(digits, 0); // a whole code arrived in one box
   };
   const key = (i, e) => {
     if (e.key === 'Backspace' && !cells[i] && i > 0) {
       e.preventDefault();
-      onChange(cells.map((c, k) => (k === i - 1 ? '' : c)).join(''));
+      onChange(join(cells.map((c, k) => (k === i - 1 ? '' : c))));
       boxes.current[i - 1]?.focus();
     }
   };

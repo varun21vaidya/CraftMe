@@ -54,7 +54,7 @@ export function PhoneStep({ onBack, onVerified }) {
 
   const verify = async (e) => {
     e?.preventDefault();
-    if (code.length !== 6) return;
+    if (!/^\d{6}$/.test(code)) return;
     setBusy('verify'); setError('');
     const res = await verifyPhoneCode(phone, code);
     setBusy('');
@@ -115,7 +115,7 @@ export function PhoneStep({ onBack, onVerified }) {
       )}
       <div className="row end">
         <button type="button" className="btn btn-ghost" onClick={onBack}>Back</button>
-        {!unsaved && <button className="btn btn-primary btn-lg" type="submit" disabled={code.length !== 6 || busy === 'verify'}>{busy === 'verify' ? 'Checking…' : 'Verify and continue'}</button>}
+        {!unsaved && <button className="btn btn-primary btn-lg" type="submit" disabled={!/^\d{6}$/.test(code) || busy === 'verify'}>{busy === 'verify' ? 'Checking…' : 'Verify and continue'}</button>}
       </div>
     </form>
   );

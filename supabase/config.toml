@@ -266,7 +266,7 @@ otp_expiry = 3600
 # To block new signups only, set enable_signup = false under [auth] instead.
 enabled = true
 # If enabled, users need to confirm their phone number before signing in.
-enable_confirmations = false
+enable_confirmations = true # a phone change must be confirmed with the code (production: Confirm phone on)
 # Template for sending OTP to users
 template = "Your code is {{ .Code }}"
 # Controls the minimum amount of time that must pass before sending another sms otp.

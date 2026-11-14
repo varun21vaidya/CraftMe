@@ -33,7 +33,7 @@ The phone check sends a 6-digit code on WhatsApp through Supabase Auth's Send SM
 npx supabase secrets set SEND_SMS_HOOK_SECRET="v1,whsec_..." WHATSAPP_TOKEN=... WHATSAPP_PHONE_NUMBER_ID=... WHATSAPP_TEMPLATE=... WHATSAPP_TEMPLATE_LANG=en --project-ref iftjiddrgigqmvsdiasw
 ```
 
-Dashboard (Authentication): Sign In / Providers > Phone on, with the Send SMS Hook as the provider (HTTPS, URL above, generate the secret there and use it as `SEND_SMS_HOOK_SECRET`); OTP length 6, expiry 600 seconds, minimum 60 seconds between sends. Locally the phone `919000000001` accepts the code `123456` (`[auth.sms.test_otp]` in `config.toml`) and nothing is sent. Without these secrets the browser says phone checks are not working.
+Dashboard (Authentication): Sign In / Providers > Phone on, with the Send SMS Hook as the provider (HTTPS, URL above, generate the secret there and use it as `SEND_SMS_HOOK_SECRET`); Confirm phone on, OTP length 6, expiry 600 seconds, minimum 60 seconds between sends. Locally the phone `919000000001` accepts the code `123456` (`[auth.sms.test_otp]` in `config.toml`) and nothing is sent. Without these secrets the browser says phone checks are not working.
 
 ## Instagram secrets (off until all are set; never in git or `VITE_*`)
 
