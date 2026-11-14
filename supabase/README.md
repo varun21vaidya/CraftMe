@@ -11,6 +11,7 @@ Project `iftjiddrgigqmvsdiasw` (Mumbai, `ap-south-1`).
 | Razorpay and role commands | `functions/api` | Edge Function: `placeOrder`, `confirmPayment`, `issueRefund`, `payOnboardingFee`, `becomeArtist`, `setRole`, and the webhook at `/functions/v1/api/webhook` |
 | Catalogue | `migrations/0006_catalogue.sql` | 21 categories in 5 groups, listing kind `product` |
 | Reels | `migrations/0008_reels.sql` | Artists' reel links, limits (12 reels, 6 highlighted), product link |
+| Account | `migrations/0022_account.sql`, `functions/api` (`deletions` job, `instagramDeleteMyData`) | Policy acceptance, the `avatars` bucket, every notification producer (triggers), deletion requests and the job that anonymises. Run the job daily with `POST /functions/v1/api/cron?job=deletions` and header `x-cron-secret`; the schedule itself comes with `0030` (P11), until then run it by hand |
 | Instagram connection | `migrations/0009_instagram.sql`, `0011_instagram_unified.sql`, `functions/api/instagram*.ts/js` | Private account/state/deletion tables, verified locks, and the Instagram commands and `/instagram/*` routes (`0010`/`0012` added and removed a refresh job) |
 
 `npm run test:schema` runs all of the SQL in memory (PGlite) with 68 checks. Run it before applying a migration.
@@ -38,7 +39,7 @@ Keep a private copy of `INSTAGRAM_TOKEN_KEY` (losing it means every artist must 
 
 1. **Razorpay webhook** (Dashboard > Developers > Webhooks): URL `https://iftjiddrgigqmvsdiasw.supabase.co/functions/v1/api/webhook`, events `payment.captured` and `order.paid`, and a secret of your choosing (the same value as `RAZORPAY_WEBHOOK_SECRET`).
 2. **Google sign-in**: Google Cloud OAuth client (redirect URI `https://iftjiddrgigqmvsdiasw.supabase.co/auth/v1/callback`), then Supabase Authentication > Providers > Google.
-3. **Auth URLs**: Authentication > URL Configuration. Set the Site URL to the Vercel production URL and add it, plus `http://localhost:5173`, to the redirect list.
+3. **Auth URLs**: Authentication > URL Configuration. Set the Site URL to the Vercel production URL and add it, plus `http://localhost:5173`, to the redirect list. Google now returns people to `/login`, so the list must also hold `https://<site>/login` and `http://localhost:5173/login` (the local stack has both in `config.toml`).
 
 ## Known gaps
 

@@ -1,22 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationList } from '../../contexts/NotificationsContext';
-import { notificationTarget } from '../../lib/notifications';
+import { notificationTarget, notificationText } from '../../lib/notifications';
 import { Icon } from './Icon';
-
-// Wording per notification type; the data only carries ids and numbers.
-const TEXT = {
-  order_paid: (d) => `Payment received for order ${d.code}`,
-  order_new: (d) => `New order ${d.code} to ship`,
-  order_shipped: (d) => `Your order ${d.code} is on its way`,
-  order_received: (d) => `Order ${d.code} was received`,
-  order_refunded: (d) => `Your order ${d.code} was refunded`,
-  ship_reminder: () => 'An order is waiting to be shipped',
-  instagram_reconnect: () => 'Reconnect Instagram to keep your posts showing',
-};
 
 export function NotificationBell() {
   const { items, unread, markOne, markAll, reload } = useNotificationList();
+  const { currentUser } = useAuth();
   const [open, setOpen] = useState(false);
   const box = useRef(null);
   const navigate = useNavigate();
@@ -37,7 +28,7 @@ export function NotificationBell() {
   const pick = (n) => {
     markOne(n.id);
     setOpen(false);
-    const to = notificationTarget(n.type, n.data);
+    const to = notificationTarget(n.type, n.data, currentUser?.uid);
     if (to) navigate(to);
   };
 
@@ -51,13 +42,14 @@ export function NotificationBell() {
         <div className="menu notif">
           <div className="mh" style={{ padding: '12px 14px 8px' }}>
             <span>Notifications</span>
+            <Link to="/notifications" className="small">See all</Link>
             {unread > 0 && <button type="button" className="btn btn-ghost btn-sm" style={{ width: 'auto', padding: '2px 8px' }} onClick={markAll}>Mark all as read</button>}
           </div>
           {items.length === 0 && <p className="small muted" style={{ padding: '8px 14px 14px' }}>You’re all caught up.</p>}
           {items.map((n) => (
             <button key={n.id} className="item unread" onClick={() => pick(n)}>
               <span>
-                <span className="t">{(TEXT[n.type] || (() => 'Update'))(n.data || {})}</span>
+                <span className="t">{notificationText(n.type, n.data).title}</span>
                 <span className="s">{new Date(n.createdAt).toLocaleString('en-IN')}</span>
               </span>
             </button>

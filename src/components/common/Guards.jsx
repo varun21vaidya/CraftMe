@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { TermsGate } from '../account/TermsGate';
 import { useToast } from '../ui/Toast';
 
-/** Signed-in users only; remembers where to return after logging in. */
+/** Signed-in users only; sends everyone else to /login (which remembers where they were going) and asks for the Terms on the first visit. */
 export function ProtectedRoute({ children }) {
   const { currentUser } = useAuth();
   const here = useLocation();
-  return currentUser ? children : <Navigate to="/login" replace state={{ from: here.pathname }} />;
+  if (!currentUser) return <Navigate to="/login" replace state={{ from: here.pathname + here.search }} />;
+  return <>{children}<TermsGate /></>;
 }
 
 function NoAccess() {
@@ -25,6 +27,6 @@ function NoAccess() {
 export function RoleRoute({ role, children }) {
   const { currentUser, isArtist, isAdmin } = useAuth();
   const here = useLocation();
-  if (!currentUser) return <Navigate to="/login" replace state={{ from: here.pathname }} />;
-  return (role === 'admin' ? isAdmin : isArtist) ? children : <NoAccess />;
+  if (!currentUser) return <Navigate to="/login" replace state={{ from: here.pathname + here.search }} />;
+  return (role === 'admin' ? isAdmin : isArtist) ? <>{children}<TermsGate /></> : <NoAccess />;
 }

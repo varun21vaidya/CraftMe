@@ -15,6 +15,15 @@ export const formatClock = (ms) => {
 
 export const formatDate = (ms) => new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
+/** "Just now", "5 min ago", "2 h ago", then a date: the age of a notification. */
+export const formatAgo = (ms, now = Date.now()) => {
+  const minutes = Math.floor((now - ms) / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} h ago`;
+  return formatDate(ms);
+};
+
 /** "3 Nov" for deadlines inside a sentence. */
 export const formatDay = (ms) => new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 

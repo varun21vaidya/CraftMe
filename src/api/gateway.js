@@ -2,6 +2,8 @@
 // Every function resolves to an envelope-shaped result and never throws: {ok:true,...} or {ok:false,error:{code,reason?}}.
 // Backend: Supabase. Rows come back snake_case with ISO times; they are mapped here to the camelCase / epoch-ms shapes the pages use.
 import { useEffect, useState } from 'react';
+import { rememberReturn } from '../lib/returnTo';
+import { notificationTypes } from '../lib/notifications';
 import { supabase } from './supabase';
 
 const fail = (code, requestId, extra = {}) => ({ ok: false, error: { code, ...extra }, requestId });
@@ -74,6 +76,9 @@ const RPC = {
   restrictArtist: (i) => ['restrict_artist', { p_artist: i.artistId, p_restricted: i.restricted, p_reason: i.reason ?? '' }],
   buildPayoutRun: () => ['build_payout_run', {}],
   recordPayout: (i) => ['record_payout', { p_payout: i.payoutId, p_reference: i.reference }],
+  acceptTerms: (i) => ['accept_terms', { p_version: i.version }],
+  requestDeletion: (i) => ['request_deletion', { p_scope: i.scope, p_confirm: i.confirm }],
+  cancelDeletion: () => ['cancel_deletion', {}],
 };
 
 /** Calls a backend command. Pass your own requestId to make a retry replay the first result. */
@@ -111,9 +116,20 @@ export const refreshClaims = async () => {
   const { data } = await supabase.auth.refreshSession();
   return data.session?.user?.app_metadata || {};
 };
-export const signInWithGoogle = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
-  return error ? fail('unavailable') : { ok: true };
+/** Google brings the person back to /login, which sends them on to returnTo (a same-site path remembered here). */
+export const signInWithGoogle = async (returnTo) => {
+  if (returnTo) rememberReturn(returnTo);
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/login`, skipBrowserRedirect: true } });
+    if (error || !data?.url) return fail('unavailable');
+    // Leaving for a page that cannot load strands the person on a browser error screen, so check the sign-in service answers first.
+    // no-cors: any answer (even one we may not read) is fine; only "no answer" rejects.
+    await fetch(new URL('/auth/v1/health', data.url), { mode: 'no-cors', signal: AbortSignal.timeout(8000) });
+    window.location.assign(data.url);
+    return { ok: true };
+  } catch {
+    return fail('unavailable');
+  }
 };
 export const signOutUser = () => supabase.auth.signOut();
 
@@ -204,6 +220,10 @@ export const useSavedAddress = (uid) => useQuery(
 /** Upsert the one saved address (also used by the profile page in P04). */
 export const saveAddress = (uid, fields) => safe(async () => {
   must(await supabase.from('saved_addresses').upsert({ user_id: uid, ...pick(fields, ['name', 'phone', 'address', 'address2', 'landmark', 'city', 'state', 'pin']), updated_at: new Date().toISOString() }));
+  return {};
+});
+export const removeAddress = (uid) => safe(async () => {
+  must(await supabase.from('saved_addresses').delete().eq('user_id', uid));
   return {};
 });
 export const useArtistInbox = (uid) => useQuery(
@@ -297,6 +317,47 @@ export function useListingsByIds(ids) {
   );
   return [data || {}, loading, error, reload];
 }
+/** The one work shown beside the login card: the most viewed one on sale, or null. Skipped (null fetcher) when not needed. */
+export const useFeaturedArtwork = (enabled = true) => useQuery(
+  enabled ? async () => {
+    const row = must(await supabase.from('artworks').select('id, title, year, photos, artist:profiles!artist_id(display_name, city)')
+      .eq('status', 'published').eq('artist_open', true).eq('available', true).order('views', { ascending: false }).order('id').limit(1).maybeSingle());
+    return row?.photos?.length ? camel(row) : null;
+  } : null,
+  [enabled],
+);
+/** The signed-in person's own profile row (includes terms_accepted_at); null when it does not exist. */
+export const useMyProfile = (uid) => useQuery(
+  uid ? async () => {
+    const row = must(await supabase.from('profiles').select('*').eq('id', uid).maybeSingle());
+    return row ? toProfile(row) : null;
+  } : null,
+  [uid],
+);
+/** The person's deletion request ({status, scope, blockers}) or null. Polled so a banner follows the job. */
+export const useDeletionRequest = (uid) => useQuery(
+  uid ? async () => camel(must(await supabase.from('deletion_requests').select('*').eq('user_id', uid).maybeSingle())) : null,
+  [uid], 60000,
+);
+export const NOTIFICATIONS_PAGE = 20;
+/**
+ * One page of the full list, any read state. filter: 'all' | 'unread' | 'orders' | 'reviews'. Returns { rows, count, unread }:
+ * count is for the filter (pages), unread is the whole inbox (the chip).
+ */
+export const useNotificationsPage = (uid, { filter = 'all', page = 1 } = {}) => useQuery(
+  uid ? async () => {
+    let q = supabase.from('notifications').select('*', { count: 'exact' }).eq('user_id', uid);
+    if (filter === 'unread') q = q.eq('read', false);
+    if (filter === 'orders' || filter === 'reviews') q = q.in('type', notificationTypes(filter));
+    const [list, unread] = await Promise.all([
+      q.order('created_at', { ascending: false }).order('id').range((page - 1) * NOTIFICATIONS_PAGE, page * NOTIFICATIONS_PAGE - 1),
+      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('read', false),
+    ]);
+    if (list.error) throw list.error;
+    return { rows: camel(list.data), count: list.count ?? 0, unread: unread.count ?? 0 };
+  } : null,
+  [uid, filter, page], 20000,
+);
 export const useNotifications = (uid) => useQuery(
   uid ? async () => must(await supabase.from('notifications').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(20)).map(camel) : null,
   [uid], 20000,
@@ -326,7 +387,7 @@ const safe = async (fn) => {
 };
 
 export const saveProfile = (uid, fields) => safe(async () => {
-  must(await supabase.from('profiles').update(pick(fields, ['displayName', 'bio', 'instagramHandle'])).eq('id', uid));
+  must(await supabase.from('profiles').update(pick(fields, ['displayName', 'bio', 'instagramHandle', 'photoUrl', 'city', 'state'])).eq('id', uid));
   return {};
 });
 export const markRead = (notificationId) => safe(async () => {

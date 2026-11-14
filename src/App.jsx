@@ -26,7 +26,9 @@ const MyWorks = lazy(() => import('./pages/MyWorks'));
 const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 const ArtistPage = lazy(() => import('./pages/ArtistPage'));
 const ProfileEdit = lazy(() => import('./pages/ProfileEdit'));
-const Privacy = lazy(() => import('./pages/Privacy'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 const InstagramDeletion = lazy(() => import('./pages/InstagramDeletion'));
 const InstagramReturn = lazy(() => import('./pages/InstagramReturn'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -67,12 +69,15 @@ export default function App() {
                 <Route path="/artwork/:id" element={screen(<ArtworkPage />)} />
                 <Route path="/artist/:id" element={screen(<ArtistPage />)} />
                 <Route path="/login" element={screen(<Login />)} />
-                <Route path="/legal/privacy" element={screen(<Privacy />)} />
+                <Route path="/legal" element={screen(<LegalPage />)} />
+                <Route path="/legal/:page" element={screen(<LegalPage />)} />
                 <Route path="/privacy" element={<Moved to="/legal/privacy" />} />
                 <Route path="/instagram-deletion" element={screen(<InstagramDeletion />)} />
                 <Route path="/instagram/return" element={screen(<InstagramReturn />)} />
                 <Route path="/cart" element={screen(<CartPage />, signedIn)} />
                 <Route path="/checkout" element={screen(<CheckoutPage />, signedIn)} />
+                <Route path="/profile" element={screen(<ProfilePage />, signedIn)} />
+                <Route path="/notifications" element={screen(<NotificationsPage />, signedIn)} />
                 <Route path="/wishlist" element={screen(<WishlistPage />, signedIn)} />
                 <Route path="/wishlist/:collectionId" element={screen(<WishlistPage />, signedIn)} />
                 <Route path="/orders" element={screen(<OrdersPage />, signedIn)} />

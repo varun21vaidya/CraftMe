@@ -635,3 +635,27 @@ body::before { background: var(--bg); }
   .lazy-load-image-background.blur, .lazy-load-image-background.blur > img { filter: none !important; transition: none !important; }
   html { scroll-behavior: auto; }
 }
+
+/* P04 account: login, profile, notifications, legal */
+.login-grid { display: grid; grid-template-columns: minmax(0, 420px); justify-content: center; gap: 40px; align-items: start; }
+.login-art { display: none; }
+.login-art a { color: inherit; text-decoration: none; display: grid; gap: 6px; }
+.login-art img { width: 100%; display: block; aspect-ratio: 4 / 5; object-fit: cover; }
+@media (min-width: 901px) { .login-grid { grid-template-columns: 420px 340px; } .login-art { display: block; } }
+.profile-grid { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 901px) { .profile-grid { grid-template-columns: minmax(0, 1fr) 300px; } }
+.photo-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.notif-row { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; border-bottom: 1px solid var(--line); background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.notif-row:last-child { border-bottom: 0; }
+.notif-row:hover { background: var(--surface-2); }
+.notif-row .nic { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); }
+.notif-row.unread .nic { background: var(--accent-soft); color: var(--accent); }
+.notif-row .nt { display: block; font-weight: 600; }
+.notif-row time { flex: none; margin-left: auto; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+.legal-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.legal-tabs::-webkit-scrollbar { display: none; }
+.legal-tabs a { padding: 10px 14px; white-space: nowrap; color: var(--ink-2); border-bottom: 2px solid transparent; text-decoration: none; }
+.legal-tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.legal-body h2 { margin-top: 24px; font-size: 1.25rem; }
+.legal-body p, .legal-body ul { margin-top: 8px; max-width: 70ch; }
+.legal-body ul { padding-left: 20px; }

@@ -94,6 +94,14 @@ export function makeInstagram({ admin, CommandError }: Deps) {
     if (cover && i >= 0) await admin.storage.from("artworks").remove([cover.slice(i + marker.length)]);
   };
 
+  /** Everything Instagram gave us for one Artist: imported reels and their covers, then the account and token. Pasted links stay. */
+  async function purge(uid: string) {
+    const { data: imported } = await admin.from("reels").select("id,cover").eq("artist_id", uid).not("ig_media_id", "is", null);
+    for (const r of imported ?? []) await dropCover(r.cover);
+    await admin.from("reels").delete().eq("artist_id", uid).not("ig_media_id", "is", null);
+    await disconnect(uid);
+  }
+
   /** Unlinks the account. The reels stay, as plain artist-added reels (ig_media_id cleared, so they can be imported again). */
   async function disconnect(uid: string) {
     await admin.from("instagram_accounts").delete().eq("artist_id", uid);
@@ -159,6 +167,13 @@ export function makeInstagram({ admin, CommandError }: Deps) {
         added.push(id);
       }
       return { added, refused };
+    },
+
+    // An Artist deletes their own Instagram data (S19, "Only my Instagram data"); works with or without a live connection.
+    async instagramDeleteMyData(ctx) {
+      artistOnly(ctx);
+      await purge(ctx.uid);
+      return {};
     },
 
     async instagramDisconnect(ctx) {
@@ -235,12 +250,7 @@ export function makeInstagram({ admin, CommandError }: Deps) {
     const code = randomHex(16);
     await admin.from("instagram_deletions").insert({ code, ig_user_id: id });
     const artist = await artistOfMetaUser(id);
-    if (artist) {
-      const { data: imported } = await admin.from("reels").select("id,cover").eq("artist_id", artist).not("ig_media_id", "is", null);
-      for (const r of imported ?? []) await dropCover(r.cover);
-      await admin.from("reels").delete().eq("artist_id", artist).not("ig_media_id", "is", null);
-      await disconnect(artist);
-    }
+    if (artist) await purge(artist);
     await admin.from("instagram_deletions").update({ done_at: new Date().toISOString() }).eq("code", code);
     return new Response(JSON.stringify({ url: `${cfg().site}/instagram-deletion?code=${code}`, confirmation_code: code }), {
       status: 200, headers: { "Content-Type": "application/json" },

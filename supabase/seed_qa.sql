@@ -23,6 +23,7 @@ delete from public.requests where user_id in (select id from qa_old);
 delete from public.processed_events;
 delete from public.listings where artist_id in (select id from qa_old);
 delete from public.artworks where artist_id in (select id from qa_old);
+delete from public.deletion_requests where user_id in (select id from qa_old);
 delete from public.profiles where id in (select id from qa_old); -- private rows, notifications, wish lists, reels, saved address cascade
 delete from auth.users where id in (select id from qa_old);       -- identities and saved carts cascade
 

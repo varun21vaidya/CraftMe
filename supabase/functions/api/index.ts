@@ -2,7 +2,7 @@
 // functions (supabase/migrations/0003_logic.sql); this file only talks to Razorpay and hands the result to them.
 //   POST /api            {name, requestId, ...input}  -> envelope {ok, data|error, requestId}   (needs a signed-in user)
 //   POST /api/webhook    Razorpay webhook (signature checked, events de-duplicated)
-//   POST /api/cron?job=cleanup   scheduled jobs (header x-cron-secret = CRON_SECRET); `cleanup` removes damage photos no report uses, older than 24 hours
+//   POST /api/cron?job=cleanup   scheduled jobs (header x-cron-secret = CRON_SECRET); `cleanup` removes damage photos no report uses, older than 24 hours; `deletions` finishes Account deletions
 //   /api/instagram/*     Instagram connection (Unified Login): browser callback, Meta deauthorize and data-deletion (instagram.ts)
 // Deployed with verify_jwt off: commands verify the user below, the webhook verifies Razorpay's signature.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -374,13 +374,14 @@ async function webhook(req: Request) {
   return new Response(null, { status: 200 });
 }
 
-/** The one scheduled-jobs route. Without the secret nothing runs. Jobs: cleanup. */
+/** The one scheduled-jobs route. Without the secret nothing runs. Jobs: cleanup, deletions. */
 async function cron(req: Request) {
   const given = req.headers.get("x-cron-secret") ?? "";
   let diff = given.length ^ CRON_SECRET.length; // compare every character so the time doesn't say how many matched
   for (let i = 0; i < CRON_SECRET.length; i++) diff |= (given.charCodeAt(i) || 0) ^ CRON_SECRET.charCodeAt(i);
   if (!CRON_SECRET || diff !== 0) return json({ ok: false, error: { code: "forbidden" } }, 403);
   const job = new URL(req.url).searchParams.get("job");
+  if (job === "deletions") return await deletions();
   if (job !== "cleanup") return json({ ok: false, error: { code: "invalid" } }, 400);
   const { data, error } = await admin.rpc("damage_orphans");
   if (error) return json({ ok: false, error: { code: "unavailable" } }, 500);
@@ -390,6 +391,31 @@ async function cron(req: Request) {
     if (rmError) return json({ ok: false, error: { code: "unavailable" } }, 500);
   }
   return json({ ok: true, data: { removed: names.length } });
+}
+
+/**
+ * Finishes Account deletions: the database step anonymises (process_deletions), then the files and the sign-in go.
+ * Every request already done is visited again, so an auth user the last run failed to delete is removed now.
+ */
+async function deletions() {
+  const { data: finished, error } = await admin.rpc("process_deletions");
+  if (error) return json({ ok: false, error: { code: "unavailable" } }, 500);
+  const { data: done } = await admin.from("deletion_requests").select("user_id").eq("status", "done");
+  let removed = 0, failed = 0;
+  for (const { user_id } of done ?? []) {
+    const { data: found } = await admin.auth.admin.getUserById(user_id);
+    if (!found?.user) continue;
+    if ((finished ?? []).includes(user_id)) {
+      const { data: files } = await admin.rpc("deletion_files", { p_user: user_id });
+      for (const bucket of ["avatars", "artworks"]) {
+        const names = ((files ?? []) as string[]).filter((f) => f.startsWith(bucket + "/")).map((f) => f.slice(bucket.length + 1));
+        if (names.length) await admin.storage.from(bucket).remove(names);
+      }
+    }
+    const { error: delError } = await admin.auth.admin.deleteUser(user_id);
+    if (delError) { failed++; console.error("deleteUser failed", user_id, delError.message); } else removed++;
+  }
+  return json({ ok: true, data: { finished: (finished ?? []).length, removed, failed } });
 }
 
 Deno.serve(async (req) => {

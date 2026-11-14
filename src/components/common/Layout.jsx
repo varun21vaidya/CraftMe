@@ -7,6 +7,7 @@ import { useSaved } from '../../contexts/SavedContext';
 import { initials } from '../../lib/artist';
 import { GROUPS } from '../../lib/categories';
 import { currentTheme, subscribeTheme, toggleTheme } from '../../lib/theme';
+import { DeletionStatus } from '../account/DeletionStatus';
 import { CartConflictDialog } from '../cart/CartConflictDialog';
 import { Menu } from '../ui/Menu';
 import { ThemeToggle } from '../ui/ThemeToggle';
@@ -21,6 +22,7 @@ const Logo = () => (
   </Link>
 );
 
+const HELP = [['terms', 'Terms'], ['privacy', 'Privacy'], ['refunds', 'Refunds'], ['shipping', 'Shipping'], ['contact', 'Contact'], ['artist', 'Artist agreement'], ['deletion', 'Delete my data']];
 const groupLink = (name) => `/browse?group=${encodeURIComponent(name)}`;
 
 export function Layout() {
@@ -37,6 +39,8 @@ export function Layout() {
   const account = [
     { to: '/orders', label: 'My orders' },
     { to: '/wishlist', label: 'Wish list' },
+    { to: '/profile', label: 'Profile' },
+    { to: '/notifications', label: 'Notifications' },
     ...(isArtist ? [{ to: '/dashboard/orders', label: 'Artist dashboard' }] : []),
     'divider',
     { onSelect: toggleTheme, label: theme === 'dark' ? 'Light theme' : 'Dark theme' },
@@ -84,12 +88,15 @@ export function Layout() {
                 {groups.map((g) => <Link key={g.to} to={g.to}>{g.label}</Link>)}
                 {currentUser && <Link to="/wishlist">Wish list{saved > 0 ? ` (${saved})` : ''}</Link>}
                 {currentUser && <Link to="/orders">My orders</Link>}
+                {currentUser && <Link to="/profile">Profile</Link>}
+                {currentUser && <Link to="/notifications">Notifications</Link>}
                 {isArtist && <Link to="/dashboard/orders">Artist dashboard</Link>}
               </nav>
             </div>
           </div>
         )}
       </header>
+      {currentUser && <DeletionStatus />}
       <Outlet />
       <CartConflictDialog />
       <footer className="site-footer">
@@ -97,7 +104,7 @@ export function Layout() {
           <div className="cols">
             <div><Logo /><p className="small muted" style={{ marginTop: 10 }}>Original art and handmade work from Indian artists.</p></div>
             <div><h4>Shop</h4><ul>{groups.map((g) => <li key={g.to}><Link to={g.to}>{g.label}</Link></li>)}</ul></div>
-            <div><h4>Help</h4><ul><li><Link to="/legal/privacy">Privacy</Link></li></ul></div>
+            <div><h4>Help</h4><ul>{HELP.map(([slug, label]) => <li key={slug}><Link to={`/legal/${slug}`}>{label}</Link></li>)}</ul></div>
           </div>
           <div className="legal"><span>© 2026 CraftMe · Prices in ₹, shipping within India included</span><ThemeToggle /></div>
         </div>

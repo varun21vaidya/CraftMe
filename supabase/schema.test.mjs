@@ -3,7 +3,7 @@ import fs from "node:fs";
 import {RULES} from "../src/lib/rules.js";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0004_storage", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout", "0020_damage_review", "0021_storefront"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0004_storage", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout", "0020_damage_review", "0021_storefront", "0022_account"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -661,6 +661,138 @@ await as("authenticated", O, async () => {
   await as("anon", {}, () => db.query(`select public.bump_view('${w8}')`));
   await as("anon", {}, () => db.query(`select public.bump_view('${w4}')`));
   ok("bump_view counts a public work and not a draft", (await one(`select views v from public.artworks where id = '${w8}'`)).v === 1 && (await one(`select views v from public.artworks where id = '${w4}'`)).v === 0);
+}
+
+// ---------- P04 account (0022) ----------
+{
+  const S = (id) => ({sub: id, app_metadata: {}});
+  const mk = async (name) => (await one(`insert into auth.users (raw_user_meta_data) values ('{"full_name":"${name}"}') returning id`)).id;
+  const pb = await mk("P04 Buyer"), pa = await mk("P04 Artist"), pz = await mk("P04 Other");
+  await db.exec(`update public.profiles set roles = '{artist}' where id = '${pa}'`);
+  const count = async (uid, type) => Number((await one(`select count(*) c from public.notifications where user_id = '${uid}' and type = '${type}'`)).c);
+  const art = (await one(`insert into public.artworks (artist_id, title, category, status, available, from_price_paise) values ('${pa}', 'P04 Work', 'Paintings', 'published', true, 10000) returning id`)).id;
+  const li = (await one(`insert into public.listings (artwork_id, artist_id, title, kind, price, stock, status) values ('${art}', '${pa}', 'Print', 'print', 10000, 50, 'live') returning id`)).id;
+  const place = async () => {
+    const o = await svc(async () => (await one(`select public.place_order('${pb}', '${pa}', '${JSON.stringify([{listingId: li, quantity: 1}])}', '${addr}') r`)).r);
+    await svc(() => db.query(`select public.mark_paid('${o.orderId}', 'pay_${o.orderId}', 0)`));
+    return o.orderId;
+  };
+  const o1 = await place();
+  ok("paid: the buyer gets order_paid and the Artist order_new, once each", await count(pb, "order_paid") === 1 && await count(pa, "order_new") === 1);
+  await as("authenticated", S(pa), () => db.query(`select public.mark_shipped('${o1}', 'DTDC', 'T1')`));
+  ok("shipped: the buyer gets order_shipped", await count(pb, "order_shipped") === 1);
+  await as("authenticated", S(pb), () => db.query(`select public.confirm_received('${o1}')`));
+  const early = (await one(`select data from public.notifications where user_id = '${pb}' and type = 'review_prompt'`)).data;
+  ok("received early: the Artist gets order_received, the buyer review_prompt without auto", await count(pa, "order_received") === 1 && early.auto === false && !!early.reviewBy && early.code.length > 0);
+  const o2 = await place();
+  await as("authenticated", S(pa), () => db.query(`select public.mark_shipped('${o2}', 'DTDC', 'T2')`));
+  await db.exec(`update public.orders set auto_receive_at = now() - interval '1 minute' where id = '${o2}'`);
+  await svc(() => db.query(`select public.sweep()`));
+  ok("auto-received: review_prompt carries auto true", (await one(`select count(*)::int n from public.notifications where user_id = '${pb}' and type = 'review_prompt' and (data ->> 'auto')::boolean`)).n === 1);
+
+  // refunds: one notification when a refund becomes issued, none for a repeat, and a full refund never sends order_refunded
+  const rf = (await one(`insert into public.refunds (order_id, buyer_id, artist_id, amount, reason, status) values ('${o1}', '${pb}', '${pa}', 5000, 'damaged', 'pending') returning id`)).id;
+  ok("a pending refund tells nobody", await count(pb, "refund_issued") === 0);
+  await db.exec(`update public.refunds set status = 'issued' where id = '${rf}'`);
+  await db.exec(`update public.refunds set status = 'issued', reason = 'again' where id = '${rf}'`);
+  const rn = (await one(`select data from public.notifications where user_id = '${pb}' and type = 'refund_issued'`)).data;
+  ok("an issued refund sends refund_issued once with the amount", await count(pb, "refund_issued") === 1 && rn.amount === 5000 && !!rn.orderId);
+  await db.exec(`insert into public.refunds (order_id, buyer_id, artist_id, amount, reason, status) values ('${o2}', '${pb}', '${pa}', 10000, 'x', 'issued'); update public.orders set stage = 'refunded', refunded_total = total where id = '${o2}'`);
+  ok("a full refund gives refund_issued and no order_refunded", await count(pb, "refund_issued") === 2 && await count(pb, "order_refunded") === 0);
+
+  // damage reports
+  await db.exec(`insert into public.damage_reports (order_id, buyer_id, artist_id, note) values ('${o1}', '${pb}', '${pa}', 'cracked')`);
+  ok("a Damage Report tells the Artist", await count(pa, "damage_reported") === 1);
+  await as("authenticated", admin, () => db.query(`select public.decide_damage('${o1}', 'upheld', 'ok')`));
+  ok("a decision tells the buyer and the Artist once", await count(pb, "damage_upheld") === 1 && await count(pa, "damage_decided") === 1 && await count(pb, "damage_rejected") === 0);
+
+  // reviews
+  await db.exec(`insert into public.reviews (order_id, artist_id, buyer_id, rating, comment) values ('${o1}', '${pa}', '${pb}', 5, 'lovely'), ('${o2}', '${pa}', '${pb}', 2, 'meh')`);
+  ok("a pending review tells nobody", await count(pb, "review_approved") === 0 && await count(pa, "review_new") === 0);
+  await as("authenticated", admin, async () => { await db.query(`select public.decide_review('${o1}', 'approved')`); await db.query(`select public.decide_review('${o2}', 'rejected')`); });
+  ok("approving: the buyer is told and the Artist gets review_new; rejecting: only the buyer", await count(pb, "review_approved") === 1 && await count(pb, "review_rejected") === 1 && await count(pa, "review_new") === 1);
+
+  // payout, verification, standing
+  await db.exec(`insert into public.artist_private (profile_id) values ('${pa}') on conflict do nothing`);
+  const pay = (await one(`insert into public.payouts (artist_id, run_date, gross, commission, net) values ('${pa}', '2026-11-01', 10000, 1000, 9000) returning id`)).id;
+  ok("a draft payout tells nobody", await count(pa, "payout_sent") === 0);
+  await db.exec(`update public.payouts set status = 'sent', reference = 'UTR1' where id = '${pay}'; update public.payouts set reference = 'UTR2' where id = '${pay}'`);
+  ok("a sent payout gives payout_sent once with net and reference", await count(pa, "payout_sent") === 1 && (await one(`select data from public.notifications where type = 'payout_sent'`)).data.reference === "UTR1");
+  await db.exec(`update public.artist_private set verified_at = now() where profile_id = '${pa}'; update public.artist_private set verified_at = now() where profile_id = '${pa}'`);
+  ok("verification tells the Artist once", await count(pa, "artist_verified") === 1);
+  await db.exec(`update public.profiles set restricted = true where id = '${pa}'; update public.profiles set bio = 'x' where id = '${pa}'; update public.profiles set restricted = false where id = '${pa}'`);
+  ok("restricting and lifting each tell the Artist once", await count(pa, "shop_restricted") === 1 && await count(pa, "shop_reinstated") === 1);
+
+  // policy acceptance
+  await as("authenticated", S(pb), () => rejects("a client cannot write terms_accepted_at directly", () => db.query(`update public.profiles set terms_accepted_at = now() where id = '${pb}'`)));
+  await as("authenticated", S(pb), () => failsWith("an empty terms version is refused", "version", () => db.query(`select public.accept_terms(' ')`)));
+  await as("anon", {}, () => rejects("a signed-out visitor cannot accept terms", () => db.query(`select public.accept_terms('v1')`)));
+  await as("authenticated", S(pb), () => db.query(`select public.accept_terms('2026-11')`));
+  ok("accept_terms writes only the caller's row", (await one(`select terms_version v from public.profiles where id = '${pb}'`)).v === "2026-11" && (await one(`select terms_accepted_at t from public.profiles where id = '${pz}'`)).t === null);
+
+  // avatars: public to read, writable only in one's own folder
+  await as("authenticated", S(pb), () => db.query(`insert into storage.objects (bucket_id, name) values ('avatars', '${pb}/me.png')`));
+  await as("authenticated", S(pb), () => rejects("a person cannot write into another person's avatar folder", () => db.query(`insert into storage.objects (bucket_id, name) values ('avatars', '${pz}/me.png')`)));
+  await as("authenticated", S(pz), async () => ok("avatars are readable by anyone (the policy has no role limit)", (await db.query(`select 1 from storage.objects where bucket_id = 'avatars'`)).rows.length === 1));
+  const bucket = await one(`select public p, file_size_limit l, allowed_mime_types t from storage.buckets where id = 'avatars'`);
+  ok("the avatars bucket is public, 5 MB, JPEG and PNG", bucket.p === true && Number(bucket.l) === 5242880 && bucket.t.join() === "image/jpeg,image/png");
+
+  // deletion
+  await as("authenticated", S(pb), () => failsWith("deletion needs the word DELETE", "confirm", () => db.query(`select public.request_deletion('everything', 'delete')`)));
+  await as("anon", {}, () => rejects("a signed-out visitor cannot request deletion", () => db.query(`select public.request_deletion('everything', 'DELETE')`)));
+  await db.exec(`insert into public.saved_addresses (user_id, name, phone, address, city, state, pin) values ('${pb}', 'B', '9876543210', '1 Road', 'Pune', 'MH', '411001');
+                 insert into public.saved_works (user_id, artwork_id) values ('${pb}', '${art}'); insert into public.collections (user_id, name) values ('${pb}', 'Mine')`);
+  // QA-S16-04: the saved address is private
+  const addrRows = (claims, role = "authenticated") => as(role, claims, async () => (await db.query(`select 1 from public.saved_addresses`)).rows.length);
+  ok("another Buyer, an Artist and a signed-out visitor see no saved address", await addrRows(S(pz)) === 0 && await addrRows(S(pa)) === 0 && await addrRows({}, "anon").catch(() => 0) === 0);
+  await as("authenticated", S(pz), () => rejects("a person cannot insert a saved address for someone else", () =>
+    db.query(`insert into public.saved_addresses (user_id, name, phone, address, city, state, pin) values ('${pb}', 'X', '9876543210', '1 Road', 'Pune', 'MH', '411001')`)));
+  ok("the owner sees their own saved address", await addrRows(S(pb)) === 1);
+  const o3 = await place();
+  const req = await as("authenticated", S(pb), async () => (await one(`select public.request_deletion('everything', 'DELETE') r`)).r);
+  ok("an open Order makes the request wait with buyer_open_orders", req.status === "waiting" && req.blockers.includes("buyer_open_orders"));
+  await as("authenticated", S(pz), async () => ok("another user cannot read the request", (await db.query(`select 1 from public.deletion_requests`)).rows.length === 0));
+  await as("authenticated", admin, async () => ok("an Admin can read it", (await db.query(`select 1 from public.deletion_requests`)).rows.length === 1));
+  await as("authenticated", S(pb), () => rejects("a client cannot write a request directly", () => db.query(`update public.deletion_requests set status = 'done'`)));
+  await as("authenticated", S(pb), async () => { await db.query(`select public.cancel_deletion()`); });
+  ok("cancel_deletion cancels a waiting request", (await one(`select status s from public.deletion_requests where user_id = '${pb}'`)).s === "cancelled");
+  await as("authenticated", S(pb), async () => { await db.query(`select public.request_deletion('everything', 'DELETE')`); });
+  ok("requesting again reopens the same row", Number((await one(`select count(*) c from public.deletion_requests where user_id = '${pb}'`)).c) === 1 && (await one(`select status s from public.deletion_requests where user_id = '${pb}'`)).s === "waiting");
+  const before = await svc(async () => (await one(`select public.process_deletions() r`)).r);
+  ok("the job leaves a request with blockers waiting", before.length === 0 && (await one(`select status s from public.deletion_requests where user_id = '${pb}'`)).s === "waiting");
+  await as("authenticated", S(pb), () => rejects("a person cannot run the job", () => db.query(`select public.process_deletions()`)));
+  // settle every Order: received, windows closed
+  await db.exec(`update public.orders set stage = 'received', received_at = now() - interval '10 days', damage_window_ends = now() - interval '7 days', review_by = now() + interval '1 day', open_report = false where buyer_id = '${pb}' and stage in ('paid', 'shipped', 'hold')`);
+  await db.exec(`update public.orders set damage_window_ends = now() - interval '7 days', open_report = false where buyer_id = '${pb}' and stage = 'received'`);
+  const orderCount = (await one(`select count(*)::int n from public.orders where buyer_id = '${pb}'`)).n;
+  const refundSum = (await one(`select sum(amount)::int s from public.refunds where buyer_id = '${pb}'`)).s;
+  const finished = await svc(async () => (await one(`select public.process_deletions() r`)).r);
+  const gone = async (t, col) => Number((await one(`select count(*) c from public.${t} where ${col} = '${pb}'`)).c) === 0;
+  const prof = await one(`select display_name, photo_url, bio, roles from public.profiles where id = '${pb}'`);
+  ok("with no blockers the request is done and the profile is anonymised", finished.length === 1 && finished[0] === pb && prof.display_name === "Deleted user" && prof.photo_url === "" && prof.bio === "" && prof.roles.length === 0
+    && (await one(`select status s from public.deletion_requests where user_id = '${pb}'`)).s === "done");
+  ok("the address, notifications, saved works and collections are gone", await gone("saved_addresses", "user_id") && await gone("notifications", "user_id") && await gone("saved_works", "user_id") && await gone("collections", "user_id"));
+  ok("Orders and refunds remain, reviews say Buyer, shipping copies are gone",
+    (await one(`select count(*)::int n from public.orders where buyer_id = '${pb}'`)).n === orderCount && Number((await one(`select sum(amount)::int s from public.refunds where buyer_id = '${pb}'`)).s) === refundSum
+    && (await one(`select count(*)::int n from public.reviews where buyer_id = '${pb}' and buyer_name = 'Buyer'`)).n === 2
+    && Number((await one(`select count(*) c from public.order_shipping where order_id = '${o3}'`)).c) === 0);
+  ok("a finished request is skipped on the next run", (await svc(async () => (await one(`select public.process_deletions() r`)).r)).length === 0);
+
+  // an Artist's obligations block, and are listed
+  const obligations = async (id) => (await one(`select public.artist_obligations('${id}') r`)).r;
+  const o4 = await place();
+  ok("an Artist with a paid Order has artist_open_orders", (await obligations(pa)).includes("artist_open_orders"));
+  await db.exec(`update public.orders set stage = 'received', payable = true where id = '${o4}'`);
+  ok("payable Orders not yet paid out are unpaid_payouts", (await obligations(pa)).includes("unpaid_payouts"));
+  await db.exec(`update public.artist_private set amount_owed = 500 where profile_id = '${pa}'`);
+  ok("money owed is amount_owed", (await obligations(pa)).includes("amount_owed"));
+  await db.exec(`insert into public.orders (code, buyer_id, artist_id, total, stage) values ('P04X', '${pz}', '${pa}', 1, 'paid');
+                 insert into public.damage_reports (order_id, buyer_id, artist_id, note) select id, '${pz}', '${pa}', 'x' from public.orders where code = 'P04X'`);
+  ok("an open Damage Report is open_reports", (await obligations(pa)).includes("open_reports"));
+  await as("authenticated", S(pa), async () => { await db.query(`select public.request_deletion('everything', 'DELETE')`); });
+  ok("an Artist's request lists every obligation", (await one(`select blockers b from public.deletion_requests where user_id = '${pa}'`)).b.length === 4);
+  const files = await svc(async () => (await one(`select public.deletion_files('${pb}') r`)).r);
+  ok("deletion_files lists the avatar folder", files.includes(`avatars/${pb}/me.png`));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
