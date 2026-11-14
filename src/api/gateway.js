@@ -69,7 +69,7 @@ const RPC = {
   submitReview: (i) => ['submit_review', { p_order: i.orderId, p_rating: i.rating, p_comment: i.comment }],
   report: (i) => ['report', { p_target_type: i.targetType, p_target: i.targetId, p_reason: i.reason, p_details: i.details ?? '' }],
   setArtistSlug: (i) => ['set_artist_slug', { p_slug: i.slug }],
-  submitVerification: (i) => ['submit_verification', { p_legal_name: i.legalName, p_pan: i.pan, p_method: i.payoutMethod }],
+  submitVerification: (i) => ['submit_verification', { p_legal_name: i.legalName, p_pan: i.pan, p_method: i.payoutMethod, p_profile: i.profile ?? null }],
   decideDamage: (i) => ['decide_damage', { p_order: i.orderId, p_decision: i.decision, p_note: i.note ?? '' }],
   decideReview: (i) => ['decide_review', { p_order: i.reviewId, p_decision: i.decision }],
   markVerified: (i) => ['mark_verified', { p_artist: i.uid }],
@@ -335,6 +335,42 @@ export const useMyProfile = (uid) => useQuery(
   [uid],
 );
 /** The person's deletion request ({status, scope, blockers}) or null. Polled so a banner follows the job. */
+/** The person's own onboarding row (private details, phone check, fee) or null before they have submitted anything. pollMs > 0 keeps it fresh. */
+export const useOnboarding = (uid, pollMs = 0) => useQuery(
+  uid ? async () => {
+    const row = must(await supabase.from('artist_private').select('legal_name, pan, payout_method, holder_name, phone_verified, specialties, agreed_own_work_at, submitted_at, onboarding_paid_at, verified_at').eq('profile_id', uid).maybeSingle());
+    if (!row) return null;
+    const { payoutMethod, ...rest } = camel(row);
+    return { ...rest, payoutMethod, payoutType: payoutMethod?.type ?? null };
+  } : null,
+  [uid], pollMs,
+);
+/** The joining fee in paise, or null when it is not set. */
+export const useOnboardingFee = () => useQuery(async () => must(await supabase.rpc('onboarding_fee')) ?? null, []);
+
+// The phone check runs on Supabase Auth (the Send SMS Hook sends the code over WhatsApp). The browser never sets phone_verified.
+const PHONE_REASON = { otp_expired: 'wrong_code', phone_exists: 'phone_taken', over_sms_send_rate_limit: 'phone_rate', over_request_rate_limit: 'phone_rate' };
+const phoneReason = (e) => PHONE_REASON[e?.code] || (e?.status === 429 ? 'phone_rate' : e?.status >= 400 && e?.status < 500 ? 'wrong_code' : 'phone_down');
+const phoneCall = async (fn) => {
+  try {
+    const { error } = await fn();
+    return error ? fail('invalid', undefined, { reason: phoneReason(error) }) : { ok: true };
+  } catch {
+    return fail('unavailable', undefined, { reason: 'phone_down' });
+  }
+};
+const e164 = (phone) => `+91${phone}`;
+export const startPhoneCheck = (phone) => phoneCall(() => supabase.auth.updateUser({ phone: e164(phone) }));
+export const resendPhoneCode = (phone) => phoneCall(() => supabase.auth.resend({ type: 'phone_change', phone: e164(phone) }));
+/** Copies the verified number to artist_private (Edge command confirmPhone). Safe to repeat. */
+export const confirmPhone = () => call('confirmPhone');
+/** The code, then the copy. A code that was accepted but not copied answers { ok: false, verified: true } so the page can retry only the copy. */
+export const verifyPhoneCode = async (phone, code) => {
+  const checked = await phoneCall(() => supabase.auth.verifyOtp({ phone: e164(phone), token: code, type: 'phone_change' }));
+  if (!checked.ok) return checked;
+  const saved = await confirmPhone();
+  return saved.ok ? saved : { ...saved, verified: true };
+};
 export const useDeletionRequest = (uid) => useQuery(
   uid ? async () => camel(must(await supabase.from('deletion_requests').select('*').eq('user_id', uid).maybeSingle())) : null,
   [uid], 60000,

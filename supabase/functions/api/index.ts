@@ -3,10 +3,12 @@
 //   POST /api            {name, requestId, ...input}  -> envelope {ok, data|error, requestId}   (needs a signed-in user)
 //   POST /api/webhook    Razorpay webhook (signature checked, events de-duplicated)
 //   POST /api/cron?job=cleanup   scheduled jobs (header x-cron-secret = CRON_SECRET); `cleanup` removes damage photos no report uses, older than 24 hours; `deletions` finishes Account deletions
+//   POST /api/sms-hook   Supabase Auth's Send SMS Hook: sends the phone-check code over WhatsApp (whatsapp_pure.js)
 //   /api/instagram/*     Instagram connection (Unified Login): browser callback, Meta deauthorize and data-deletion (instagram.ts)
 // Deployed with verify_jwt off: commands verify the user below, the webhook verifies Razorpay's signature.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { makeInstagram } from "./instagram.ts";
+import { verifyHook, whatsappBody } from "./whatsapp_pure.js";
 import { fakeRz, providerMode } from "./providers.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
@@ -112,18 +114,31 @@ async function markPaid(orderId: string, paymentId: string) {
   throw new CommandError("conflict", "sold_during_payment");
 }
 
+/** The fee for one fee order. The payment is asked of Razorpay first; the database records it once and says when it was a second payment. */
 async function markFeePaid(rzOrderId: string, paymentId: string) {
-  const { data: priv } = await admin.from("artist_private").select("profile_id,onboarding_amount,onboarding_paid_at")
-    .eq("onboarding_order_id", rzOrderId).maybeSingle();
-  if (!priv) return { ignored: true };
-  if (priv.onboarding_paid_at) return { paid: true };
+  const { data: fo } = await admin.from("fee_orders").select("amount,refunded_at").eq("razorpay_order_id", rzOrderId).maybeSingle();
+  if (!fo) return { ignored: true };
   const p = await rz(`/payments/${paymentId}`, "GET");
-  if (p.status !== "captured" || p.amount !== Number(priv.onboarding_amount) || p.order_id !== rzOrderId) {
-    throw new CommandError("conflict", "amount_mismatch");
+  if (p.status !== "captured" || p.amount !== Number(fo.amount) || p.order_id !== rzOrderId) throw new CommandError("conflict", "amount_mismatch");
+  const out = await rpc("record_fee_payment", { p_order: rzOrderId, p_payment: paymentId });
+  if (!out.duplicate) return { paid: true };
+
+  // The fee was already paid on another order: give this payment back (a plain Error on failure, so the webhook is retried).
+  if (!fo.refunded_at) {
+    try {
+      await rz(`/payments/${paymentId}/refund`, "POST", { amount: Number(fo.amount) });
+    } catch {
+      if ((await rz(`/payments/${paymentId}`, "GET")).status !== "refunded") throw new Error("fee refund failed");
+    }
+    await admin.from("fee_orders").update({ refunded_at: new Date().toISOString() }).eq("razorpay_order_id", rzOrderId);
   }
-  await admin.from("artist_private").update({ onboarding_paid_at: new Date().toISOString(), onboarding_payment_id: paymentId })
-    .eq("profile_id", priv.profile_id);
-  return { paid: true };
+  return { duplicate: true };
+}
+
+/** New Artists can be switched off in the Admin settings. */
+async function artistsOpen() {
+  const { data } = await admin.from("settings").select("switches").limit(1).maybeSingle();
+  if (data?.switches?.acceptArtists !== true) throw new CommandError("conflict", "artists_closed");
 }
 
 // ---------- commands ----------
@@ -237,7 +252,9 @@ const commands: Record<string, (c: Ctx) => Promise<unknown>> = {
     return { refundId: r.refundId, amount: Number(r.amount) };
   },
 
+  // One fee order per attempt, reused for 15 minutes while unpaid, so closing the window and trying again does not pile up orders.
   async payOnboardingFee({ uid }) {
+    await artistsOpen();
     configured();
     const { data: priv } = await admin.from("artist_private").select("legal_name,onboarding_paid_at").eq("profile_id", uid).maybeSingle();
     if (!priv?.legal_name) throw new CommandError("conflict", "verification_missing");
@@ -245,18 +262,46 @@ const commands: Record<string, (c: Ctx) => Promise<unknown>> = {
     const { data: s } = await admin.from("settings").select("onboarding_fee_paise").single();
     const fee = Number(s?.onboarding_fee_paise);
     if (!Number.isInteger(fee) || fee <= 0) throw new CommandError("conflict", "fee_not_set");
+    const since = new Date(Date.now() - 15 * 60_000).toISOString();
+    const { data: recent } = await admin.from("fee_orders").select("razorpay_order_id").eq("profile_id", uid).eq("amount", fee)
+      .is("paid_at", null).gte("created_at", since).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (recent) return { razorpayOrderId: recent.razorpay_order_id, keyId: KEY_ID, amount: fee };
     let order;
     try {
       order = await rz("/orders", "POST", { amount: fee, currency: "INR", receipt: `fee_${uid}` });
     } catch {
       throw new CommandError("unavailable", "payments_down");
     }
-    await admin.from("artist_private").update({ onboarding_order_id: order.id, onboarding_amount: fee }).eq("profile_id", uid);
+    const { error } = await admin.from("fee_orders").insert({ razorpay_order_id: order.id, profile_id: uid, amount: fee });
+    if (error) throw new Error(`fee order: ${error.message}`);
     return { razorpayOrderId: order.id, keyId: KEY_ID, amount: fee };
   },
 
-  // The fee is recorded by the webhook; the client waits for it before calling this.
+  // The browser's proof of payment; the webhook does the same work, whichever arrives first.
+  async confirmFeePayment({ uid, input }) {
+    configured();
+    need(["razorpayOrderId", "razorpayPaymentId", "signature"].every((k) => typeof input[k] === "string" && input[k]), "razorpayOrderId");
+    const { data: fo } = await admin.from("fee_orders").select("profile_id").eq("razorpay_order_id", input.razorpayOrderId).maybeSingle();
+    if (!fo) throw new CommandError("conflict", "not_found");
+    if (fo.profile_id !== uid) throw new CommandError("forbidden");
+    const expected = await hmacHex(KEY_SECRET, `${input.razorpayOrderId}|${input.razorpayPaymentId}`);
+    if (!((MODE === "fake" && input.signature === "fake") || safeEqual(expected, input.signature))) throw new CommandError("conflict", "bad_signature");
+    return await markFeePaid(input.razorpayOrderId, input.razorpayPaymentId);
+  },
+
+  // Supabase Auth verified the number; this copies that fact. The browser cannot set phone_verified itself.
+  async confirmPhone({ uid }) {
+    const { data } = await admin.auth.admin.getUserById(uid);
+    const user = data?.user;
+    if (!user?.phone_confirmed_at || !user.phone) throw new CommandError("conflict", "phone_not_verified");
+    const { data: row } = await admin.from("artist_private").update({ phone_verified: true, phone: user.phone }).eq("profile_id", uid).select("profile_id");
+    if (!row?.length) throw new CommandError("conflict", "verification_missing");
+    return {};
+  },
+
+  // The fee is recorded by the webhook or confirmFeePayment; the client waits for it before calling this.
   async becomeArtist({ uid, meta }) {
+    await artistsOpen();
     const { data: p } = await admin.from("artist_private").select("legal_name,pan,phone_verified,onboarding_paid_at").eq("profile_id", uid).maybeSingle();
     if (!p?.legal_name || !p.pan || !p.phone_verified || !p.onboarding_paid_at) throw new CommandError("conflict", "verification_or_fee_missing");
     await setRoleFlag(uid, meta, "artist", true);
@@ -374,6 +419,31 @@ async function webhook(req: Request) {
   return new Response(null, { status: 200 });
 }
 
+/**
+ * Supabase Auth's Send SMS Hook (signed, Standard Webhooks): sends the 6-digit code as a WhatsApp authentication template.
+ * The code is never logged. Without the WHATSAPP_* secrets every send fails with 503 and the browser says phone checks are not working.
+ */
+async function smsHook(req: Request) {
+  const hookError = (status: number, message: string) => json({ error: { http_code: status, message } }, status);
+  const payload = await verifyHook(await req.text(), Object.fromEntries(req.headers), Deno.env.get("SEND_SMS_HOOK_SECRET") ?? "");
+  if (!payload) return hookError(401, "invalid_signature");
+  const token = Deno.env.get("WHATSAPP_TOKEN"), id = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+  const template = Deno.env.get("WHATSAPP_TEMPLATE"), lang = Deno.env.get("WHATSAPP_TEMPLATE_LANG");
+  if (!token || !id || !template || !lang) return hookError(503, "whatsapp_not_configured");
+  try {
+    const res = await fetch(`https://graph.facebook.com/v26.0/${id}/messages`, {
+      method: "POST", signal: AbortSignal.timeout(10_000),
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(whatsappBody({ phone: payload.user.phone, otp: payload.sms.otp, template, lang })),
+    });
+    if (!res.ok) { console.error("whatsapp send refused", res.status); return hookError(502, "whatsapp_send_failed"); }
+  } catch (e) {
+    console.error("whatsapp send failed", (e as Error).name);
+    return hookError(502, "whatsapp_send_failed");
+  }
+  return json({});
+}
+
 /** The one scheduled-jobs route. Without the secret nothing runs. Jobs: cleanup, deletions. */
 async function cron(req: Request) {
   const given = req.headers.get("x-cron-secret") ?? "";
@@ -424,6 +494,7 @@ Deno.serve(async (req) => {
   if (instagram) return instagram;
   if (req.method !== "POST") return json({ ok: false, error: { code: "invalid" } }, 405);
   const path = new URL(req.url).pathname;
+  if (path.endsWith("/sms-hook")) return await smsHook(req);
   if (path.endsWith("/webhook")) return await webhook(req);
   if (path.endsWith("/cron")) return await cron(req);
   return json(await runCommand(req));

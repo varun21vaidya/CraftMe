@@ -28,6 +28,7 @@ const ArtistPage = lazy(() => import('./pages/ArtistPage'));
 const ProfileEdit = lazy(() => import('./pages/ProfileEdit'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const BecomeArtistPage = lazy(() => import('./pages/BecomeArtistPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 const InstagramDeletion = lazy(() => import('./pages/InstagramDeletion'));
 const InstagramReturn = lazy(() => import('./pages/InstagramReturn'));
@@ -78,6 +79,7 @@ export default function App() {
                 <Route path="/checkout" element={screen(<CheckoutPage />, signedIn)} />
                 <Route path="/profile" element={screen(<ProfilePage />, signedIn)} />
                 <Route path="/notifications" element={screen(<NotificationsPage />, signedIn)} />
+                <Route path="/become-artist" element={screen(<BecomeArtistPage />, signedIn)} />
                 <Route path="/wishlist" element={screen(<WishlistPage />, signedIn)} />
                 <Route path="/wishlist/:collectionId" element={screen(<WishlistPage />, signedIn)} />
                 <Route path="/orders" element={screen(<OrdersPage />, signedIn)} />

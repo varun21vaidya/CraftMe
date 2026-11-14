@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { signOutUser } from '../../api/gateway';
+import { signOutUser, useSwitches } from '../../api/gateway';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { useSaved } from '../../contexts/SavedContext';
@@ -27,6 +27,8 @@ const groupLink = (name) => `/browse?group=${encodeURIComponent(name)}`;
 
 export function Layout() {
   const { currentUser, isArtist } = useAuth();
+  const [switches] = useSwitches();
+  const sell = switches?.acceptArtists === true && !isArtist; // "Sell your art" shows only while new Artists are welcome
   const { count } = useCart();
   const { count: saved } = useSaved();
   const theme = useSyncExternalStore(subscribeTheme, currentTheme);
@@ -42,6 +44,7 @@ export function Layout() {
     { to: '/profile', label: 'Profile' },
     { to: '/notifications', label: 'Notifications' },
     ...(isArtist ? [{ to: '/dashboard/orders', label: 'Artist dashboard' }] : []),
+    ...(sell ? [{ to: '/become-artist', label: 'Become an Artist' }] : []),
     'divider',
     { onSelect: toggleTheme, label: theme === 'dark' ? 'Light theme' : 'Dark theme' },
     { onSelect: signOutUser, label: 'Log out', icon: 'logout' },
@@ -55,6 +58,8 @@ export function Layout() {
           <nav className="nav" aria-label="Main">
             <Link to="/browse">Browse</Link>
             <Menu label="Categories" button="Categories" items={groups} align="left" />
+            {sell && <Link to="/become-artist">Sell your art</Link>}
+            {isArtist && <Link to="/dashboard/orders">Artist dashboard</Link>}
           </nav>
           <MarketplaceSearch />
           <div className="hactions">
@@ -91,6 +96,7 @@ export function Layout() {
                 {currentUser && <Link to="/profile">Profile</Link>}
                 {currentUser && <Link to="/notifications">Notifications</Link>}
                 {isArtist && <Link to="/dashboard/orders">Artist dashboard</Link>}
+                {sell && <Link to="/become-artist">Sell your art</Link>}
               </nav>
             </div>
           </div>
@@ -104,6 +110,7 @@ export function Layout() {
           <div className="cols">
             <div><Logo /><p className="small muted" style={{ marginTop: 10 }}>Original art and handmade work from Indian artists.</p></div>
             <div><h4>Shop</h4><ul>{groups.map((g) => <li key={g.to}><Link to={g.to}>{g.label}</Link></li>)}</ul></div>
+            {(sell || isArtist) && <div><h4>Sell</h4><ul><li>{isArtist ? <Link to="/dashboard/orders">Artist dashboard</Link> : <Link to="/become-artist">Sell your art</Link>}</li></ul></div>}
             <div><h4>Help</h4><ul>{HELP.map(([slug, label]) => <li key={slug}><Link to={`/legal/${slug}`}>{label}</Link></li>)}</ul></div>
           </div>
           <div className="legal"><span>© 2026 CraftMe · Prices in ₹, shipping within India included</span><ThemeToggle /></div>

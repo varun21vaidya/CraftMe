@@ -3,7 +3,7 @@ import fs from "node:fs";
 import {RULES} from "../src/lib/rules.js";
 
 const db = new PGlite();
-const migrations = ["0001_init", "0002_hardening", "0003_logic", "0004_storage", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout", "0020_damage_review", "0021_storefront", "0022_account"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
+const migrations = ["0001_init", "0002_hardening", "0003_logic", "0004_storage", "0006_catalogue", "0008_reels", "0009_instagram", "0011_instagram_unified", "0013_service_role_grants", "0014_reel_title", "0015_wishlist", "0016_catalogue_search", "0017_saved_cart", "0018_collection_previews", "0019_checkout", "0020_damage_review", "0021_storefront", "0022_account", "0023_onboarding"].map((n) => fs.readFileSync(new URL(`./migrations/${n}.sql`, import.meta.url), "utf8"));
 
 // Minimal stand-ins for what Supabase provides.
 await db.exec(`
@@ -793,6 +793,59 @@ await as("authenticated", O, async () => {
   ok("an Artist's request lists every obligation", (await one(`select blockers b from public.deletion_requests where user_id = '${pa}'`)).b.length === 4);
   const files = await svc(async () => (await one(`select public.deletion_files('${pb}') r`)).r);
   ok("deletion_files lists the avatar folder", files.includes(`avatars/${pb}/me.png`));
+}
+
+// ---------- P05 onboarding (0023) ----------
+{
+  const S = (id) => ({sub: id, app_metadata: {}});
+  const mk = async (name) => (await one(`insert into auth.users (raw_user_meta_data) values ('{"full_name":"${name}"}') returning id`)).id;
+  const u = await mk("P05 Person"), u2 = await mk("P05 Other");
+  const sv = (id, method, profile = null, pan = "ABCDE1234F", name = "Ananya Verma") => as("authenticated", S(id), async () =>
+    (await db.query(`select public.submit_verification('${name}', '${pan}', '${JSON.stringify(method)}', ${profile ? `'${JSON.stringify(profile)}'::jsonb` : "null"})`)));
+  const bad = async (name, fields, fn) => as("authenticated", S(u), async () => { try { await fn(); ok(name, false); } catch (e) { const m = JSON.parse(e.message.replace(/^[^{]*/, "")); ok(name, m.code === "invalid" && fields.every((f) => m.fields.includes(f))); } });
+  const upi = { type: "upi", upi: "ananya@okhdfc" };
+  const prof = { city: "Mumbai", state: "Maharashtra", bio: "Small paintings.", specialties: ["Art"], ownWork: true, agreement: true };
+
+  await bad("the onboarding form needs every profile field", ["city", "state", "bio", "specialties", "ownWork", "agreement"], () => db.query(`select public.submit_verification('A B', 'ABCDE1234F', '${JSON.stringify(upi)}', '{}'::jsonb)`));
+  await bad("a specialty must be one of the five groups", ["specialties"], () => sv(u, upi, { ...prof, specialties: ["Cars"] }));
+  await bad("a bio is at most 300 characters", ["bio"], () => sv(u, upi, { ...prof, bio: "x".repeat(301) }));
+  await bad("a bank method needs a holder, a 9 to 18 digit account and a good IFSC", ["holder", "account", "ifsc"], () => sv(u, { type: "bank", account: "1234567", ifsc: "hdfc0001234" }));
+  await sv(u, { type: "bank", account: "123456789012", ifsc: "HDFC0001234", holder: "Ananya Verma" }, prof);
+  const row = await one(`select payout_method, holder_name, specialties, phone_verified, verified_at, submitted_at, agreed_own_work_at, agreed_terms_at from public.artist_private where profile_id = '${u}'`);
+  ok("a bank method is stored with its holder, the agreements and the specialties; the phone is not yet verified",
+    row.payout_method.type === "bank" && row.payout_method.holder === "Ananya Verma" && row.holder_name === "Ananya Verma" && row.specialties[0] === "Art"
+    && row.phone_verified === false && row.verified_at === null && !!row.submitted_at && !!row.agreed_own_work_at && !!row.agreed_terms_at);
+  const pr = await one(`select city, state, bio from public.profiles where id = '${u}'`);
+  ok("city, state and bio are written to the profile", pr.city === "Mumbai" && pr.state === "Maharashtra" && pr.bio === "Small paintings.");
+  await db.exec(`update public.artist_private set verified_at = now(), phone_verified = true where profile_id = '${u}'`);
+  await sv(u, upi, prof);
+  const again = await one(`select verified_at, phone_verified from public.artist_private where profile_id = '${u}'`);
+  ok("an edit clears verified_at and keeps the verified phone", again.verified_at === null && again.phone_verified === true);
+
+  // the fee
+  await db.exec(`update public.settings set onboarding_fee_paise = 0`);
+  ok("onboarding_fee is null for a zero fee", await as("authenticated", S(u), async () => (await one(`select public.onboarding_fee() f`)).f === null));
+  await db.exec(`update public.settings set onboarding_fee_paise = 49900`);
+  ok("onboarding_fee returns the paise", await as("authenticated", S(u), async () => Number((await one(`select public.onboarding_fee() f`)).f) === 49900));
+  await as("authenticated", S(u), () => rejects("a person cannot read fee_orders", () => db.query(`select * from public.fee_orders`)));
+  await as("authenticated", S(u), () => rejects("a person cannot call record_fee_payment", () => db.query(`select public.record_fee_payment('order_x', 'pay_x')`)));
+
+  const fo = async (id, owner) => db.exec(`insert into public.fee_orders (razorpay_order_id, profile_id, amount) values ('${id}', '${owner}', 49900)`);
+  await fo("order_1", u); await fo("order_2", u);
+  const rec = (o, p) => svc(async () => (await one(`select public.record_fee_payment('${o}', '${p}') r`)).r);
+  ok("the first payment records the fee", (await rec("order_1", "pay_1")).paid === true);
+  const fee = await one(`select onboarding_paid_at, onboarding_payment_id, onboarding_order_id, onboarding_amount from public.artist_private where profile_id = '${u}'`);
+  ok("the fee is on artist_private with its payment, order and amount", !!fee.onboarding_paid_at && fee.onboarding_payment_id === "pay_1" && fee.onboarding_order_id === "order_1" && Number(fee.onboarding_amount) === 49900);
+  ok("the same payment again changes nothing", (await rec("order_1", "pay_1")).paid === true);
+  ok("a payment on a second order id is a duplicate and settles its own row", (await rec("order_2", "pay_2")).duplicate === true
+    && !!(await one(`select paid_at from public.fee_orders where razorpay_order_id = 'order_2'`)).paid_at);
+  ok("a repeat of the duplicate is still a duplicate, and the recorded payment is the first", (await rec("order_2", "pay_2")).duplicate === true
+    && (await one(`select onboarding_payment_id p from public.artist_private where profile_id = '${u}'`)).p === "pay_1");
+  await svc(() => failsWith("a different payment cannot take an order already paid", "order_already_paid", () => db.query(`select public.record_fee_payment('order_1', 'pay_9')`)));
+  await svc(() => failsWith("an unknown order is refused", "not_found", () => db.query(`select public.record_fee_payment('nope', 'pay_9')`)));
+  await fo("order_3", u2);
+  ok("a person with no artist_private row gets one when their fee is recorded", (await rec("order_3", "pay_3")).paid === true
+    && Number((await one(`select count(*) c from public.artist_private where profile_id = '${u2}' and onboarding_amount = 49900`)).c) === 1);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

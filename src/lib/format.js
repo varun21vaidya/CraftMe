@@ -76,6 +76,16 @@ const reasonText = {
   disabled: 'This isn’t available yet.',
   personal_account: 'Only Business or Creator Instagram accounts can be connected.',
   verification_or_fee_missing: 'Finish your details and the joining fee first.',
+  verification_missing: 'Add your details first.',
+  artists_closed: 'CraftMe isn’t taking new Artists right now.',
+  phone_not_verified: 'Your number isn’t verified yet.',
+  fee_not_set: 'The fee to open a shop isn’t set yet. Please check back soon.',
+  already_paid: 'Your joining fee is already paid.',
+  wrong_code: 'That code isn’t right. Check it and try again.',
+  code_expired: 'That code has expired. Send a new one.',
+  phone_rate: 'Too many tries. Wait a minute, then try again.',
+  phone_taken: 'That number is already used on another CraftMe account.',
+  phone_down: 'Phone checks aren’t working right now. Please try again later.',
 };
 const codeText = {
   unauthenticated: 'Please log in to continue.',
